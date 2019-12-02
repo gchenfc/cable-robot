@@ -1,4 +1,6 @@
 list of cloning:
 #ChibiOS-RT for teensy3.6
 https://github.com/greiman/ChRt
-#FlexCAN_collin80
+#FlexCAN
+based on https://github.com/collin80/FlexCAN_Library
+Currently using modified version on borglab/cable-robot
