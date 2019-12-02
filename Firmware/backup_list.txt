@@ -1,6 +1,4 @@
 list of cloning:
-ChibiOS-RT
-FlexCAN_collin80
-https://github.com/loglow/IntervalTimer.git
-https://github.com/Nate711/ODrive-Teensy-Communication-Test.git
-
+#ChibiOS-RT for teensy3.6
+https://github.com/greiman/ChRt
+#FlexCAN_collin80
