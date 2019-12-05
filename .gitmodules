@@ -1,0 +1,3 @@
+[submodule "Firmware/libraries/ChRt"]
+	path = Firmware/libraries/ChRt
+	url = https://github.com/greiman/ChRt
