@@ -1,3 +1,7 @@
 [submodule "Firmware/libraries/ChRt"]
 	path = Firmware/libraries/ChRt
 	url = https://github.com/greiman/ChRt
+[submodule "Firmware/ODrive_firmware"]
+	path = Firmware/ODrive_firmware
+	url = https://github.com/Wetmelon/ODrive.git
+	branch = feature/CAN

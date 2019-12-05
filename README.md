@@ -9,7 +9,15 @@
 ## Firmware
 
 ### ODrive
-TODO(James): document this stuff
+TODO(James): document this stuff  
+ODrive firmware uses [Wetmelon's fork](https://github.com/Wetmelon/ODrive/tree/feature/CAN) since mainline hasn't merged CAN yet.  In the future, expect that we will need some additional firmware modifications so we may make our own fork.  
+Flashing is easy using
+```
+cd ./Firmware/ODrive_firmware/Firmware
+make
+odrivetool dfu ./build/ODriveFirmware.hex
+```
+See [odriverobotics](https://docs.odriverobotics.com/developer-guide.html) for additional info.
 
 ### Teensy
 The following libraries are required for the Teensy's code:
