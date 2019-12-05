@@ -1,3 +1,13 @@
+/**
+ * Teensy code for relaying ODrive stuff to ROS over rosserial.
+ * Contains most of base raw functionality from CAN protocol.  Doesn't include fancy functions.
+ * Usage:
+ *  Upload this code to the Teensy.
+ *  Run `rosrun rosserial_python serial_node.py _port:=/dev/ttyACM0` (change ttyACM0 with whichever port the Teensy is on)
+ * 
+ * Authors: Frank Delleart and Gerry Chen and James Luo
+ */
+
 #include "ChRt.h"
 #include <ros.h>
 #include <FlexCAN.h>
@@ -28,7 +38,7 @@ static CAN_message_t msg, inMsg;
 //============
 
 //------------------------------------------------------------------------------
-// Thread 3, turn the LED on and signal thread 1 to turn the LED off.
+// Thread CanRequest - polls odrives for position, current, and voltage
 //
 // 64 byte stack beyond task switch and interrupt needs.
 static THD_WORKING_AREA(waThreadCanRequest, 64);
@@ -45,16 +55,13 @@ static THD_FUNCTION(ThreadCanRequest, arg) {
   }
 }
 //------------------------------------------------------------------------------
-// Thread 3, turn the LED on and signal thread 1 to turn the LED off.
+// Thread CanRead - read CAN messages from odrive
 //
 // 64 byte stack beyond task switch and interrupt needs.
 static THD_WORKING_AREA(waThreadCanRead, 64);
 
 static THD_FUNCTION(ThreadCanRead, arg) {
   (void)arg;
-
-  //TODO heart beat msg we use in last time 
-  //msg..
 
   while (true) {
     if (Can0.available()) {
@@ -84,14 +91,10 @@ static THD_FUNCTION(ThreadCanRead, arg) {
       }
     }
     chThdSleepMicroseconds(1);
-    // if(prev!=status){
-    //   Can0.write(msg);
-    //   prev = status;
-    // }
   }
 }
 //------------------------------------------------------------------------------
-// Thread 4, send can signal after receiving msg from rosserial
+// Thread RosService, ros spin thread
 static THD_WORKING_AREA(waThreadRosService, 64);
 
 static THD_FUNCTION(ThreadRosService, arg) {
