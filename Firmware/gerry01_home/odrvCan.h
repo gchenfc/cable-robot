@@ -39,6 +39,13 @@ enum CanMsg_t {
     MSG_RESET_ODRIVE,
     MSG_GET_VBUS_VOLTAGE,
     MSG_SET_PI_GAIN,
+    //==================customized item===============
+    MSG_SET_POSITION_GAIN,
+    MSG_CLEAR_ERROR,
+    MSG_GET_CURRENT_LIMIT,
+    MSG_SET_CURRENT_LIMIT,
+    MSG_SET_LINEAR_COUNT
+    //==================end of customized item===============
 };
 enum Error_t {
     ERROR_NONE = 0x00,
@@ -161,4 +168,13 @@ uint8_t sendMsg(uint16_t nodeID, uint16_t cmdId, int32_t data1) {
 uint8_t sendMsg(uint16_t nodeID, uint16_t cmdId, int32_t data1, int16_t data2, int16_t data3) {
   int32_t dataCombo = ((int32_t)data3)<<16 | ((int32_t)data2);
   return sendMsg(nodeID, cmdId, data1, dataCombo);
+}
+uint8_t sendMsg(uint16_t nodeID, uint16_t cmdId, float data1, float data2) {
+  int32_t buf1, buf2;
+  memcpy(&buf1, &data1, sizeof(data1));
+  memcpy(&buf2, &data2, sizeof(data2));
+  return sendMsg(nodeID, cmdId, buf1, buf2);
+}
+uint8_t sendMsg(uint16_t nodeID, uint16_t cmdId, float data) {
+  return sendMsg(nodeID, cmdId, data, 0);
 }

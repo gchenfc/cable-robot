@@ -3,5 +3,5 @@
 	url = https://github.com/greiman/ChRt
 [submodule "Firmware/ODrive_firmware"]
 	path = Firmware/ODrive_firmware
-	url = https://github.com/Wetmelon/ODrive.git
+	url = https://github.com/gchenfc/ODrive.git
 	branch = feature/CAN

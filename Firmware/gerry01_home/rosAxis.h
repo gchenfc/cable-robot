@@ -15,6 +15,12 @@ private:
 	ros::Subscriber<std_msgs::Bool, RosAxis> sub_ctrl;
 	ros::Subscriber<std_msgs::Int32, RosAxis> sub_pos;
 	ros::Subscriber<std_msgs::Float32, RosAxis> sub_cur;
+  // ros::Subscriber<std_msgs::Float32, RosAxis> sub_KpVel;
+  // ros::Subscriber<std_msgs::Float32, RosAxis> sub_KiVel;
+	ros::Subscriber<std_msgs::Float32, RosAxis> sub_KpPos;
+  ros::Subscriber<std_msgs::Empty, RosAxis> sub_clearErrors;
+	ros::Subscriber<std_msgs::Float32, RosAxis> sub_curLim;
+	ros::Subscriber<std_msgs::Int32, RosAxis> sub_pos_est;
 	ros::Publisher pub_error;
 	ros::Publisher pub_cur_state;
 	ros::Publisher pub_cur_pos;
@@ -22,6 +28,7 @@ private:
 	ros::Publisher pub_cur_cur;
 	ros::Publisher pub_cur_setCur;
 	ros::Publisher pub_cur_volt;
+  ros::Publisher pub_lim_cur;
 
 	int32_t posZero = 0;
 
@@ -40,6 +47,7 @@ public:
 	float last_cur = 0;
 	float last_setCur = 0;
 	float last_volt = 0;
+  float last_curLim = 0;
 
 	RosAxis(uint16_t nodeID) :
 		nodeID_(nodeID),
@@ -47,13 +55,18 @@ public:
 		sub_ctrl(assembleName("odrv/axis", nodeID, "/activate"), &RosAxis::sub_ctrl_cb, this),
 		sub_pos(assembleName("odrv/axis", nodeID, "/set_pos"), &RosAxis::sub_pos_cb, this),
 		sub_cur(assembleName("odrv/axis", nodeID, "/set_cur"), &RosAxis::sub_cur_cb, this),
+    sub_KpPos(assembleName("odrv/axis", nodeID, "/set_KpPos"), &RosAxis::sub_KpPos_cb, this),
+    sub_clearErrors(assembleName("odrv/axis", nodeID, "/clear_errors"), &RosAxis::sub_clearErrors_cb, this),
+    sub_curLim(assembleName("odrv/axis", nodeID, "/set_lim_cur"), &RosAxis::sub_curLim_cb, this),
+    sub_pos_est(assembleName("odrv/axis", nodeID, "/set_pos_est"), &RosAxis::sub_pos_est_cb, this),
 		pub_error(assembleName("odrv/axis", nodeID, "/error"), &outMsg32),
 		pub_cur_state(assembleName("odrv/axis", nodeID, "/cur_state"), &outMsg32),
 		pub_cur_pos(assembleName("odrv/axis", nodeID, "/cur_pos"), &outMsgFloat),
 		pub_cur_vel(assembleName("odrv/axis", nodeID, "/cur_vel"), &outMsgFloat),
 		pub_cur_cur(assembleName("odrv/axis", nodeID, "/cur_cur"), &outMsgFloat),
 		pub_cur_setCur(assembleName("odrv/axis", nodeID, "/cur_setCur"), &outMsgFloat),
-		pub_cur_volt(assembleName("odrv/axis", nodeID, "/cur_volt"), &outMsgFloat)
+		pub_cur_volt(assembleName("odrv/axis", nodeID, "/cur_volt"), &outMsgFloat),
+    pub_lim_cur(assembleName("odrv/axis", nodeID, "/lim_cur"), &outMsgFloat)
 	{};
 
 	void init() {
@@ -61,6 +74,10 @@ public:
 		nh.subscribe(this->sub_ctrl);
 		nh.subscribe(this->sub_pos);
 		nh.subscribe(this->sub_cur);
+    nh.subscribe(this->sub_KpPos);
+    nh.subscribe(this->sub_clearErrors);
+    nh.subscribe(this->sub_curLim);
+    nh.subscribe(this->sub_pos_est);
 		nh.advertise(pub_error);
 		nh.advertise(pub_cur_state);
 		nh.advertise(pub_cur_pos);
@@ -68,6 +85,7 @@ public:
 		nh.advertise(pub_cur_cur);
 		nh.advertise(pub_cur_setCur);
 		nh.advertise(pub_cur_volt);
+    nh.advertise(pub_lim_cur);
 	};
 	
 	void sub_estop_cb(const std_msgs::Empty& estop){
@@ -82,12 +100,50 @@ public:
 	void sub_cur_cb(const std_msgs::Float32& cur){
 		set_cur(cur.data);
 	};
+	void sub_KpVel_cb(const std_msgs::Float32& data){
+    return; // TODO(gerry): this and KiVel should be bundled together
+  }
+	void sub_KiVel_cb(const std_msgs::Float32& data){
+    return; // TODO(gerry)
+  }
+	void sub_KpPos_cb(const std_msgs::Float32& data){
+    set_KpPos(data.data);
+  }
+  void sub_clearErrors_cb(const std_msgs::Empty& data){
+    set_clearErrors();
+  }
+	void sub_curLim_cb(const std_msgs::Float32& data){
+    set_curLim(data.data);
+  }
+	void sub_pos_est_cb(const std_msgs::Int32& data){
+    set_pos_est(data.data);
+  }
 
+
+	// void set_KpVel(float data){
+  //   sendMsg(nodeID_,  , data)
+  // }
+	// void set_KiVel(float data){
+  //   sendMsg(nodeID_, MSG_ , data)
+  // }
+	void set_KpPos(float data){
+    sendMsg(nodeID_, MSG_SET_POSITION_GAIN, data);
+  }
+  void set_clearErrors(){
+    sendMsg(nodeID_, MSG_CLEAR_ERROR, (int32_t)0);
+  }
+	void set_curLim(float data){
+    sendMsg(nodeID_, MSG_SET_CURRENT_LIMIT, data);
+  }
+	void set_pos_est(int32_t encoder_pos){
+    sendMsg(nodeID_, MSG_SET_LINEAR_COUNT, encoder_pos);
+  }
 	void set_estop(){
-		sendMsg(nodeID_, MSG_ODRIVE_ESTOP, 0);
+		sendMsg(nodeID_, MSG_ODRIVE_ESTOP, (int32_t)0);
 	};
 	void set_ctrl(bool ctrl){
-		sendMsg(nodeID_, MSG_SET_AXIS_REQUESTED_STATE, ctrl ? AXIS_STATE_CLOSED_LOOP_CONTROL : AXIS_STATE_IDLE);
+		sendMsg(nodeID_, MSG_SET_AXIS_REQUESTED_STATE,
+            (int32_t)(ctrl ? AXIS_STATE_CLOSED_LOOP_CONTROL : AXIS_STATE_IDLE));
 	};
 	void set_pos(int32_t pos, float vel_FF, float cur_FF){
 		sendMsg(nodeID_, MSG_SET_POS_SETPOINT, convertPosToLocal(pos),
@@ -119,6 +175,9 @@ public:
         break;
       case MSG_GET_VBUS_VOLTAGE:
         publishCurVolt(*(float*)(&inMsg.buf));
+        break;
+      case MSG_GET_CURRENT_LIMIT:
+        publishCurLim(*(float*)(&inMsg.buf));
         break;
     }
 	}
@@ -157,6 +216,11 @@ public:
 		outMsgFloat.data = val;
 		pub_cur_volt.publish(&outMsgFloat);
 	}
+  void publishCurLim(float val) {
+    last_curLim = val;
+    outMsgFloat.data = val;
+    pub_lim_cur.publish(&outMsgFloat);
+  }
 
   void setPosZero(void) {
     posZero += last_pos;

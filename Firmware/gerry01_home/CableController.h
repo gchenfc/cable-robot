@@ -22,7 +22,7 @@ class CableController {
         ros::Subscriber<std_msgs::UInt8, CableController> sub_state;
         ros::Publisher pub_state;
         uint8_t home_axis = 0;
-        systime_t gpTimer;
+        systime_t gpTimer, stateBeginTimer;
         bool state_initialized = false;
 
     public:
@@ -47,9 +47,9 @@ class CableController {
                     if (!state_initialized){
                         axis[home_axis].set_ctrl(true);
                         axis[home_axis].set_vel(-3 * CNTS_PER_REV);
-                        axis[home_axis].last_cur = 0; // hack because odrive doesn't update currents unless in closed loop control
                         state_initialized = true;
                         gpTimer = chVTGetSystemTime();
+                        stateBeginTimer = chVTGetSystemTime();
                     }
                     if (axis[home_axis].last_cur > (CURRENT_LIM*0.9)) {
                         if (TIME_I2MS(chVTTimeElapsedSinceX(gpTimer)) > 1500) {
@@ -66,6 +66,15 @@ class CableController {
                         }
                     } else {
                         gpTimer = chVTGetSystemTime();
+                        if (TIME_I2MS(chVTTimeElapsedSinceX(gpTimer)) > 1500) {
+                            axis[home_axis].set_ctrl(true);
+                            axis[home_axis].set_vel(-3 * CNTS_PER_REV);
+                        } else if (TIME_I2MS(chVTTimeElapsedSinceX(gpTimer)) > 15000) {
+                            home_axis = 0;
+                            state_initialized = false;
+                            state = ControllerState_t::CTRL_STATE_IDLE;
+                        }
+                        
                     }
                     break;
                 case ControllerState_t::CTRL_STATE_CALIBRATE:
