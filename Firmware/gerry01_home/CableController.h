@@ -66,10 +66,10 @@ class CableController {
                         }
                     } else {
                         gpTimer = chVTGetSystemTime();
-                        if (TIME_I2MS(chVTTimeElapsedSinceX(gpTimer)) > 1500) {
-                            axis[home_axis].set_ctrl(true);
-                            axis[home_axis].set_vel(-3 * CNTS_PER_REV);
-                        } else if (TIME_I2MS(chVTTimeElapsedSinceX(gpTimer)) > 15000) {
+                        if (TIME_I2MS(chVTTimeElapsedSinceX(stateBeginTimer)) > 1500) {
+                            // axis[home_axis].set_ctrl(true);
+                            // axis[home_axis].set_vel(-3 * CNTS_PER_REV);
+                        } else if (TIME_I2MS(chVTTimeElapsedSinceX(stateBeginTimer)) > 15000) {
                             home_axis = 0;
                             state_initialized = false;
                             state = ControllerState_t::CTRL_STATE_IDLE;
