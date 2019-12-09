@@ -19,7 +19,7 @@
             "watchdog_timeout": 0.0,
             "step_gpio_pin": 1,
             "dir_gpio_pin": 2,
-            "can_node_id": 0,
+            "can_node_id": 2,
             "can_heartbeat_rate_ms": 100
         },
         "motor": {
@@ -28,8 +28,8 @@
                 "pole_pairs": 7,
                 "calibration_current": 10.0,
                 "resistance_calib_max_voltage": 2.0,
-                "phase_inductance": 2.3454773327102885e-05,
-                "phase_resistance": 0.0363687202334404,
+                "phase_inductance": 2.730418236751575e-05,
+                "phase_resistance": 0.03613256290555,
                 "direction": 1,
                 "motor_type": 0,
                 "current_lim": 10.0,
@@ -60,8 +60,8 @@
                 "pre_calibrated": true,
                 "zero_count_on_find_idx": true,
                 "cpr": 8192,
-                "offset": 5586,
-                "offset_float": 0.6036249995231628,
+                "offset": 4183,
+                "offset_float": 1.100265622138977,
                 "enable_phase_interpolation": true,
                 "bandwidth": 1000.0,
                 "calib_range": 0.019999999552965164,
@@ -99,7 +99,7 @@
             "watchdog_timeout": 0.0,
             "step_gpio_pin": 7,
             "dir_gpio_pin": 8,
-            "can_node_id": 1,
+            "can_node_id": 3,
             "can_heartbeat_rate_ms": 100
         },
         "motor": {
@@ -108,8 +108,8 @@
                 "pole_pairs": 7,
                 "calibration_current": 10.0,
                 "resistance_calib_max_voltage": 2.0,
-                "phase_inductance": 2.2131611331133172e-05,
-                "phase_resistance": 0.034743987023830414,
+                "phase_inductance": 2.5043371351785026e-05,
+                "phase_resistance": 0.035178039222955704,
                 "direction": 1,
                 "motor_type": 0,
                 "current_lim": 10.0,
@@ -140,8 +140,8 @@
                 "pre_calibrated": true,
                 "zero_count_on_find_idx": true,
                 "cpr": 8192,
-                "offset": 4544,
-                "offset_float": 0.5992500185966492,
+                "offset": 5301,
+                "offset_float": 1.3381719589233398,
                 "enable_phase_interpolation": true,
                 "bandwidth": 1000.0,
                 "calib_range": 0.019999999552965164,
@@ -169,7 +169,7 @@
     },
     "can": {
         "config": {
-            "baud_rate": 500000
+            "baud_rate": 500000 // important note: this doesn't work for some reason, please do this through the odrivetool
         }
     }
 }
