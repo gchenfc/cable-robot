@@ -83,6 +83,12 @@ enum State_t {
 
 static uint8_t hex[17] = "0123456789abcdef";
 
+// manual CAN buffer.  Note: there are 16 hardware buffers but if they fill up then use manual buffers
+#define NUM_CAN_FAILED_QUEUE 25
+CAN_message_t failedQueue[NUM_CAN_FAILED_QUEUE]; // circular buffer
+uint8_t failedQueueIndexStart = 0;
+uint8_t failedQueueIndexEnd = 0;
+
 // -------------------------------------------------------------
 static void hexDump(uint8_t dumpLen, uint8_t *bytePtr)
 {
@@ -112,6 +118,12 @@ void setupOdrvCan(void)
   //if using enable pins on a transceiver they need to be set on
   pinMode(2, OUTPUT);
   digitalWrite(2, HIGH);
+  failedQueueIndexStart = 0;
+  failedQueueIndexEnd = 0;
+  Serial1.print("setup: ");
+  Serial1.print(failedQueueIndexStart);
+  Serial1.print('\t');
+  Serial1.println(failedQueueIndexEnd);
 
   Can0.setNumTXBoxes(8);
 }
@@ -148,6 +160,24 @@ uint8_t requestInfo(uint16_t nodeID, uint8_t cmdId) {
   return success;
 }
 
+uint8_t resendMsgs() {
+  // if (failedQueueIndexEnd > NUM_CAN_FAILED_QUEUE) {
+  //   Serial1.print("failedQueueIndexEnd mysteriously changed to ");
+  //   Serial1.println(failedQueueIndexEnd);
+  //   failedQueueIndexEnd = failedQueueIndexStart;
+  // }
+  // while (failedQueueIndexEnd != failedQueueIndexStart) {
+  //   Serial1.print("while: ");
+  //   Serial1.print(failedQueueIndexStart);
+  //   Serial1.print('\t');
+  //   Serial1.println(failedQueueIndexEnd);
+  //   uint8_t success = Can0.write(failedQueue[failedQueueIndexStart]);
+  //   if (success == 0)
+  //     break;
+  //   failedQueueIndexStart = (failedQueueIndexStart+1) % NUM_CAN_FAILED_QUEUE;
+  // }
+}
+
 uint8_t sendMsg(uint16_t nodeID, uint16_t cmdId, int32_t data1, int32_t data2) {
   CAN_message_t outMsg;
   outMsg.id = cmdId | (nodeID << 5);
@@ -163,6 +193,14 @@ uint8_t sendMsg(uint16_t nodeID, uint16_t cmdId, int32_t data1, int32_t data2) {
   outMsg.buf[6] = (data2 >> 16) & 0xFF;
   outMsg.buf[7] = (data2 >> 24) & 0xFF;
   uint8_t success = Can0.write(outMsg);
+  // if (success == 0) { // if failed
+  //   failedQueueIndexEnd = (failedQueueIndexEnd + 1) % NUM_CAN_FAILED_QUEUE;
+  //   if (failedQueueIndexEnd == failedQueueIndexStart) { // buffer overflow
+  //     failedQueueIndexEnd = (failedQueueIndexEnd + NUM_CAN_FAILED_QUEUE - 1) % NUM_CAN_FAILED_QUEUE;
+  //   } else {
+  //     failedQueue[failedQueueIndexEnd] = outMsg;
+  //   }
+  // }
   return success;
 }
 uint8_t sendMsg(uint16_t nodeID, uint16_t cmdId, int32_t data1) {

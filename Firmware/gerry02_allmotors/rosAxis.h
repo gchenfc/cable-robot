@@ -93,7 +93,7 @@ public:
 		nh.advertise(pub_cur_cur);
 		nh.advertise(pub_cur_setCur);
 		nh.advertise(pub_cur_volt);
-    nh.advertise(pub_lim_cur);
+		nh.advertise(pub_lim_cur);
 	};
 	
 	void sub_estop_cb(const std_msgs::Empty& estop){
@@ -123,10 +123,10 @@ public:
 	void sub_clearErrors_cb(const std_msgs::Empty& data){
 		set_clearErrors();
 	}
-		void sub_curLim_cb(const std_msgs::Float32& data){
+	void sub_curLim_cb(const std_msgs::Float32& data){
 		set_curLim(data.data);
 	}
-		void sub_pos_est_cb(const std_msgs::Int32& data){
+	void sub_pos_est_cb(const std_msgs::Int32& data){
 		set_pos_est(data.data);
 	}
 
@@ -140,7 +140,7 @@ public:
 	void set_KpPos(float data){
 		sendMsg(nodeID_, MSG_SET_POSITION_GAIN, data);
 	}
-  void set_clearErrors(){
+	void set_clearErrors(){
 		sendMsg(nodeID_, MSG_CLEAR_ERROR, (int32_t)0);
 	}
 	void set_curLim(float data){

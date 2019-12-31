@@ -7,6 +7,7 @@ from enum import Enum
 NUM_MOTORS = 4
 
 last_pos = [0,]*NUM_MOTORS
+last_err = [0,]*NUM_MOTORS
 ctrl_state = 0
 trajectory = []
 record_dur = 8 # seconds
@@ -17,6 +18,8 @@ class State_t(Enum):
     HOMING = 1
     RECORDING = 2
     REPLAYING = 3
+    ERROR = 4
+state = State_t.IDLE
 
 def activate_motors(pub_activate=None, on=True): # not working
     if pub_activate is None:
@@ -48,6 +51,17 @@ def read_pos_2_cb(data):
 def read_pos_3_cb(data):
     global last_pos
     last_pos[3] = data.data
+def read_err_cb(data, axis):
+    if data.data != 0:
+        global state
+        if (state != State_t.ERROR):
+            state = State_t.ERROR
+            for i in range(NUM_MOTORS):
+                pub_clear_errors[i].publish()
+        if (last_err[axis] == 0):
+            print('Error detected in axis %d, switching to error state'%axis)
+        last_err[axis] = data.data
+
 def read_ctrl_state_cb(data):
     global ctrl_state
     ctrl_state = data.data
@@ -70,7 +84,7 @@ def print_instructions():
     print('   0 - exit')
 
 def main():
-    global last_pos, ctrl_state, trajectory
+    global last_pos, ctrl_state, trajectory, state
     print("starting")
     rospy.init_node('desktopcommander')
     r = rospy.Rate(rate)
@@ -81,6 +95,8 @@ def main():
     rospy.Subscriber('/odrv/axis1/cur_pos', Float32, read_pos_1_cb)
     rospy.Subscriber('/odrv/axis2/cur_pos', Float32, read_pos_2_cb)
     rospy.Subscriber('/odrv/axis3/cur_pos', Float32, read_pos_3_cb)
+    for axis in range(4):
+        rospy.Subscriber('/odrv/axis%d/error'%(axis), Int32, read_err_cb, callback_args=axis)
     rospy.Subscriber('/cable_controller/cur_state', UInt8, read_ctrl_state_cb)
     print('setting up publishers...')
     pub_motorPos, pub_motorCur, pub_home = init_command_motors()
@@ -140,6 +156,13 @@ def main():
                 print('finished replaying')
                 index = 0
                 state = State_t.IDLE
+        elif state == State_t.ERROR:
+            activate_motors(pub_activate, on=False)
+            for i in range(NUM_MOTORS):
+                pub_clear_errors[i].publish()
+                last_err[i] = 0
+            print("sent clear_error messages")
+            state = State_t.IDLE
         else:
             print("unknown state - returning to IDLE")
             state = State_t.IDLE

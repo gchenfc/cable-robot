@@ -99,6 +99,7 @@ static THD_FUNCTION(ThreadCanRead, arg) {
       }
       axis[nodeID].readCAN(inMsg);
     }
+    resendMsgs(); // service manual TX buffer
     chThdSleepMicroseconds(200);
   }
 }
