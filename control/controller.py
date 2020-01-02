@@ -19,7 +19,7 @@ class Controller:
         IDLE = 1
         INIT = 2 # taught cables
         HOMING = 3
-        COMMAND = 4
+        # COMMAND = 4
         GOTOPOS = 5
         RECORDING = 6
         REPLAYING = 7
@@ -56,6 +56,7 @@ class Controller:
         self._rate = rate # Hz
         self._state_begin_time = 0
         self._home = Home(self)
+        self._command_timestamp = [0,]*self.NUM_MOTORS
 
         # publishers / subscribers
         self.setup_publishers()
@@ -64,7 +65,7 @@ class Controller:
         # init
         self._state = self.State_t.IDLE
         self._next_state = self.State_t.IDLE
-        self._commands = self.Command_t.NONE
+        self._commands = [(self.Command_t.NONE, 0),]*self.NUM_MOTORS
 
     # ------------------------------------------ SETUP ------------------------------------------ #
     def setup_publishers(self):
@@ -123,7 +124,7 @@ class Controller:
     def read_vel_cb(self, data, axis):
         self._last_vel[axis] = data.data
     def read_cur_cb(self, data, axis):
-        self._last_cur[axis] = data.data
+        self._last_cur[axis] = data.data if self._last_state[axis] == 8 else 0
     def read_setCur_cb(self, data, axis):
         self._last_setCur[axis] = data.data
     def read_volt_cb(self, data, axis):
@@ -205,8 +206,15 @@ class Controller:
         check:      true if command already executed, false otherwise
     '''
     def command_check(self, command, axis):
-        #TODO(gerry): use timer to wait certain amount of time before retrying
-        return command == _commands[axis]
+        if command != self._commands[axis]: # new command
+            self._command_timestamp[axis] = time.time()
+            return False
+        else: # old command
+            if time.time() < (self._command_timestamp[axis] + 0.1):
+                return True
+            else:
+                self._command_timestamp[axis] = self._command_timestamp[axis] + 0.1
+                return False
 
     '''command_motor: Executes a single command to a single axis.  Must be in `COMMAND` state.
     Arguments:
@@ -214,19 +222,20 @@ class Controller:
         axis:       axis to apply command to
     '''
     def command_motor(self, command, axis):
-        if self._state is not self.State_t.COMMAND:
-            return
-        if command_check(command, axis):
+        if self.command_check(command, axis):
             return
         command_type, setpoint = command
         if command_type is self.Command_t.NONE:
-            return
-        elif command_type is self.Command_t.POS:
-            self.pub_m_pos[axis].publish(setpoint)
-        elif command_type is self.Command_t.VEL:
-            self.pub_m_vel[axis].publish(setpoint)
-        elif command_type is self.Command_t.CUR:
-            self.pub_m_cur[axis].publish(setpoint)
+            self.pub_m_activate[axis].publish(False)
+        else:
+            if self._last_state[axis] != 8:
+                self.pub_m_activate[axis].publish(True)
+            if command_type is self.Command_t.POS:
+                self.pub_m_pos[axis].publish(setpoint)
+            elif command_type is self.Command_t.VEL:
+                self.pub_m_vel[axis].publish(setpoint)
+            elif command_type is self.Command_t.CUR:
+                self.pub_m_cur[axis].publish(setpoint)
         self._commands[axis] = command
 
     '''command_motor: Executes commands to each axis
@@ -234,10 +243,8 @@ class Controller:
         command:    list of tuples of (Command_t, setpoint)
     '''
     def command_motors(self, commands):
-        if self._state is self.State_t.IDLE:
-            self._state = self.State_t.COMMAND
         for i, command in enumerate(commands):
-            command_motor(command, i)
+            self.command_motor(command, i)
 
     # 'goto' functions go to setpoints in task space
     def goto_pos(self, pos):
@@ -266,8 +273,6 @@ class Controller:
         elif self._state is self.State_t.HOMING:
             rospy.loginfo("Homing...")
             self._home.setup()
-        elif self._state is self.State_t.COMMAND:
-            pass
         elif self._state is self.State_t.GOTOPOS:
             pass
         elif self._state is self.State_t.RECORDING:
@@ -337,13 +342,19 @@ class Controller:
         else:
             rospy.loginfo("unknown state %s - returning to IDLE"%(str(self._state)))
             self._advance_state()
+        self.command_motors(self._commands)
 
 class Home:
     @unique
     class State_t(Enum):
-        TIGHTEN = 1
-        WIGGLE = 2
-        HOMING = 3
+        INIT = 1
+        # TIGHTENING = 2
+        MOVING = 3
+        ZEROING = 4
+        RETURNING = 5
+        ATLIM_WAIT = 6
+        ATLIM_WIGGLE = 7
+        DONE = 8
     
     def __init__(self, controller):
         self.controller = controller
@@ -351,55 +362,191 @@ class Home:
         self.wiggle_prior = [None,]*(self.controller.NUM_MOTORS + 1)
 
     def setup(self):
-        self.state = self.State_t.TIGHTEN
+        self.state = self.State_t.INIT
         self.axis = 0
-        self.controller.set_motors_activate()
-        self.controller.set_motors_vel([-2*self.controller.CNTS_PER_REV,]*self.controller.NUM_MOTORS)
+        # self.wiggle_axis = 1
+        # self.wiggle_set = 0
+        # self.wiggle_start = 0
+        # self.wait_timer = 0
+        # self.wiggle_all = True
         self._state_begin_time = time.time()
     
-    def wiggle(self):
-        to_activate = [False,]*self.controller.NUM_MOTORS
-        to_activate[self.axis] = True
-        self.controller.set_motors_activate(to_activate)
-        self.controller.pub_m_vel[self.axis].publish(-2 * self.controller.CNTS_PER_REV)
-        # cur = [1.5,]*self.controller.NUM_MOTORS
-        # cur[self.axis] = None
-        # self.controller.set_motors_cur(cur)
+    def start_wiggle(self):
+        self.wiggle_start = self.controller._last_pos[axis]
+        self.wiggle_set = self.controller._last_pos[self.wiggle_axis] + 3*self.controller.CNTS_PER_REV
+        self.controller.command_motor((Controller.Command_t.POS, self.wiggle_set), self.wiggle_axis)
+        self.wait_timer = time.time()
+
+    def move(self, awaiting=False):
+        commands = [(Controller.Command_t.NONE, 0),]*4
+        v = 3*self.controller.CNTS_PER_REV
+        v2 = 2.5*self.controller.CNTS_PER_REV # make the other axes a little slower to maintain tension
+
+        if (not awaiting) and (abs(self.controller._last_cur[self.axis]) > 3): # let the other axes help out a little
+            if self.axis == 0:
+                pass
+            elif self.axis == 1:
+                # commands[0] = (Controller.Command_t.VEL, +v2)
+                pass
+            elif self.axis == 2:
+                x = self.controller._last_pos[0] / self.controller.CNTS_PER_REV
+                L = np.sqrt(np.square(x) + np.square(self.mount_config[1][0]))
+                # commands[0] = (Controller.Command_t.VEL, +v2)
+                # commands[1] = (Controller.Command_t.VEL, +v2 * x/L)
+                l = self.controller._last_pos[1] / self.controller.CNTS_PER_REV
+                print(L, l, L - l)
+                commands[1] = (Controller.Command_t.VEL, (L - l)*self.controller.CNTS_PER_REV)
+            elif self.axis == 3:
+                X = self.mount_config[1][0]
+                Y = self.mount_config[2][1]
+                L = np.sqrt(np.square(X) + np.square(Y))
+                L1 = X*X/L # distance from origin to point where cable 1 intersects cables 0/2 at a right angle
+                l = self.controller._last_pos[0] / self.controller.CNTS_PER_REV # distance from origin to EE
+                # commands[0] = (Controller.Command_t.VEL, +v2)
+                x = l*X/L
+                y = l*Y/L
+                s1 = np.sqrt(np.square(y) + np.square(x-X))
+                s2 = np.sqrt(np.square(x) + np.square(y-Y))
+                print(s1, s2)
+                l1 = self.controller._last_pos[1] / self.controller.CNTS_PER_REV
+                l2 = self.controller._last_pos[2] / self.controller.CNTS_PER_REV
+                commands[1] = (Controller.Command_t.VEL, (s1 - l1)*self.controller.CNTS_PER_REV)
+                commands[2] = (Controller.Command_t.VEL, (s2 - l2)*self.controller.CNTS_PER_REV)
+                # commands[1] = (Controller.Command_t.VEL, +v2 * (l-L1)/self.controller._last_pos[1])
+                # commands[2] = (Controller.Command_t.VEL, +v2 * (l - (L-L1))/self.controller._last_pos[2])
+        else:
+            if (not awaiting):
+                commands = [(Controller.Command_t.CUR, 2),]*4
+            else:
+                commands = [(Controller.Command_t.NONE, 0),]*4
+
+        commands[self.axis] = (Controller.Command_t.VEL, -v)
+        self.controller.command_motors(commands)
     
-    def update(self):
-        if self.state is self.State_t.TIGHTEN:
-            # rospy.logdebug(self.controller._last_cur)
-            if (time.time() > (self._state_begin_time + 2)):
-                # check if done
-                for i in range(self.controller.NUM_MOTORS):
-                    if ((self.controller._last_cur[i] < 5) or
-                        (self.controller._last_state[i] != 8)):
-                        rospy.logdebug(self.controller._last_cur)
-                        self.controller.set_motors_activate()
-                        self.controller.set_motors_vel([-2*self.controller.CNTS_PER_REV,]*self.controller.NUM_MOTORS)
-                        self._state_begin_time = time.time() - 0.25
-                        return
-                # done tightening
-                self.wiggle_prior[self.axis] = tuple(self.controller._last_pos)
-                rospy.logdebug(self.wiggle_prior)
-                if (self.axis >= self.controller.NUM_MOTORS):
-                    self.axis = 0
-                    self.state = self.State_t.HOMING
+    def move_return(self):
+        commands = [(Controller.Command_t.NONE, 0),]*4
+        if self.axis > 3:
+            self.controller.command_motors([(Controller.Command_t.NONE, 0),]*4)
+            self.state = self.State_t.DONE
+            return
+        # return to origin
+        if self.axis > 2:
+            pass
+            # if (self.controller._last_pos[2]/self.controller.CNTS_PER_REV) < \
+            #    (self.mount_config[2][1]/self.controller.CNTS_PER_REV):
+            #     commands[2] = (Controller.Command_t.VEL, 4*self.controller.CNTS_PER_REV)
+            # else:
+            #     commands[2] = (Controller.Command_t.POS, self.mount_config[2][1]*0.99)
+        if self.axis > 1:
+            if (self.controller._last_pos[2]/self.controller.CNTS_PER_REV) < \
+               (self.mount_config[1][0]):
+                if self.axis == 1:
+                    pass
+                    # commands[1] = (Controller.Command_t.VEL, 4*self.controller.CNTS_PER_REV)
                 else:
-                    self.state = self.State_t.WIGGLE
-                    self.wiggle()
-                self._state_begin_time = time.time()
-        elif self.state is self.State_t.WIGGLE:
-            if time.time() < (self._state_begin_time + 2):
-                return
-            self.axis = self.axis + 1
+                    commands[1] = (Controller.Command_t.VEL, -4*self.controller.CNTS_PER_REV)
+            else:
+                commands[1] = (Controller.Command_t.POS, self.mount_config[1][0]*0.99*self.controller.CNTS_PER_REV)
+        if self.axis > 0:
+            commands[0] = (Controller.Command_t.POS, 0)
+        self.controller.command_motors(commands)
+
+    def finished_axis(self):
+        if self.state is not self.State_t.ZEROING: # zero axis
+            self.controller.pub_m_pos_est[self.axis].publish(0)
             self._state_begin_time = time.time()
-            self.state = self.State_t.TIGHTEN
-        elif self.state is self.State_t.HOMING:
-            # TODO: approximate position from wiggles then home
-            self.controller.set_motors_activate([False,]*self.controller.NUM_MOTORS)
-            self.setup()
+            self.state = self.State_t.ZEROING
+        else:
+            if abs(self.controller._last_pos[self.axis] / self.controller.CNTS_PER_REV) > 0.5:
+                if time.time() > (self._state_begin_time + 0.5): # periodically resend zero signal
+                    self.controller.pub_m_pos_est[self.axis].publish(0)
+                    self._state_begin_time = time.time()
+            else:
+                # axis zero-ed, save mount_config
+                if self.axis == 0:
+                    self.mount_config = [(0,0),] * self.controller.NUM_MOTORS
+                elif self.axis == 1:
+                    self.mount_config[1] = (self.controller._last_pos[0]/self.controller.CNTS_PER_REV, 0)
+                elif self.axis == 2:
+                    self.mount_config[2] = (0, self.controller._last_pos[0]/self.controller.CNTS_PER_REV)
+                elif self.axis == 3:
+                    self.mount_config[3] = (self.controller._last_pos[2]/self.controller.CNTS_PER_REV,
+                                            self.controller._last_pos[1]/self.controller.CNTS_PER_REV)
+                    if 5 < abs(np.linalg.norm(self.mount_config[3]) -
+                                self.controller._last_pos[0]/self.controller.CNTS_PER_REV):
+                        rospy.logwarn('homing not consistent:%s\t%s'%(str(self.mount_config),
+                                                                        str(self.controller._last_pos)))
+                print('Calibrated Axis %d'%(self.axis))
+                print('\tCurrent position is: %s'%(str(self.controller._last_pos)))
+                print('\tnew mount_config is: %s'%(str(self.mount_config)))
+                
+                # next axis
+                self.axis = self.axis + 1
+                self.state = self.State_t.RETURNING
+                self._state_begin_time = time.time()
+
+    def update(self):
+        if self.controller.NUM_MOTORS != 4:
+            rospy.logwarn("Currently I only support 4 motors in a planar rectangular configuration")
             return True
+        
+        print(self.state)
+
+        if self.state is self.State_t.INIT:
+            self.state = self.State_t.MOVING
+        elif self.state is self.State_t.MOVING:
+            self.move()
+            if (self.controller._last_cur[self.axis] > 9): #TODO: make this more robust
+                self._state_begin_time = time.time()
+                self.state = self.State_t.ATLIM_WAIT
+        elif self.state is self.State_t.ATLIM_WAIT:
+            if (self.controller._last_cur[self.axis] > 9):
+                self.move(awaiting=True)
+                if time.time() > (self._state_begin_time + 1.5):
+                    self.finished_axis()
+                    # self.wiggle_all = True
+                    # self.start_wiggle()
+                    # self.state = self.State_t.ATLIM_WIGGLE
+            else:
+                self.state = self.State_t.MOVING
+        elif self.state is self.State_t.RETURNING:
+            self.move_return()
+            if (self.controller._last_pos[0] / self.controller.CNTS_PER_REV) > 1:
+                if time.time() > (self._state_begin_time + 15):
+                    rospy.logerr("Homing procedure failed to return after axis %d"%(self.axis-1))
+                    self.state = self.State_t.DONE
+            else:
+                print('Done returning: current position is %s'%(str(self.controller._last_pos)))
+                self.state = self.State_t.MOVING
+        # elif self.state is self.State_t.ATLIM_WIGGLE:
+        #     dist_to_setpoint = ((self.wiggle_set - self.controller._last_pos[self.wiggle_axis]) /
+        #                                     self.controller.CNTS_PER_REV)
+        #     if (dist_to_setpoint < 1) or (time.time() > (self.wait_timer + 1)):
+        #         # done wiggling
+        #         dist_moved = (self.wiggle_start - self.controller._last_pos[self.axis]) / self.controller.CNTS_PER_REV
+        #         if dist_moved > 1:
+        #             # wiggle more
+        #             self.wiggle_all = False
+        #             self.start_wiggle
+        #         else:
+        #             # next wiggle axis
+        #             self.controller.command_motor((Controller.Command_t.NONE, 0), self.wiggle_axis)
+        #             self.wiggle_axis = self.wiggle_axis + 1
+        #             if self.wiggle_axis == self.axis:
+        #                 self.wiggle_axis = self.wiggle_axis + 1
+        #             if self.wiggle_axis < self.controller.NUM_MOTORS:
+        #                 self.wiggle_axis = 0
+        #                 if self.wiggle_all: #done
+        #                     aoeu
+        #                 else: # go through and wiggle all again
+        #                     self.wiggle_all = True
+        #                     self.start_wiggle()
+        elif self.state is self.State_t.ZEROING:
+            self.finished_axis()
+        elif self.state is self.State_t.DONE:
+            self.controller.command_motors([(Controller.Command_t.NONE, 0),]*4)
+            return True
+
         return False
 
 def print_instructions():
@@ -420,8 +567,12 @@ def main():
     index = -1
     test_start_time = time.time()
 
-    print("Ready!")
+    def onshutdown():
+        controller.set_motors_activate([False,]*4)
+    rospy.on_shutdown(onshutdown)
 
+    print("Ready!")
+    
     while not rospy.is_shutdown():
         controller.update()
         # state transition
@@ -430,11 +581,15 @@ def main():
                 index = index + 1
                 if index == 0:
                     controller.set_state(Controller.State_t.HOMING)
+                    pass
                 else:
                     controller.set_motors_activate([False,]*4)
                     rospy.signal_shutdown("Test Complete")
                 test_start_time = time.time()
         r.sleep()
+
+    # Current position is: [-385919.0, -316878.0, -248976.0, 13.0]
+    # new mount_config is: [(0, 0), (28.3603515625, 0), (0, 37.2548828125), (30.392578125, 38.681396484375)]
 
 if __name__ == '__main__':
     main()
