@@ -15,7 +15,8 @@ def main():
 
     controller = Controller(4, 25)
     passed = True
-    index = -1
+    index = 0 # -1
+    controller.mount_config = [(0, 0), (29.965087890625, 0), (0, 38.07275390625), (30.5496826171875, 38.3133544921875)]
     test_start_time = time.time()
 
     print("Ready!")
@@ -35,8 +36,8 @@ def main():
                     # controller.set_state(Controller.State_t.INIT)
                     pass
                 elif index == 1:
-                    # pass
-                    controller.set_state(Controller.State_t.HOMING)
+                    pass
+                    # controller.set_state(Controller.State_t.HOMING)
                 elif index == 2:
                     controller.goto_pos(np.array([0.0, 0.0]))
                 elif index == 3:
