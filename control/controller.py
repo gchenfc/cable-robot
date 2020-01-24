@@ -630,9 +630,40 @@ class Home:
             self.finished_axis()
         elif self.state is self.State_t.DONE:
             self.controller.command_motors([(Controller.Command_t.NONE, 0),]*4)
+            self.controller.set_motors_pos_est(0)
             return True
 
         return False
+def move_to_pos(postion):
+    def cartesian(n):
+        return math.pow(math.pow(position[0] - self.mount_config[n][0],2)+math.pow(position[1] - self.mount_config[n][1],2), 0.5)
+    len0 = cartesian(0)
+    len1 = cartesian(1)
+    len2 = cartesian(2)
+    len3 = cartesian(3)
+    target = [0]*self.NUM_MOTORS
+    target[0] = len0
+    target[1] = len1-mount_config[1][0]
+    target[2] = len2-mount_config[2][1]
+    target[3] = len3- math.pow(math.pow(self.mount_config[3][0],2)+math.pow(self.mount_config[2][1],2), 0.5)
+    command_motor((self.Command_t.POS,target[0]),0)
+    command_motor((self.Command_t.POS,target[1]),1)
+    command_motor((self.Command_t.POS,target[2]),2)
+    command_motor((self.Command_t.POS,target[3]),3)
+    command_motors((self.Command_t.VEL,3*self.controller.CNTS_PER_REV))
+    command_motors((self.Command_t.CUR,2))
+    #TODO modify busy waiting to async
+    #TODO make conditon 
+    def compare():
+        for i in range(self.NUM_MOTORS):
+            if abs(self._last_pos[i] - target[i])< 2:
+                continue
+            else:
+                return True
+        return False 
+    while compare():
+        rospy.loginfo('current pos: '+str(self._last_pos))
+    rospy.loginfo('done movement')
 
 def print_instructions():
     rospy.loginfo('Commands:')
@@ -686,7 +717,8 @@ def main():
                     respx = input("x? ")
                     respy = input("y? ")
                     print("going to (%f, %f)"%(respx, respy))
-                    controller.goto_pos(np.array([respx, respy]))
+                    #controller.goto_pos(np.array([respx, respy]))
+                    move_to_pos(np.array([respx, respy]))
                 elif (resp == 3):
                     traj = []
                     for t, theta in enumerate(np.linspace(0, 3.1415*2, 8)):
