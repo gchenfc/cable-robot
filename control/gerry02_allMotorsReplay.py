@@ -53,7 +53,7 @@ def read_pos_3_cb(data):
     last_pos[3] = data.data
 def read_err_cb(data, axis):
     if data.data != 0:
-        global state
+        global state, pub_clear_errors
         if (state != State_t.ERROR):
             state = State_t.ERROR
             for i in range(NUM_MOTORS):
@@ -84,7 +84,7 @@ def print_instructions():
     print('   0 - exit')
 
 def main():
-    global last_pos, ctrl_state, trajectory, state
+    global last_pos, ctrl_state, trajectory, state, pub_clear_errors
     print("starting")
     rospy.init_node('desktopcommander')
     r = rospy.Rate(rate)

@@ -13,6 +13,8 @@ from std_msgs.msg import Empty, Bool, Int32, Float32, UInt8
 from enum import Enum, unique
 import time
 
+# [(0, 0), (29.965087890625, 0), (0, 38.07275390625), (30.5496826171875, 38.3133544921875)]
+# [(0, 0), (29.576416015625, 0), (0, 36.2708740234375), (29.1627197265625, 36.25390625)]
 class Controller:
     @unique
     class State_t(Enum):
@@ -21,8 +23,10 @@ class Controller:
         HOMING = 3
         # COMMAND = 4
         GOTOPOS = 5
+        GOMOTION = 9
         RECORDING = 6
         REPLAYING = 7
+        WAIT = 10
         ERROR = 8
     @unique
     class Command_t(Enum):
@@ -57,6 +61,9 @@ class Controller:
         self._state_begin_time = 0
         self._home = Home(self)
         self._command_timestamp = [0,]*self.NUM_MOTORS
+
+        # parameters
+        self.tension_revs = [1.5,]*4
 
         # publishers / subscribers
         self.setup_publishers()
@@ -188,14 +195,17 @@ class Controller:
                 publishers[i].publish(datas[i])
 
     # 'command' functions enter command state and controller does some state monitoring
+    def command_motors_none(self):
+        self.command_motors([(self.Command_t.NONE, 0),] * self.NUM_MOTORS)
+        rospy.logdebug("\tcommanded motors to relax")
     def command_motors_pos(self, pos):
-        self.command_motors(self.pub_m_pos, pos, self.Command_t.POS)
+        self.command_motors([(self.Command_t.POS, p) for p in pos])
         rospy.logdebug("\tcommanded motors to position "+str(pos))
     def command_motors_vel(self, vel):
-        self.command_motors(self.pub_m_vel, vel, self.Command_t.VEL)
+        self.command_motors([(self.Command_t.VEL, v) for v in vel])
         rospy.logdebug("\tcommanded motors to velocity "+str(vel))
     def command_motors_cur(self, cur):
-        self.command_motors(self.pub_m_cur, cur, self.Command_t.CUR)
+        self.command_motors([(self.Command_t.CUR, i) for i in cur])
         rospy.logdebug("\tcommanded motors to current "+str(cur))
 
     '''command_check: Checks if a command is already being executed properly
@@ -250,6 +260,26 @@ class Controller:
     def goto_pos(self, pos):
         self._setpoint_pos = pos
         self.set_state(self.State_t.GOTOPOS)
+    '''
+    Arguments:
+        traj: trajectory in the form [(t, [x, y]), ...]
+    '''
+    def goto_motion(self, traj):
+        self._setpoint_traj = traj
+        self._traj_index = 0
+        self.set_state(self.State_t.GOMOTION)
+    
+    def go_record(self, record_dur = None):
+        self._traj_index = 0
+        if record_dur is not None:
+            self._record_dur = record_dur
+        self.set_state(self.State_t.RECORDING)
+    def go_replay(self):
+        self._traj_index = 0
+        self.set_state(self.State_t.REPLAYING)
+    def go_wait(self, duration):
+        self._duration = duration
+        self.set_state(self.State_t.WAIT)
     
     # --------------------------------------- CONTROLLER --------------------------------------- #
     def set_state(self, state):
@@ -274,14 +304,32 @@ class Controller:
             rospy.loginfo("Homing...")
             self._home.setup()
         elif self._state is self.State_t.GOTOPOS:
-            pass
+            commands = []
+            for i in range(self.NUM_MOTORS):
+                commands.append( (self.Command_t.POS,
+                                  (np.linalg.norm(
+                                      self._setpoint_pos -
+                                      np.array(self.mount_config[i])
+                                  )-self.tension_revs[i]) * self.CNTS_PER_REV) )
+            self.command_motors(commands)
+        elif self._state is self.State_t.GOMOTION:
+            self._traj_index = 0
+            commands = []
+            for i in range(self.NUM_MOTORS):
+                commands.append( (self.Command_t.POS,
+                                (np.linalg.norm(
+                                    np.array(self._setpoint_traj[self._traj_index][1]) -
+                                    np.array(self.mount_config[i])
+                                )-self.tension_revs[i]) * self.CNTS_PER_REV) )
+            self.command_motors(commands)
         elif self._state is self.State_t.RECORDING:
             self._trajectory = []
             self._traj_index = 0
-            self.set_motors_activate([True,]*self.NUM_MOTORS)
-            self.set_motors_cur([4,]*self.NUM_MOTORS)
+            self.command_motors_cur([4,] * self.NUM_MOTORS)
         elif self._state is self.State_t.REPLAYING:
             self.set_motors_activate([True,]*self.NUM_MOTORS)
+        elif self._state is self.State_t.WAIT:
+            pass
         self._state_begin_time = time.time()
 
     def update(self):
@@ -310,27 +358,63 @@ class Controller:
                 rospy.loginfo('done homing!')
                 self.mount_config = self._home.mount_config
                 self._advance_state()
+        elif self._state is self.State_t.GOTOPOS:
+            completed = True
+            for i in range(4):
+                print '%8.5f '%(self._last_pos[i]/self.CNTS_PER_REV),
+            print
+            for i in range(4):
+                print '%8.3f '%(self._commands[i][1]/self.CNTS_PER_REV),
+            print
+            for i in range(self.NUM_MOTORS):
+                # print('%f\t%f'%(self._last_pos[i]/self.CNTS_PER_REV, self._commands[i][1]/self.CNTS_PER_REV))
+                if abs((self._last_pos[i] - self._commands[i][1]) / self.CNTS_PER_REV) > 0.5:
+                    completed = False
+                    # break
+            if completed:
+                print('finished going to position')
+                self._advance_state()
+            elif time.time() > (self._state_begin_time + 10):
+                print('timed out')
+                self._advance_state()
+        elif self._state is self.State_t.GOMOTION:
+            if time.time() > (self._state_begin_time + self._setpoint_traj[self._traj_index][0]):
+                self._traj_index = self._traj_index + 1
+                if self._traj_index >= len(self._setpoint_traj):
+                    self._advance_state()
+                else:
+                    print(self._setpoint_traj[self._traj_index][1])
+                    commands = []
+                    for i in range(self.NUM_MOTORS):
+                        commands.append( (self.Command_t.POS,
+                                        (np.linalg.norm(
+                                            np.array(self._setpoint_traj[self._traj_index][1]) -
+                                            np.array(self.mount_config[i])
+                                        )-self.tension_revs[i]) * self.CNTS_PER_REV) )
+                    self.command_motors(commands)
         elif self._state is self.State_t.RECORDING:
-            if self._traj_index < (record_dur * rate):
-                trajectory.append(tuple(last_pos))
+            if self._traj_index < (self._record_dur * self._rate):
+                self._trajectory.append(tuple(self._last_pos))
                 self._traj_index = self._traj_index + 1
             else:
                 self._traj_index = 0
                 rospy.loginfo('finished recording.')
-                # rospy.logdebug(trajectory)
-                # command_motors_cur(pub_m_cur, [0,]*NUM_MOTORS)
-                self.set_motors_activate(on=[False,]*self.NUM_MOTORS)
+                rospy.logdebug(self._trajectory)
+                self.command_motors_none()
                 self._advance_state()
         elif self._state is self.State_t.REPLAYING:
-            if self._traj_index < len(trajectory):
-                # rospy.logdebug(trajectory[self._traj_index])
-                command_motors_pos(pub_m_pos, trajectory[self._traj_index])
-                self._traj_index = self._traj_index + 1
+            if self._traj_index < len(self._trajectory):
+                rospy.logdebug(self._trajectory[self._traj_index])
+                self.command_motors_pos(self._trajectory[self._traj_index])
+                self._traj_index = self._traj_index + 2 # play at double speed
             else:
                 # command_motors_cur(pub_m_cur, [0,]*NUM_MOTORS)
-                self.set_motors_activate(on=[False,]*self.NUM_MOTORS)
+                self.command_motors_none()
                 rospy.loginfo('finished replaying')
                 self._traj_index = 0
+                self._advance_state()
+        elif self._state is self.State_t.WAIT:
+            if time.time() > (self._state_begin_time + self._duration):
                 self._advance_state()
         elif self._state is self.State_t.ERROR:
             self.set_motors_activate(on=[False,]*self.NUM_MOTORS)
@@ -440,13 +524,14 @@ class Home:
         if self.axis > 1:
             if (self.controller._last_pos[2]/self.controller.CNTS_PER_REV) < \
                (self.mount_config[1][0]):
-                if self.axis == 1:
+                if self.axis == 2:
                     pass
                     # commands[1] = (Controller.Command_t.VEL, 4*self.controller.CNTS_PER_REV)
                 else:
                     commands[1] = (Controller.Command_t.VEL, -4*self.controller.CNTS_PER_REV)
             else:
                 commands[1] = (Controller.Command_t.POS, self.mount_config[1][0]*0.99*self.controller.CNTS_PER_REV)
+            commands[1] = (Controller.Command_t.NONE, 4*self.controller.CNTS_PER_REV)
         if self.axis > 0:
             commands[0] = (Controller.Command_t.POS, 0)
         self.controller.command_motors(commands)
@@ -545,15 +630,53 @@ class Home:
             self.finished_axis()
         elif self.state is self.State_t.DONE:
             self.controller.command_motors([(Controller.Command_t.NONE, 0),]*4)
+            self.controller.set_motors_pos_est(0)
             return True
 
         return False
+def move_to_pos(postion):
+    def cartesian(n):
+        return math.pow(math.pow(position[0] - self.mount_config[n][0],2)+math.pow(position[1] - self.mount_config[n][1],2), 0.5)
+    len0 = cartesian(0)
+    len1 = cartesian(1)
+    len2 = cartesian(2)
+    len3 = cartesian(3)
+    target = [0]*self.NUM_MOTORS
+    target[0] = len0
+    target[1] = len1-mount_config[1][0]
+    target[2] = len2-mount_config[2][1]
+    target[3] = len3- math.pow(math.pow(self.mount_config[3][0],2)+math.pow(self.mount_config[2][1],2), 0.5)
+    command_motor((self.Command_t.POS,target[0]),0)
+    command_motor((self.Command_t.POS,target[1]),1)
+    command_motor((self.Command_t.POS,target[2]),2)
+    command_motor((self.Command_t.POS,target[3]),3)
+    command_motors((self.Command_t.VEL,3*self.controller.CNTS_PER_REV))
+    command_motors((self.Command_t.CUR,2))
+    #TODO modify busy waiting to async
+    #TODO make conditon 
+    def compare():
+        for i in range(self.NUM_MOTORS):
+            if abs(self._last_pos[i] - target[i])< 2:
+                continue
+            else:
+                return True
+        return False 
+    while compare():
+        rospy.loginfo('current pos: '+str(self._last_pos))
+    rospy.loginfo('done movement')
 
 def print_instructions():
     rospy.loginfo('Commands:')
     rospy.loginfo('   1 - Home')
-    rospy.loginfo('   2 - Record motion')
-    rospy.loginfo('   3 - Playback motion')
+    # rospy.loginfo('   2 - Record motion')
+    rospy.loginfo('   2 - Go to position')
+    rospy.loginfo('   3 - Play preset motion')
+    rospy.loginfo('   4 - set "tension_revs"')
+    rospy.loginfo('   5 - tension')
+    rospy.loginfo('   6 - untension')
+    rospy.loginfo('   7 - record motion')
+    rospy.loginfo('   8 - replay motion')
+    rospy.loginfo('   9 - hold current pos')
     rospy.loginfo('   0 - exit')
 
 def main():
@@ -563,6 +686,8 @@ def main():
     r = rospy.Rate(25)
 
     controller = Controller(4, 25)
+    # [-377700.0, -296992.0, -238901.0, 0.0]
+    controller.mount_config = [(0, 0), (29.576416015625, 0), (0, 36.2708740234375), (29.1627197265625, 36.25390625)]
     passed = True
     index = -1
     test_start_time = time.time()
@@ -578,14 +703,58 @@ def main():
         # state transition
         if time.time() > (test_start_time + 1):
             if controller.get_state() is Controller.State_t.IDLE:
-                index = index + 1
-                if index == 0:
-                    controller.set_state(Controller.State_t.HOMING)
-                    pass
-                else:
+                controller.set_motors_activate([False,]*4)
+                print_instructions()
+                resp = input("what would you like to do?\t")
+                if (resp == 0):
+                    print('exiting')
                     controller.set_motors_activate([False,]*4)
-                    rospy.signal_shutdown("Test Complete")
-                test_start_time = time.time()
+                    rospy.signal_shutdown("user exit")
+                    continue
+                elif (resp == 1):
+                    controller.set_state(Controller.State_t.HOMING)
+                elif (resp == 2):
+                    respx = input("x? ")
+                    respy = input("y? ")
+                    print("going to (%f, %f)"%(respx, respy))
+                    #controller.goto_pos(np.array([respx, respy]))
+                    move_to_pos(np.array([respx, respy]))
+                elif (resp == 3):
+                    traj = []
+                    for t, theta in enumerate(np.linspace(0, 3.1415*2, 8)):
+                        traj.append(((t+1)*5, [15 + 5*np.cos(theta), 15 + 5*np.sin(theta)]))
+                    controller.goto_motion(traj)
+                elif (resp == 4):
+                    rev = []
+                    rev.append(input("tension_rev0? "))
+                    rev.append(input("tension_rev1? "))
+                    rev.append(input("tension_rev2? "))
+                    rev.append(input("tension_rev3? "))
+                    print("setting tension_revs to (%f, %f, %f, %f)"%(tuple(rev)))
+                    controller.tension_revs = rev
+                elif (resp == 5):
+                    dur = input('how long would you like to pull? ')
+                    commands = []
+                    for i in range(4):
+                        commands.append((controller.Command_t.CUR, 3))
+                    controller.command_motors(commands)
+                    controller.go_wait(dur)
+                elif (resp == 6):
+                    commands = []
+                    for i in range(4):
+                        commands.append((controller.Command_t.NONE, 0))
+                    controller.command_motors(commands)
+                    controller.go_wait(3)
+                elif (resp == 7):
+                    controller.go_record(record_dur=dur)
+                elif (resp == 8):
+                    controller.go_replay()
+                elif (resp == 9):
+                    dur = input('how long would you like to hold? ')
+                    cur_pos = controller._last_pos
+                    controller.command_motors_pos([p - 0.5*controller.CNTS_PER_REV for p in cur_pos])
+                    controller.go_wait(dur)
+                
         r.sleep()
 
     # Current position is: [-385919.0, -316878.0, -248976.0, 13.0]
