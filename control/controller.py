@@ -7,6 +7,7 @@ You must:
 Example usage in main()
 Authors: Gerry Chen and Frank Dellaert
 '''
+import math
 import rospy
 import numpy as np
 from std_msgs.msg import Empty, Bool, Int32, Float32, UInt8
@@ -427,6 +428,37 @@ class Controller:
             rospy.loginfo("unknown state %s - returning to IDLE"%(str(self._state)))
             self._advance_state()
         self.command_motors(self._commands)
+    def move_to_pos(self,position):
+        def cartesian(n):
+            return math.pow(math.pow(position[0] - self.mount_config[n][0],2)+math.pow(position[1] - self.mount_config[n][1],2), 0.5)
+        len0 = cartesian(0)
+        len1 = cartesian(1)
+        len2 = cartesian(2)
+        len3 = cartesian(3)
+        target = [0]*self.NUM_MOTORS
+        target[0] = len0
+        target[1] = len1-self.mount_config[1][0]
+        target[2] = len2-self.mount_config[2][1]
+        target[3] = len3- math.pow(math.pow(self.mount_config[3][0],2)+math.pow(self.mount_config[2][1],2), 0.5)
+        self.command_motor((self.Command_t.POS,target[0]),0)
+        self.command_motor((self.Command_t.POS,target[1]),1)
+        self.command_motor((self.Command_t.POS,target[2]),2)
+        self.command_motor((self.Command_t.POS,target[3]),3)
+        self.command_motors([(self.Command_t.VEL,3*self.CNTS_PER_REV),]*4)
+        #self.command_motors((self.Command_t.CUR,2))
+        #TODO modify busy waiting to async
+        #TODO make conditon 
+        def compare():
+            for i in range(self.NUM_MOTORS):
+                if abs(self._last_pos[i] - target[i])< 2:
+                    continue
+                else:
+                    return True
+            return False 
+        while compare():
+            rospy.loginfo('current pos: '+str(self._last_pos))
+        rospy.loginfo('done movement')
+
 
 class Home:
     @unique
@@ -468,11 +500,14 @@ class Home:
 
         if (not awaiting) and (abs(self.controller._last_cur[self.axis]) > 3): # let the other axes help out a little
             if self.axis == 0:
+                print("move state 0")
                 pass
             elif self.axis == 1:
+                print("move state 1")
                 # commands[0] = (Controller.Command_t.VEL, +v2)
                 pass
             elif self.axis == 2:
+                print("move state 2")
                 x = self.controller._last_pos[0] / self.controller.CNTS_PER_REV
                 L = np.sqrt(np.square(x) + np.square(self.mount_config[1][0]))
                 # commands[0] = (Controller.Command_t.VEL, +v2)
@@ -481,6 +516,7 @@ class Home:
                 print(L, l, L - l)
                 commands[1] = (Controller.Command_t.VEL, (L - l)*self.controller.CNTS_PER_REV)
             elif self.axis == 3:
+                print("move state 3")
                 X = self.mount_config[1][0]
                 Y = self.mount_config[2][1]
                 L = np.sqrt(np.square(X) + np.square(Y))
@@ -508,6 +544,7 @@ class Home:
         self.controller.command_motors(commands)
     
     def move_return(self):
+        print("move return")
         commands = [(Controller.Command_t.NONE, 0),]*4
         if self.axis > 3:
             self.controller.command_motors([(Controller.Command_t.NONE, 0),]*4)
@@ -581,11 +618,11 @@ class Home:
             self.state = self.State_t.MOVING
         elif self.state is self.State_t.MOVING:
             self.move()
-            if (self.controller._last_cur[self.axis] > 9): #TODO: make this more robust
+            if (self.controller._last_cur[self.axis] > 14): #TODO: make this more robust
                 self._state_begin_time = time.time()
                 self.state = self.State_t.ATLIM_WAIT
         elif self.state is self.State_t.ATLIM_WAIT:
-            if (self.controller._last_cur[self.axis] > 9):
+            if (self.controller._last_cur[self.axis] > 14):
                 self.move(awaiting=True)
                 if time.time() > (self._state_begin_time + 1.5):
                     self.finished_axis()
@@ -630,40 +667,10 @@ class Home:
             self.finished_axis()
         elif self.state is self.State_t.DONE:
             self.controller.command_motors([(Controller.Command_t.NONE, 0),]*4)
-            self.controller.set_motors_pos_est(0)
+            #self.controller.set_motors_pos_est(0)
             return True
 
         return False
-def move_to_pos(postion):
-    def cartesian(n):
-        return math.pow(math.pow(position[0] - self.mount_config[n][0],2)+math.pow(position[1] - self.mount_config[n][1],2), 0.5)
-    len0 = cartesian(0)
-    len1 = cartesian(1)
-    len2 = cartesian(2)
-    len3 = cartesian(3)
-    target = [0]*self.NUM_MOTORS
-    target[0] = len0
-    target[1] = len1-mount_config[1][0]
-    target[2] = len2-mount_config[2][1]
-    target[3] = len3- math.pow(math.pow(self.mount_config[3][0],2)+math.pow(self.mount_config[2][1],2), 0.5)
-    command_motor((self.Command_t.POS,target[0]),0)
-    command_motor((self.Command_t.POS,target[1]),1)
-    command_motor((self.Command_t.POS,target[2]),2)
-    command_motor((self.Command_t.POS,target[3]),3)
-    command_motors((self.Command_t.VEL,3*self.controller.CNTS_PER_REV))
-    command_motors((self.Command_t.CUR,2))
-    #TODO modify busy waiting to async
-    #TODO make conditon 
-    def compare():
-        for i in range(self.NUM_MOTORS):
-            if abs(self._last_pos[i] - target[i])< 2:
-                continue
-            else:
-                return True
-        return False 
-    while compare():
-        rospy.loginfo('current pos: '+str(self._last_pos))
-    rospy.loginfo('done movement')
 
 def print_instructions():
     rospy.loginfo('Commands:')
@@ -687,7 +694,8 @@ def main():
 
     controller = Controller(4, 25)
     # [-377700.0, -296992.0, -238901.0, 0.0]
-    controller.mount_config = [(0, 0), (29.576416015625, 0), (0, 36.2708740234375), (29.1627197265625, 36.25390625)]
+    controller.set_motors_curLim([15]*4)
+    controller.mount_config =[(0, 0), (26.4539794921875, 0), (0, 34.0986328125), (27.4700927734375, 33.39453125)]
     passed = True
     index = -1
     test_start_time = time.time()
@@ -718,7 +726,7 @@ def main():
                     respy = input("y? ")
                     print("going to (%f, %f)"%(respx, respy))
                     #controller.goto_pos(np.array([respx, respy]))
-                    move_to_pos(np.array([respx, respy]))
+                    controller.move_to_pos(np.array([respx, respy]))
                 elif (resp == 3):
                     traj = []
                     for t, theta in enumerate(np.linspace(0, 3.1415*2, 8)):
