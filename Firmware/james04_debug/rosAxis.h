@@ -22,7 +22,7 @@ private:
   // ros::Subscriber<std_msgs::Float32, RosAxis> sub_KpVel;
   // ros::Subscriber<std_msgs::Float32, RosAxis> sub_KiVel;
 	ros::Subscriber<std_msgs::Float32, RosAxis> sub_KpPos;
-  ros::Subscriber<std_msgs::Empty, RosAxis> sub_clearErrors;
+    ros::Subscriber<std_msgs::Empty, RosAxis> sub_clearErrors;
 	ros::Subscriber<std_msgs::Float32, RosAxis> sub_curLim;
 	ros::Subscriber<std_msgs::Int32, RosAxis> sub_pos_est;
 	ros::Publisher pub_error;

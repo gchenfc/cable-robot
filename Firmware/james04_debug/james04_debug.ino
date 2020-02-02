@@ -9,6 +9,9 @@
  */
 
 #include "ChRt.h"
+#include "ch.h"
+#include "ds.h"
+#include "util.h"
 #include <ros.h>
 #include <FlexCAN.h>
 #include <std_msgs/String.h>
@@ -20,11 +23,16 @@
 #include "odrvCan.h"
 ros::NodeHandle_<ArduinoHardware, 50, 50, 512, 512> nh; // <max subs, max pubs, input size, output size> - see ros_lib/ros/node_handle.h
 #include "rosAxis.h"
+#include "rosSystem.h"
 RosAxis axis[NUM_DRIVES] = {RosAxis(0), RosAxis(1), RosAxis(2), RosAxis(3)};
 #include "CableController.h"
 //------------
 
+Queue msg_queue[NUM_DRIVES] = {Queue(), Queue(), Queue(), Queue()};
+
+
 CableController controller;
+RosSystem sysReport;
 
 int alive_led_status = 0;
 void alive_led_cb( const std_msgs::Empty& toggle_msg){
@@ -33,13 +41,14 @@ void alive_led_cb( const std_msgs::Empty& toggle_msg){
 }
 ros::Subscriber<std_msgs::Empty> alive_led("toggle_led", &alive_led_cb);
 
-static CAN_message_t msg, inMsg;
+static CAN_message_t inMsg;
 //============
 
 //------------------------------------------------------------------------------
 // Thread Controller - handles higher level control functionality running on Teensy
 //
 // 256 byte stack beyond task switch and interrupt needs.
+
 static THD_WORKING_AREA(waThreadController, 256);
 static THD_FUNCTION(ThreadController, arg) {
   (void)arg;
@@ -54,6 +63,7 @@ static THD_FUNCTION(ThreadController, arg) {
 // Thread ControllerPublisher - periodically reports CableController information
 //
 // 64 byte stack beyond task switch and interrupt needs.
+/*
 static THD_WORKING_AREA(waThreadControllerPublisher, 64);
 static THD_FUNCTION(ThreadControllerPublisher, arg) {
   (void)arg;
@@ -63,7 +73,7 @@ static THD_FUNCTION(ThreadControllerPublisher, arg) {
     chThdSleepMilliseconds(50);
   }
 }
-
+*/
 //------------------------------------------------------------------------------
 // Thread CanRequest - polls odrives for position, current, and voltage
 //
@@ -87,70 +97,104 @@ static THD_FUNCTION(ThreadCanRequest, arg) {
 static THD_WORKING_AREA(waThreadCanRead, 64);
 static THD_FUNCTION(ThreadCanRead, arg) {
   (void)arg;
-
-  uint16_t nodeID;
+  digitalWrite(13, HIGH);
+  uint16_t nodeID = 0;
 
   while (true) {
     if (Can0.available()) {
+
       Can0.read(inMsg);
       nodeID = inMsg.id >> 5;
       if (nodeID >= NUM_DRIVES) {
         continue;
       }
-      axis[nodeID].readCAN(inMsg);
+
+      //push to message queue
+      CAN_message_t* to_add = new CAN_message_t();
+      msgCopy(inMsg, to_add);
+      /*
+      chMtxLock(&(msg_queue[nodeID].lock));
+      Queue_Node* qn = new Queue_Node();
+      qn->item = to_add;
+      if (msg_queue[nodeID].front == NULL) {
+        msg_queue[nodeID].front = qn;
+        msg_queue[nodeID].end = qn;
+      }else{
+        msg_queue[nodeID].end->next = (void*) qn;
+        msg_queue[nodeID].end = qn;
+      }
+      chMtxUnlock(&(msg_queue[nodeID].lock));
+      */
     }
+
     resendMsgs(); // service manual TX buffer
     chThdSleepMicroseconds(200);
   }
 }
 //------------------------------------------------------------------------------
 // Thread RosService, ros spin thread
-static THD_WORKING_AREA(waThreadRosService, 64);
+static THD_WORKING_AREA(waThreadRosService, 256);
 static THD_FUNCTION(ThreadRosService, arg) {
   (void)arg;
+  digitalWrite(13, LOW);
+  uint16_t nodeID=0;
+  CAN_message_t* msg2send;
 
   while (true) {
     nh.spinOnce();
     // chThdSleepMilliseconds(1);
     chThdSleepMicroseconds(200);
-  }
-}
-//------------------------------------------------------------------------------
-// Thread RosService, ros spin thread
-static THD_WORKING_AREA(waThreadKernelReport, 64);
-static THD_FUNCTION(ThreadKernelReport, arg) {
-  (void)arg;
+    controller.publish();
+    chThdSleepMilliseconds(50);
+    sysReport.publish();
+    chThdSleepMilliseconds(50);
 
-  while (true) {
-    Serial1.println("lock ");
-    Serial1.println(ch.dbg.isr_cnt);
-    Serial1.println(ch.dbg.lock_cnt); 
-    Serial1.println("panic ");
-    Serial1.println(ch.dbg.panic_msg);
-    Serial1.println("ctx switch ");
-    Serial1.println(ch.kernel_stats.n_ctxswc);
+    //read from msg queue
+    
+    chMtxLock(&(msg_queue[nodeID].lock));
+      if (msg_queue[nodeID].front != NULL){
+          msg2send = (CAN_message_t*) msg_queue[nodeID].front->item;
+          Queue_Node* tmp = msg_queue[nodeID].front;
+          msg_queue->front = (Queue_Node*) tmp -> next;
+          if (tmp -> next == NULL) {
+            msg_queue[nodeID].end = NULL;
+          }
+          axis[nodeID].readCAN(*msg2send);
+          delete tmp->item;
+          delete tmp;
+      }
+    chMtxUnlock(&(msg_queue[nodeID].lock));
+      
+    nodeID = (nodeID+1)%NUM_DRIVES;
+      
+
+    chThdSleepMilliseconds(50);
+
   }
+
 }
+
 //------------------------------------------------------------------------------
 // continue setup() after chBegin().
 void chSetup() {
   // Start threads.
+  for (uint16_t i = 0; i < NUM_DRIVES; i++){
+    chMtxObjectInit(&(msg_queue[i].lock));
+  }
+  
   chThdCreateStatic(waThreadController, sizeof(waThreadController),
     NORMALPRIO + 3, ThreadController, NULL);
-  chThdCreateStatic(waThreadControllerPublisher, sizeof(waThreadControllerPublisher),
-    NORMALPRIO + 2, ThreadControllerPublisher, NULL);
   chThdCreateStatic(waThreadCanRead, sizeof(waThreadCanRead),
-    NORMALPRIO + 1, ThreadCanRead, NULL);
+    NORMALPRIO + 3, ThreadCanRead, NULL);
   chThdCreateStatic(waThreadCanRequest, sizeof(waThreadCanRequest),
-    NORMALPRIO + 1, ThreadCanRequest, NULL);
+    NORMALPRIO + 2, ThreadCanRequest, NULL);
   chThdCreateStatic(waThreadRosService, sizeof(waThreadRosService),
-    NORMALPRIO + 1, ThreadRosService, NULL);
-  chThdCreateStatic(waThreadKernelReport, sizeof(waThreadKernelReport),
-    NORMALPRIO + 1, ThreadKernelReport, NULL);
+    NORMALPRIO + 4, ThreadRosService, NULL);
 }
 //------------------------------------------------------------------------------
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(13, HIGH);
   Serial1.begin(115200);
   Serial1.println("Startup initiated!");
   setupOdrvCan();
