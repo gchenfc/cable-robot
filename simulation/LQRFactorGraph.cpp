@@ -22,7 +22,7 @@ namespace cable_robot{
 		private:
 			std::vector<gtsam::Key> tension, point, forces, forcesAnchor, pointEE, velEE, forceEE;
 			std::vector<std::vector<gtsam::Key>> intermediateForces;
-			std::vector<std::vector<float>> EEpath;
+			std::vector<std::vector<double>> EEpath;
 				
 			gtsam::Point3 anchorPoints[4] = {
 				gtsam::Point3(0,0,0),
@@ -32,12 +32,12 @@ namespace cable_robot{
 			};
 			gtsam::Pose3 EEinitLoc;
 			int mass;
-			std::vector<float> tension_lim;
+			std::vector<double> tension_lim;
 			gtsam::NonlinearFactorGraph graph;
 			gtsam::Values linPoint;
 
-			std::vector<float> line_space(int start,int end,  int n) {
-				std::vector<float> out;
+			std::vector<double> line_space(int start,int end,  int n) {
+				std::vector<double> out;
 				if (n == 0) {
 					return out;
 				}else if(n == 1){
@@ -49,8 +49,8 @@ namespace cable_robot{
 					return out;
 				}
 				out.push_back(start);
-				float buff = start;
-				float delta = ((float)(end-start))/(n-2);
+				double buff = start;
+				double delta = ((double)(end-start))/(n-2);
 				for (int i = 0; i < (n-2); i++) {
 					buff += delta;
 					out.push_back(buff);
@@ -58,11 +58,11 @@ namespace cable_robot{
 				out.push_back(end);
 				return out;
 			};
-			std::vector<std::vector<float>> path_builder(std::vector<float> times) {
-				std::vector<std::vector<float>> out;
+			std::vector<std::vector<double>> path_builder(std::vector<double> times) {
+				std::vector<std::vector<double>> out;
 				for (int i = 0; i < times.size(); i++) {
-					static const float arr[3] = {cos(i/3*2*M_PI)*0.25+0.5,sin(i/3*2*M_PI)*0.25+0.5,0};
-					std::vector<float> vec(arr, arr + sizeof(arr) / sizeof(arr[0]));
+					static const double arr[3] = {cos(i/3*2*M_PI)*0.25+0.5,sin(i/3*2*M_PI)*0.25+0.5,0};
+					std::vector<double> vec(arr, arr + sizeof(arr) / sizeof(arr[0]));
 					out.push_back(vec);
 				};
 				return out;
@@ -87,7 +87,7 @@ namespace cable_robot{
 				//std::vector<std::shared_ptr<gtsam::Symbol>> forces;
 				//graph = gtsam::NonlinearFactorGraph();
 				mass = 1;
-				std::vector<float> timeline = line_space(0,3,50);
+				std::vector<double> timeline = line_space(0,3,50);
 				tension_lim.push_back(0.1);
 				tension_lim.push_back(10);
 				EEpath =  path_builder(timeline);
@@ -194,7 +194,7 @@ namespace cable_robot{
 				for (int ti = 0; ti < timeline.size(); ti++) {
 					dest << "timeline#" << ti << std::endl;
 					dest << result.at<gtsam::Point3>(pointEE[ti]).vector() << std::endl;
-					for (float n : EEpath[ti]){
+					for (double n : EEpath[ti]){
 						dest << n << "_";
 					}
 					dest << std::endl;
