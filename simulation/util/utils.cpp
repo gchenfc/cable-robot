@@ -6,6 +6,8 @@
 
 #include "utils.h"
 
+#include <fstream>
+
 using namespace std;
 using namespace gtsam;
 
@@ -85,8 +87,7 @@ vector<vector<Point3>> sphereCenters(vector<double> lengths,
 }
 
 void saveForVisualization(
-    vector<Vector> &jointAngle, Pose3 &goalPose, int dof, string &dir,
-    boost::optional<manipulator::SignedDistanceField &> sdf) {
+    vector<Vector> &jointAngle, Pose3 &goalPose, int dof, string &dir) {
   ofstream q_output;
   for (int i = 0; i < dof + 2; ++i) {
     char str[100];
@@ -112,14 +113,6 @@ void saveForVisualization(
   goal_output.open(dir + "goal.txt");
   goal_output << goalPose.translation().vector() << endl;
   goal_output.close();
-
-  if (sdf) {
-    ofstream fieldInfo_output;
-    fieldInfo_output.open(dir + "fieldInfo.txt");
-    fieldInfo_output << sdf->origin().vector() << endl;
-    fieldInfo_output << sdf->cellSize() << endl;
-    fieldInfo_output.close();
-  }
 }
 
 vector<Pose3> circle(int numOfWayPoints, double goalAngle, double radius) {

@@ -4,7 +4,7 @@
  * @Author: Frank Dellaert and Gerry Chen
  */
 
-#include "CableFactor.h"
+#include "factors/CableFactor.h"
 
 #include <gtsam/base/Vector.h>
 #include <gtsam/inference/Symbol.h>

@@ -4,7 +4,7 @@
  * @Author: Frank Dellaert, Gerry Chen and Zhangqi Luo
  */
 
-#include "MotorFactor.h"
+#include "factors/MotorFactor.h"
 
 #include <gtsam/base/Vector.h>
 #include <gtsam/inference/Symbol.h>

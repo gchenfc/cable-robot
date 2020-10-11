@@ -16,9 +16,9 @@
 #include <cmath>
 #include <fstream>
 
-#include "CableFactor.h"
-#include "JointLimitFactor.h"
-#include "LinearDynamicsFactor.h"
+#include "factors/CableFactor.h"
+#include "factors/JointLimitFactor.h"
+#include "factors/LinearDynamicsFactor.h"
 
 namespace cable_robot {
 

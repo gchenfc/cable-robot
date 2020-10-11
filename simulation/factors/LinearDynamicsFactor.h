@@ -5,7 +5,7 @@
  **/
 #pragma once
 
-#include "utils.h"
+#include "util/utils.h"
 
 #include <gtsam/base/Testable.h>
 #include <gtsam/geometry/concepts.h>

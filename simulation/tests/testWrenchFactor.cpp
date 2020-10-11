@@ -4,7 +4,7 @@
  * @Author: Frank Dellaert, Gerry Chen and Zhangqi Luo
  */
 
-#include "WrenchFactor.h"
+#include "factors/WrenchFactor.h"
 
 #include <gtsam/base/Vector.h>
 #include <gtsam/inference/Symbol.h>

@@ -18,6 +18,14 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${GTSAM_DIR}/../GTSAMCMakeTools")
 file(GLOB sources "*.cpp")
 file(GLOB headers "*.h")
 
+foreach(SOURCE_DIR "factors" "robot" "util")
+    file(GLOB sources_subdir ${SOURCE_DIR}/*.cpp)
+    list(APPEND sources ${sources_subdir})
+    file(GLOB headers_subdir ${SOURCE_DIR}/*.h)
+    list(APPEND headers ${headers_subdir})
+    add_subdirectory(${SOURCE_DIR})
+endforeach()
+
 add_library(cable_robot SHARED ${sources} ${headers})
 
 target_link_libraries(cable_robot ${GTSAM_LIBS})

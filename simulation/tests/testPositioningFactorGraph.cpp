@@ -1,8 +1,8 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include "PositioningFactorGraph.h"
-#include "LQRFactorGraph.h"
+#include "robot/PositioningFactorGraph.h"
+#include "robot/LQRFactorGraph.h"
 
 int main(int argc, char* argv[])
 {
