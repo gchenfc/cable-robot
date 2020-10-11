@@ -10,6 +10,4 @@ int main(int argc, char* argv[])
 	pos.run();
 	// cable_robot::LQRFactorGraph lqr;
 	// lqr.run();
-	return 1;
-
 };
