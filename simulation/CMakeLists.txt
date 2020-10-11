@@ -2,49 +2,32 @@ cmake_minimum_required(VERSION 3.0)
 
 project(cable_robot_simulation C CXX)
 
-set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "~/gtsam/cmake")
-set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "~/gtsam/build_org" )
 find_package(GTSAM REQUIRED)
+include_directories(${GTSAM_INCLUDE_DIR})
+set(GTSAM_LIBS gtsam)
 
-#link_libraries(PUBLIC test_positioning )
+find_package(GTSAMCMakeTools)
+include(GtsamMakeConfigFile)
+include(GtsamBuildTypes)
+include(GtsamTesting)
 
-## Build Executable
+# For unit tests and scripts.
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${GTSAM_DIR}/../GTSAMCMakeTools")
 
-add_executable(test_positioning test_positioning.cpp)
+## Cable Robot Library
+file(GLOB sources "*.cpp")
+file(GLOB headers "*.h")
 
-add_executable(test_motor testMotorFactor.cpp)
+add_library(cable_robot SHARED ${sources} ${headers})
 
-add_executable(test_cable testCableFactor.cpp)
+target_link_libraries(cable_robot ${GTSAM_LIBS})
+target_include_directories(cable_robot PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_executable(test_wrench testWrenchFactor.cpp)
+# Install library and headers, if desired.
+install(TARGETS cable_robot LIBRARY DESTINATION lib ARCHIVE DESTINATION lib RUNTIME DESTINATION bin)
+set_target_properties(cable_robot PROPERTIES LINKER_LANGUAGE CXX)
 
-target_link_libraries(test_positioning PUBLIC gtsam)
-
-target_include_directories(test_positioning PUBLIC
-    ${GTSAM_INCLUDE_DIR}
-    ${CMAKE_PREFIX_PATH}/include)
-
-target_link_libraries(test_motor PUBLIC gtsam)
-target_link_libraries(test_motor PUBLIC CppUnitLite)
-
-target_include_directories(test_motor PUBLIC
-    ${GTSAM_INCLUDE_DIR}
-    ${CMAKE_PREFIX_PATH}/include
-    )
-
-target_link_libraries(test_cable PUBLIC gtsam)
-target_link_libraries(test_cable PUBLIC CppUnitLite)
-
-target_include_directories(test_cable PUBLIC
-    ${GTSAM_INCLUDE_DIR}
-    ${CMAKE_PREFIX_PATH}/include)
-
-target_link_libraries(test_wrench PUBLIC gtsam)
-target_link_libraries(test_wrench PUBLIC CppUnitLite)
-
-target_include_directories(test_wrench PUBLIC
-    ${GTSAM_INCLUDE_DIR}
-    ${CMAKE_PREFIX_PATH}/include)
-
+# Process subdirectories.
+add_subdirectory(tests)
 
 # gtsamAddExamplesGlob(“*.cpp” “${excluded_examples}” “gtsam;${Boost_PROGRAM_OPTIONS_LIBRARY}”)
