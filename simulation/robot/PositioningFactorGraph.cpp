@@ -22,7 +22,7 @@
 #include "factors/JointLimitFactor.h"
 #include "factors/LinearDynamicsFactor.h"
 #include "factors/MotorFactor.h"
-#include "factors/WrenchFactor.h"
+#include "factors/WinchFactor.h"
 
 namespace cable_robot {
 
@@ -117,8 +117,8 @@ void PositioningFactorGraph::run() {
       graph.push_back(boost::make_shared<MotorFactor>(
           torque[ind], current[ind],
           gtsam::noiseModel::Isotropic::Variance(1, 0.1)));
-      // WrenchFactor -> torque*radius_of_motor - tension
-      graph.push_back(boost::make_shared<WrenchFactor>(
+      // WinchFactor -> torque*radius_of_motor - tension
+      graph.push_back(boost::make_shared<WinchFactor>(
           tension[ind], torque[ind],
           gtsam::noiseModel::Isotropic::Variance(1, 0.1), motor_radius));
 

@@ -1,10 +1,10 @@
 /**
- * @file  testWrenchFactor.cpp
+ * @file  testWinchFactor.cpp
  * @brief test wrench factor
  * @Author: Frank Dellaert, Gerry Chen and Zhangqi Luo
  */
 
-#include "factors/WrenchFactor.h"
+#include "factors/WinchFactor.h"
 
 #include <gtsam/base/Vector.h>
 #include <gtsam/inference/Symbol.h>
@@ -24,14 +24,14 @@ using namespace cable_robot;
  * Test motor factor
  */
 
-TEST(WrenchFactor, error) {
+TEST(WinchFactor, error) {
   // noise model
   noiseModel::Gaussian::shared_ptr cost_model =
       noiseModel::Isotropic::Sigma(1, 1.0);
 
   Symbol tq = symbol('q', 0);
   Symbol ten = symbol('t', 0);
-  WrenchFactor factor(ten,  tq, cost_model);
+  WinchFactor factor(ten,  tq, cost_model);
 
   std::array<double, 2> tenValue = {100, 200}; 
   std::array<double, 2> tqValue = {5, 10};

@@ -1,5 +1,5 @@
 /**
- * @file MotorFactor.h
+ * @file WinchFactor.h
  * @brief Maps shaft torque to cable tension
  * @author Zhangqi Luo, Gerry Chen and Frank Dellaert
  * 
@@ -18,18 +18,18 @@
 
 namespace cable_robot {
 
-class WrenchFactor : public gtsam::NoiseModelFactor2<double, double> {
+class WinchFactor : public gtsam::NoiseModelFactor2<double, double> {
  private:
-  typedef WrenchFactor This;
+  typedef WinchFactor This;
   typedef gtsam::NoiseModelFactor2<double, double> Base;
   double radius;
 
  public:
-  WrenchFactor(gtsam::Key tension, gtsam::Key torque,
+  WinchFactor(gtsam::Key tension, gtsam::Key torque,
                const gtsam::noiseModel::Base::shared_ptr &cost_model,
                double ra = 25.0)
       : Base(cost_model, tension, torque), radius(ra) {}
-  virtual ~WrenchFactor() {}
+  virtual ~WinchFactor() {}
 
   gtsam::Vector evaluateError(
       const double &tension, const double &torque,
