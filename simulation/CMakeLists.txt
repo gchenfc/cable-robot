@@ -37,5 +37,4 @@ set_target_properties(cable_robot PROPERTIES LINKER_LANGUAGE CXX)
 
 # Process subdirectories.
 add_subdirectory(tests)
-
-# gtsamAddExamplesGlob(“*.cpp” “${excluded_examples}” “gtsam;${Boost_PROGRAM_OPTIONS_LIBRARY}”)
+add_subdirectory(scripts)

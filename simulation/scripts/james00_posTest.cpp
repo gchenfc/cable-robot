@@ -1,3 +1,9 @@
+/**
+ * @file james00_posTest.cpp
+ * @brief Uses iLQR to find optimal controls.  Includes Motor and Winch models.
+ * @author James Luo
+ */
+
 #include <cstring>
 #include <fstream>
 #include <iostream>
