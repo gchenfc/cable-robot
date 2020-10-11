@@ -1,14 +1,13 @@
 /**
- *  @file MotorFactor.h
- *  @author Zhangqi Luo, Gerry Chen and Frank Dellaert
- * 	@brief maps motor current to shaft torque
+ * @file MotorFactor.h
+ * @brief maps motor current to shaft torque
+ * @author Zhangqi Luo, Gerry Chen and Frank Dellaert
+ * 
+ * formula:
+ * 	if -0.4 < current < 0.4, then torque = 0
+ * 	if current < -0.4, then torque is mapped linearly between (-0.4, 0), (-2.5, -70)
+ * 	if current > 0.4, then torque is mapped linearly between (0.4, 0), (2.5, 70)
  **/
-/*
-formula:
-if -0.4 ~ 0.4, 0
-if < -0.4, 0-> -0.4, -70 -> -2.5
-if > 0.4, 0-> 0.4, 60 -> 2.5
-*/
 #pragma once
 
 #include <gtsam/base/Matrix.h>

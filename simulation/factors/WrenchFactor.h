@@ -1,13 +1,10 @@
 /**
- *  @file MotorFactor.h
- *  @author Zhangqi Luo, Gerry Chen and Frank Dellaert
+ * @file MotorFactor.h
+ * @brief Maps shaft torque to cable tension
+ * @author Zhangqi Luo, Gerry Chen and Frank Dellaert
+ * 
+ * Applies a linear mapping from shaft torque to cable tension based on radius
  **/
-/*
-formula:
-if -0.4 ~ 0.4, 0
-if < -0.4, 0-> -0.4, -70 -> -2.5
-if > 0.4, 0-> 0.4, 60 -> 2.5
-*/
 #pragma once
 
 #include <gtsam/base/Matrix.h>
