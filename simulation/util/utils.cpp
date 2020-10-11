@@ -11,7 +11,7 @@
 using namespace std;
 using namespace gtsam;
 
-namespace manipulator {
+namespace util {
 
 Vector6 unit_twist(const Vector3 &w, const Vector3 &p) {
   Vector6 unit_twist;
@@ -185,4 +185,4 @@ std::vector<gtsam::Matrix> readFromTxt(string mat_dir, Point3 &origin,
   return data;
 }
 
-} // namespace manipulator
+} // namespace util

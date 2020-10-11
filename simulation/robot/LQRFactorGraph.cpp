@@ -107,16 +107,16 @@ void LQRFactorGraph::run() {
     for (int ci = 0; ci < 4; ci++) {
       int ind = ti * 4 + ci;
 
-      graph.push_back(boost::make_shared<manipulator::CableFactor>(
+      graph.push_back(boost::make_shared<CableFactor>(
           tension[ind], point[ind], pointEE[ti], forcesAnchor[ind], forces[ind],
           gtsam::noiseModel::Isotropic::Variance(6, 0.1)));
-      graph.push_back(boost::make_shared<manipulator::JointLimitFactor>(
+      graph.push_back(boost::make_shared<JointLimitFactor>(
           tension[ind], gtsam::noiseModel::Isotropic::Variance(1, 0.1),
           tension_lim[0], tension_lim[1], 0));
       graph.push_back(boost::make_shared<gtsam::PriorFactor<gtsam::Point3>>(
           point[ind], anchorPoints[ci],
           gtsam::noiseModel::Isotropic::Variance(3, 0.1)));
-      graph.push_back(boost::make_shared<manipulator::JointLimitFactor>(
+      graph.push_back(boost::make_shared<JointLimitFactor>(
           tension[ind], gtsam::noiseModel::Isotropic::Variance(1, 1000), 0, 0,
           0));
     }
@@ -157,7 +157,7 @@ void LQRFactorGraph::run() {
         linPoint));
 
     if (ti < (timeline.size() - 1)) {
-      graph.push_back(boost::make_shared<manipulator::LinearDynamicsFactor>(
+      graph.push_back(boost::make_shared<LinearDynamicsFactor>(
           pointEE[ti], velEE[ti], forceEE[ti] / mass, pointEE[ti + 1],
           velEE[ti + 1], gtsam::noiseModel::Isotropic::Variance(6, 0.1),
           timeline[1] - timeline[0]));

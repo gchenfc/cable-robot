@@ -1,6 +1,6 @@
 /**
  * @file  testMotorFactor.cpp
- * @brief test cable factor
+ * @brief test motor factor
  * @Author: Frank Dellaert, Gerry Chen and Zhangqi Luo
  */
 
@@ -19,7 +19,7 @@
 
 using namespace std;
 using namespace gtsam;
-using namespace manipulator;
+using namespace cable_robot;
 
 /**
  * Test motor factor

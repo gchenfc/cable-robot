@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-namespace manipulator {
+namespace cable_robot {
 
 /** JointLimitFactor is a class which enforces joint angle, velocity,
  * acceleration and torque value to be within limit*/
@@ -96,4 +96,4 @@ class JointLimitFactor : public gtsam::NoiseModelFactor1<double> {
         "NoiseModelFactor1", boost::serialization::base_object<Base>(*this));
   }
 };
-}  // namespace manipulator
+}  // namespace cable_robot

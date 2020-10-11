@@ -1,6 +1,7 @@
 /**
  *  @file MotorFactor.h
  *  @author Zhangqi Luo, Gerry Chen and Frank Dellaert
+ * 	@brief maps motor current to shaft torque
  **/
 /*
 formula:
@@ -19,7 +20,7 @@ if > 0.4, 0-> 0.4, 60 -> 2.5
 #include <iostream>
 #include <string>
 
-namespace manipulator {
+namespace cable_robot {
 
 class MotorFactor : public gtsam::NoiseModelFactor2<double, double> {
 

@@ -17,7 +17,7 @@
 #include <iostream>
 #include <string>
 
-namespace manipulator {
+namespace cable_robot {
 
 /** CableFactor is a 5-way nonlinear factor which enforces relation amongst
  * cable tension, mounting points, and forces felt by the mounting points
@@ -112,4 +112,4 @@ class CableFactor
   }
 };
 
-}  // namespace manipulator
+}  // namespace cable_robot

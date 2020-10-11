@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-namespace manipulator {
+namespace util {
 
 /** Create unit twist for axis direction
     Keyword argument:
@@ -132,4 +132,4 @@ std::vector<gtsam::Pose3> square(int numOfWayPoints, double goalAngle,
 std::vector<gtsam::Matrix> readFromTxt(std::string mat_dir,
                                        gtsam::Point3 &origin,
                                        double &cell_size);
-} // namespace manipulator
+} // namespace util

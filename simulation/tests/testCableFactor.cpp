@@ -18,7 +18,7 @@
 
 using namespace std;
 using namespace gtsam;
-using namespace manipulator;
+using namespace cable_robot;
 
 /**
  * Test cable factor

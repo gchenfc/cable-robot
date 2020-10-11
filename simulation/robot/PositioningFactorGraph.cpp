@@ -114,24 +114,24 @@ void PositioningFactorGraph::run() {
       // error -> difference between expected and actual value
       // MotorFactor -> evalerror: actual torque and expected torque based on
       // input current
-      graph.push_back(boost::make_shared<manipulator::MotorFactor>(
+      graph.push_back(boost::make_shared<MotorFactor>(
           torque[ind], current[ind],
           gtsam::noiseModel::Isotropic::Variance(1, 0.1)));
       // WrenchFactor -> torque*radius_of_motor - tension
-      graph.push_back(boost::make_shared<manipulator::WrenchFactor>(
+      graph.push_back(boost::make_shared<WrenchFactor>(
           tension[ind], torque[ind],
           gtsam::noiseModel::Isotropic::Variance(1, 0.1), motor_radius));
 
-      graph.push_back(boost::make_shared<manipulator::CableFactor>(
+      graph.push_back(boost::make_shared<CableFactor>(
           tension[ind], point[ind], pointEE[ti], forcesAnchor[ind], forces[ind],
           gtsam::noiseModel::Isotropic::Variance(6, 0.1)));
-      graph.push_back(boost::make_shared<manipulator::JointLimitFactor>(
+      graph.push_back(boost::make_shared<JointLimitFactor>(
           tension[ind], gtsam::noiseModel::Isotropic::Variance(1, 0.1),
           tension_lim[0], tension_lim[1], 0));
       graph.push_back(boost::make_shared<gtsam::PriorFactor<gtsam::Point3>>(
           point[ind], anchorPoints[ci],
           gtsam::noiseModel::Isotropic::Variance(3, 0.1)));
-      graph.push_back(boost::make_shared<manipulator::JointLimitFactor>(
+      graph.push_back(boost::make_shared<JointLimitFactor>(
           tension[ind], gtsam::noiseModel::Isotropic::Variance(1, 1000), 0, 0,
           0));
     }
@@ -179,7 +179,7 @@ void PositioningFactorGraph::run() {
         linPoint));
 
     if (ti < (timeline.size() - 1)) {
-      graph.push_back(boost::make_shared<manipulator::LinearDynamicsFactor>(
+      graph.push_back(boost::make_shared<LinearDynamicsFactor>(
           pointEE[ti], velEE[ti], forceEE[ti] / mass, pointEE[ti + 1],
           velEE[ti + 1], gtsam::noiseModel::Isotropic::Variance(6, 0.1),
           timeline[1] - timeline[0]));

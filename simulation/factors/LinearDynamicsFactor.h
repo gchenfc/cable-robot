@@ -15,7 +15,7 @@
 #include <iostream>
 #include <string>
 
-namespace manipulator {
+namespace cable_robot {
 
 /**
  * 6-way factor for Gaussian Process prior factor, linear version
@@ -135,11 +135,11 @@ class LinearDynamicsFactor
   }
 };  // LinearDynamicsFactor
 
-}  // namespace manipulator
+}  // namespace cable_robot
 
 /// traits
 namespace gtsam {
 template <>
-struct traits<manipulator::LinearDynamicsFactor>
-    : public Testable<manipulator::LinearDynamicsFactor> {};
+struct traits<cable_robot::LinearDynamicsFactor>
+    : public Testable<cable_robot::LinearDynamicsFactor> {};
 }  // namespace gtsam

@@ -19,7 +19,7 @@ if > 0.4, 0-> 0.4, 60 -> 2.5
 #include <iostream>
 #include <string>
 
-namespace manipulator {
+namespace cable_robot {
 
 class WrenchFactor : public gtsam::NoiseModelFactor2<double, double> {
  private:
@@ -77,4 +77,4 @@ class WrenchFactor : public gtsam::NoiseModelFactor2<double, double> {
   }
 };
 
-}  // namespace manipulator
+}  // namespace cable_robot
