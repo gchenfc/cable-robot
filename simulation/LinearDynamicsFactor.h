@@ -142,4 +142,4 @@ namespace gtsam {
 template <>
 struct traits<manipulator::LinearDynamicsFactor>
     : public Testable<manipulator::LinearDynamicsFactor> {};
-} // namespace gtsam
+}  // namespace gtsam
