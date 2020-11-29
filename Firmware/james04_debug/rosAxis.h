@@ -169,7 +169,7 @@ public:
 		sendMsg(nodeID_, MSG_SET_CUR_SETPOINT, static_cast<int32_t>(cur*100));
 	};
 
-	void readCAN(CAN_message_t inMsg) {
+	void publishCAN(CAN_message_t inMsg) {
 		switch(inMsg.id & 0x1F) {
 			case CanMsg_t::MSG_ODRIVE_HEARTBEAT:
 				publishError(*(int32_t*)(inMsg.buf));
@@ -192,44 +192,100 @@ public:
 				break;
 		}
 	}
-	void publishError(int32_t val){
+
+	void updateCAN(CAN_message_t inMsg) {
+		switch(inMsg.id & 0x1F) {
+			case CanMsg_t::MSG_ODRIVE_HEARTBEAT:
+				updateError(*(int32_t*)(inMsg.buf));
+				updateCurState(*(int32_t*)(&inMsg.buf[4]));
+				break;
+			case CanMsg_t::MSG_GET_ENCODER_ESTIMATES:
+				// float32_t does not exist :(
+				updateCurPos(convertPosToGlobal(*(float*)(inMsg.buf)));
+				updateCurVel(*(float*)(&inMsg.buf[4]));
+				break;
+			case MSG_GET_IQ:
+				updateCurSetCur(*(float*)(&inMsg.buf));
+				updateCurCur(*(float*)(&inMsg.buf[4]));
+				break;
+			case MSG_GET_VBUS_VOLTAGE:
+				updateCurVolt(*(float*)(&inMsg.buf));
+				break;
+			case MSG_GET_CURRENT_LIMIT:
+				updateCurLim(*(float*)(&inMsg.buf));
+				break;
+		}
+	}
+
+	void updateError(int32_t val) {
 		last_error = val;
 		outMsg32.data = val;
+	}
+	void publishError(int32_t val){
+		//updataError(val);
 		pub_error.publish(&outMsg32);
 	}
-	void publishCurState(int32_t val){
-		last_state = val;
+
+	void updateCurState(int32_t val) {
+		last_error = val;
 		outMsg32.data = val;
+	}
+	void publishCurState(int32_t val){
+		//lupdateCurState(val);
 		pub_cur_state.publish(&outMsg32);
 	}
-	void publishCurPos(float val) {
+
+	void updateCurPos(float val) {
 		last_pos = val;
 		outMsgFloat.data = val;
+	}
+	void publishCurPos(float val) {
+		//publishCurPos(val) 
 		pub_cur_pos.publish(&outMsgFloat);
 	}
-	void publishCurVel(float val) {
+
+	void updateCurVel(float val) {
 		last_vel = val;
 		outMsgFloat.data = val;
+	}
+	void publishCurVel(float val) {
+		//updateCurVel(val) 
 		pub_cur_vel.publish(&outMsgFloat);
 	}
-	void publishCurCur(float val) {
+
+	void updateCurCur(float val) {
 		last_cur = val;
 		outMsgFloat.data = val;
+	}
+	void publishCurCur(float val) {
+		//updateCurCur(val) 
 		pub_cur_cur.publish(&outMsgFloat);
 	}
-	void publishCurSetCur(float val) {
+
+	void updateCurSetCur(float val) {
 		last_setCur = val;
 		outMsgFloat.data = val;
+	}
+	void publishCurSetCur(float val) {
+		//updateCurSetCur(val)
 		pub_cur_setCur.publish(&outMsgFloat);
 	}
-	void publishCurVolt(float val) {
+
+	void updateCurVolt(float val) {
 		last_volt = val;
 		outMsgFloat.data = val;
+	}
+	void publishCurVolt(float val) {
+		//updateCurVolt(val) 
 		pub_cur_volt.publish(&outMsgFloat);
 	}
-	void publishCurLim(float val) {
+
+	void updateCurLim(float val) {
 		last_curLim = val;
 		outMsgFloat.data = val;
+	}
+	void publishCurLim(float val) {
+		//updateCurLim(val)
 		pub_lim_cur.publish(&outMsgFloat);
 	}
 

@@ -203,6 +203,7 @@ uint8_t sendMsg(uint16_t nodeID, uint16_t cmdId, int32_t data1, int32_t data2) {
   // }
   return success;
 }
+
 uint8_t sendMsg(uint16_t nodeID, uint16_t cmdId, int32_t data1) {
   return sendMsg(nodeID, cmdId, data1, 0);
 }

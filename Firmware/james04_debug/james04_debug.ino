@@ -28,8 +28,20 @@ RosAxis axis[NUM_DRIVES] = {RosAxis(0), RosAxis(1), RosAxis(2), RosAxis(3)};
 #include "CableController.h"
 //------------
 
-Queue msg_queue[NUM_DRIVES] = {Queue(), Queue(), Queue(), Queue()};
+//Queue msg_queue[NUM_DRIVES] = {Queue(), Queue(), Queue(), Queue()};
+/*
+PoolObject_t PoolObject[MB_COUNT];
+const size_t MB_COUNT = 6;
+MEMORYPOOL_DECL(memPool, MB_COUNT, 0);
+msg_t letter[MB_COUNT];
+MAILBOX_DECL(mail, &letter, MB_COUNT);
 
+static char buffers[NUM_BUFFERS][BUFFERS_SIZE];
+static msg_t free_buffers_queue[NUM_BUFFERS];
+static mailbox_t free_buffers;
+static msg_t filled_buffers_queue[NUM_BUFFERS];
+static mailbox_t filled_buffers;
+ */
 
 CableController controller;
 RosSystem sysReport;
@@ -41,7 +53,11 @@ void alive_led_cb( const std_msgs::Empty& toggle_msg){
 }
 ros::Subscriber<std_msgs::Empty> alive_led("toggle_led", &alive_led_cb);
 
-static CAN_message_t inMsg;
+//static int inMsg_status;
+//static int inMSg_dest;
+//static CAN_message_t inMsg;
+
+struct can_msg shared_msg_buffer;
 //============
 
 //------------------------------------------------------------------------------
@@ -99,29 +115,37 @@ static THD_FUNCTION(ThreadCanRead, arg) {
   (void)arg;
   digitalWrite(13, HIGH);
   uint16_t nodeID = 0;
-
+  CAN_message_t inMsg;
   while (true) {
     if (Can0.available()) {
 
+      //Can0.read(inMsg);
       Can0.read(inMsg);
       nodeID = inMsg.id >> 5;
+      
       if (nodeID >= NUM_DRIVES) {
         continue;
       }
+      //make update of axis
+      axis[nodeID].updateCAN(inMsg);
+      if (shared_msg_buffer.status == 0){
+        msgCopy(inMsg, &(shared_msg_buffer.msg));
+        shared_msg_buffer.axis = nodeID;
+        shared_msg_buffer.status = 1;
+      }
+      
 
-      //push to message queue
-      CAN_message_t* to_add = new CAN_message_t();
-      msgCopy(inMsg, to_add);
       /*
       chMtxLock(&(msg_queue[nodeID].lock));
       Queue_Node* qn = new Queue_Node();
       qn->item = to_add;
+      qn->next = NULL;
       if (msg_queue[nodeID].front == NULL) {
         msg_queue[nodeID].front = qn;
         msg_queue[nodeID].end = qn;
       }else{
-        msg_queue[nodeID].end->next = (void*) qn;
-        msg_queue[nodeID].end = qn;
+        (msg_queue[nodeID].end)->next = (void*) qn;
+        msg_queue[nodeID].end = (void*) qn;
       }
       chMtxUnlock(&(msg_queue[nodeID].lock));
       */
@@ -150,8 +174,14 @@ static THD_FUNCTION(ThreadRosService, arg) {
     chThdSleepMilliseconds(50);
 
     //read from msg queue
+    if (shared_msg_buffer.status == 1){
+      axis[shared_msg_buffer.axis].publishCAN(shared_msg_buffer.msg);
+      shared_msg_buffer.status = 0;
+    }
     
-    chMtxLock(&(msg_queue[nodeID].lock));
+    
+    /*
+    //chMtxLock(&(msg_queue[nodeID].lock));
       if (msg_queue[nodeID].front != NULL){
           msg2send = (CAN_message_t*) msg_queue[nodeID].front->item;
           Queue_Node* tmp = msg_queue[nodeID].front;
@@ -163,8 +193,9 @@ static THD_FUNCTION(ThreadRosService, arg) {
           delete tmp->item;
           delete tmp;
       }
-    chMtxUnlock(&(msg_queue[nodeID].lock));
-      
+    //chMtxUnlock(&(msg_queue[nodeID].lock));
+    */
+
     nodeID = (nodeID+1)%NUM_DRIVES;
       
 
@@ -178,9 +209,9 @@ static THD_FUNCTION(ThreadRosService, arg) {
 // continue setup() after chBegin().
 void chSetup() {
   // Start threads.
-  for (uint16_t i = 0; i < NUM_DRIVES; i++){
+  /*for (uint16_t i = 0; i < NUM_DRIVES; i++){
     chMtxObjectInit(&(msg_queue[i].lock));
-  }
+  }*/
   
   chThdCreateStatic(waThreadController, sizeof(waThreadController),
     NORMALPRIO + 3, ThreadController, NULL);
