@@ -6,6 +6,8 @@ import threading
 from robot import Robot
 from enums import AxisStateEnum
 import traceback
+import math
+import numpy as np
 
 class MyGUI:
     def __init__(self, robot: Robot, exit_cb, sendMsgRaw):
@@ -57,7 +59,8 @@ class MyGUI:
                                [row(self.input_setpoint[axis],
                                     sg.Button('Enter', key='set ax {}'.format(axis), size=(5, 1)))],
                                [sg.Text('_'*20)],
-                               [rowButtons(['0', '1', '2', '3'], ('cal', axis), size=(1,1))]
+                               [rowButtons(['0', '1', '2', '3'], ('cal', axis), size=(1,1))],
+                               [sg.Button('Zero', key=('zero', axis))]
                             ]) for axis in range(4)]
         col_labels = sg.Column([[sg.Text()],
                                 [sg.Text("heartbeat")],
@@ -72,18 +75,45 @@ class MyGUI:
                                 [sg.Text('_'*15)],
                                 [sg.Text('Calibration')]
                             ], vertical_alignment='top')
-        self.input_manual = sg.InputText(size=(15, 1), key='manualcommand') 
         
+        # cartesian
+        self.label_cart_pos = [sg.Text('-', size=(6,1)) for i in range(2)]
+        self.label_cart_FKerr = sg.Text('-', size=(6,1))
+        self.input_pos = [sg.InputText('-', key='cartx', size=(6,1)),
+                          sg.InputText('-', key='carty', size=(6,1))]
+        def txt(desc: str):
+            return sg.Text(desc)
+        cartesian = [sg.Frame('Est. Pos',
+                              [[txt('x:'), self.label_cart_pos[0],
+                                txt('y:'), self.label_cart_pos[1]]]),
+                     sg.Column([[txt('Est. Pos Err')],[self.label_cart_FKerr]]),
+                     sg.Frame('Des. Pos',
+                              [[txt('x:'), self.input_pos[0],
+                                txt('y:'), self.input_pos[1],
+                                sg.Button('Go', key='gotopos')]]),
+                     sg.Frame('Trajectores',
+                                [[sg.Button('Square'), sg.Button('Circle')]])
+                    ]
+
+        # management
         def col_buttons(*args):
             return sg.Column([[sg.Button(label)] for label in args], vertical_alignment='top')
-        controls = [col_buttons('Calculate Calibration', 'Export Calibration', 'Import Calibration'),
-                    col_buttons('run_anticogging'),
-                    col_buttons('ESTOP', 'Clear errors'),
-                    col_buttons('reboot 0', 'reboot 1'),
-                    col_buttons('QUIT')]
+        management = [col_buttons('Calculate Calibration', 'Print Calibration'),
+                      col_buttons('Export Calibration', 'Import Calibration'),
+                      col_buttons('run_anticogging'),
+                      sg.Column([[sg.Button('ESTOP', button_color=('white','red'))], [sg.Button('Clear errors')]]),
+                      col_buttons('reboot 0', 'reboot 1'),
+                      col_buttons('QUIT')]
+
+        # raw
+        self.input_manual = sg.InputText(size=(15, 1), key='manualcommand') 
+        
+        # all together
         layout = [[col_labels, *col_axes],
                   [sg.Text('_'*120)],
-                  controls,
+                  cartesian,
+                  [sg.Text('_'*120)],
+                  management,
                   [sg.Text('_'*120)],
                   [sg.Text("Manual ASCII entry:"), self.input_manual, sg.Button("send", bind_return_key=True)],
                   [sg.Output(size=(120, 20), echo_stdout_stderr=True)]]
@@ -119,11 +149,48 @@ class MyGUI:
     def parseInput(self, event, values):
         if event == '__TIMEOUT__':
             return
-        elif event == 'send':
-            msg = values['manualcommand']
-            print('sending {}'.format(msg))
-            self.sendMsgRaw(msg)
-            self.input_manual.Update('')
+        elif event == 'gotopos':
+            x, y = float(values['cartx']), float(values['carty'])
+            print('go to pos {}, {}'.format(x, y))
+            self.robot.gotopos((x, y), dry_run=False)
+        elif event == 'Square':
+            traj = []
+            pos = [10,5]
+            traj.append(pos.copy())
+            for _ in range(16):
+                pos[1] += 1.25
+                traj.append(pos.copy())
+            for _ in range(16):
+                pos[0] += 1.25
+                traj.append(pos.copy())
+            for _ in range(16):
+                pos[1] -= 1.25
+                traj.append(pos.copy())
+            for _ in range(16):
+                pos[0] -= 1.25
+                traj.append(pos.copy())
+            self.robot.followCartTraj(traj)
+        elif event == 'Circle':
+            traj = []
+            center = [20, 15]
+            radius = 10
+            for i in range(50):
+                theta = -i * 2*math.pi / 50
+                traj.append([center[0] + radius*math.cos(theta),
+                             center[1] + radius*math.sin(theta)])
+            traj.append([30, 15])
+            self.robot.followCartTraj(traj)
+        elif event == 'Calculate Calibration':
+            print(self.robot.calculate_calibration())
+        elif event == 'Print Calibration':
+            self.robot.print_calibration()
+        elif event == 'Export Calibration':
+            _, _, fname = self.robot.export_calibration()
+            print('exported calibration to file {}'.format(fname))
+        elif event == 'Import Calibration':
+            self.robot.import_calibration()
+            print('imported calibration')
+            self.robot.print_calibration()
         elif event == 'ESTOP':
             self.robot.estop()
         elif event == 'Clear errors':
@@ -154,6 +221,10 @@ class MyGUI:
                     print('\tset succesful')
                 else:
                     print("\tset unsuccessful")
+            elif event[0] == 'zero':
+                axis = event[1]
+                print('zeroing axis {}'.format(axis))
+                self.robot.zero_axis(axis)
             else:
                 print(event, values)
         elif event[:-1] == 'set ax ':
@@ -164,10 +235,11 @@ class MyGUI:
                 value = float(values['setpoint{}'.format(axis)])
             print('setpoint axis {} to {}'.format(axis, value))
             self.robot.set_setpoint(axis, value)
-        elif event == 'Calculate Calibration':
-            print('NOT IMPLEMENTED YET')
-        elif event == 'Export Calibration':
-            print(self.robot.export_calibration())
+        elif event == 'send':
+            msg = values['manualcommand']
+            print('sending {}'.format(msg))
+            self.sendMsgRaw(msg)
+            self.input_manual.Update('')
         else:
             print(event, values)
 
@@ -182,8 +254,12 @@ class MyGUI:
             self.label_err[axis].Update('{}'.format(ax.errorcode),
                 background_color='black' if ax.errorcode == 0 else 'red')
             self.label_state[axis].Update('{}'.format(AxisStateEnum(ax.state).name[11:]))
-            self.label_pos[axis].Update('{:.2f}'.format(ax.pos))
+            self.label_pos[axis].Update('{:.2f}'.format(ax.pos_corr()))
             self.label_current[axis].Update('{:.2f}'.format(ax.current_measured))
+        pos, err = self.robot.getpos()
+        self.label_cart_pos[0].Update('{:.2f}'.format(pos[0]))
+        self.label_cart_pos[1].Update('{:.2f}'.format(pos[1]))
+        self.label_cart_FKerr.Update('{}'.format(max(err)))
 
 if __name__ == '__main__':
     def exit_cb():
