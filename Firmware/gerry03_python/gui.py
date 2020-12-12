@@ -3,7 +3,7 @@
 import PySimpleGUI as sg
 import time
 import threading
-from robot import Robot
+from robot import Robot, RobotState
 from enums import AxisStateEnum
 import traceback
 import math
@@ -78,7 +78,7 @@ class MyGUI:
         
         # cartesian
         self.label_cart_pos = [sg.Text('-', size=(6,1)) for i in range(2)]
-        self.label_cart_FKerr = sg.Text('-', size=(6,1))
+        self.label_cart_FKerr = sg.Text('-', size=(10,4))
         self.input_pos = [sg.InputText('-', key='cartx', size=(6,1)),
                           sg.InputText('-', key='carty', size=(6,1))]
         def txt(desc: str):
@@ -89,8 +89,9 @@ class MyGUI:
                      sg.Column([[txt('Est. Pos Err')],[self.label_cart_FKerr]]),
                      sg.Frame('Des. Pos',
                               [[txt('x:'), self.input_pos[0],
-                                txt('y:'), self.input_pos[1],
-                                sg.Button('Go', key='gotopos')]]),
+                                txt('y:'), self.input_pos[1]],
+                               [sg.Button('Go', key='gotopos'),
+                                sg.Button('Cancel', key='stoppos')]]),
                      sg.Frame('Trajectores',
                                 [[sg.Button('Square'), sg.Button('Circle')]])
                     ]
@@ -153,6 +154,8 @@ class MyGUI:
             x, y = float(values['cartx']), float(values['carty'])
             print('go to pos {}, {}'.format(x, y))
             self.robot.gotopos((x, y), dry_run=False)
+        elif event == 'stoppos':
+            self.robot.state = RobotState.IDLE
         elif event == 'Square':
             traj = []
             pos = [10,5]
@@ -259,7 +262,7 @@ class MyGUI:
         pos, err = self.robot.getpos()
         self.label_cart_pos[0].Update('{:.2f}'.format(pos[0]))
         self.label_cart_pos[1].Update('{:.2f}'.format(pos[1]))
-        self.label_cart_FKerr.Update('{}'.format(max(err)))
+        self.label_cart_FKerr.Update('{:.4f}\n{:.4f}\n{:.4f}\n{:.4f}'.format(*err))
 
 if __name__ == '__main__':
     def exit_cb():
