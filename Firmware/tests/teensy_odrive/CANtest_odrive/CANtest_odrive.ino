@@ -32,59 +32,6 @@ static void read_serial();
 uint8_t sendInt32(uint16_t node, uint8_t cmdId, int32_t d1, int32_t d2 = 0);
 uint8_t sendFloat(uint16_t node, uint8_t cmdId, float d1, float d2 = 0);
 
-
-
-union DataConversion_t
-{
-  struct {
-    uint8_t byte0;
-    uint8_t byte1;
-    uint8_t byte2;
-    uint8_t byte3;
-    uint8_t byte4;
-    uint8_t byte5;
-    uint8_t byte6;
-    uint8_t byte7;
-  } bytes;
-  struct {
-    uint32_t long0;
-    uint32_t long1;
-  } longs;
-  struct {
-    float float0;
-    float float1;
-  } floats;
-};
-// -------------------------------------------------------------
-static void hexDump(uint8_t dumpLen, uint8_t *bytePtr)
-{
-  uint8_t working;
-  while( dumpLen-- ) {
-    working = *bytePtr++;
-    Serial1.write( hex[ working>>4 ] );
-    Serial1.write( hex[ working&15 ] );
-  }
-  Serial1.write('\r');
-  Serial1.write('\n');
-}
-static void msgDump(uint8_t *bytePtr) {
-  DataConversion_t data;
-  data.bytes.byte0 = bytePtr[0];
-  data.bytes.byte1 = bytePtr[1];
-  data.bytes.byte2 = bytePtr[2];
-  data.bytes.byte3 = bytePtr[3];
-  data.bytes.byte4 = bytePtr[4];
-  data.bytes.byte5 = bytePtr[5];
-  data.bytes.byte6 = bytePtr[6];
-  data.bytes.byte7 = bytePtr[7];
-  Serial1.print((int32_t)data.longs.long0);
-  Serial1.print('\t');
-  Serial1.print((int32_t)data.longs.long1);
-  Serial1.print('\t');
-  Serial1.print(data.floats.float0);
-  Serial1.print('\t');
-  Serial1.println(data.floats.float1);
-}
 static void msgDump2(uint8_t *bytePtr) {
   Serial1.print(*(int32_t*)bytePtr);
   Serial1.print('\t');
