@@ -79,6 +79,7 @@ class MyGUI:
         # cartesian
         self.label_cart_pos = [sg.Text('-', size=(6,1)) for i in range(2)]
         self.label_cart_FKerr = sg.Text('-', size=(10,4))
+        self.label_pos_err = sg.Text('-', size=(10,4))
         self.input_pos = [sg.InputText('-', key='cartx', size=(6,1)),
                           sg.InputText('-', key='carty', size=(6,1))]
         def txt(desc: str):
@@ -86,7 +87,8 @@ class MyGUI:
         cartesian = [sg.Frame('Est. Pos',
                               [[txt('x:'), self.label_cart_pos[0],
                                 txt('y:'), self.label_cart_pos[1]]]),
-                     sg.Column([[txt('Est. Pos Err')],[self.label_cart_FKerr]]),
+                     sg.Column([[txt('Est. FK-IK Err')],[self.label_cart_FKerr]]),
+                     sg.Column([[txt('Pos ctrl Err:')],[self.label_pos_err]]),
                      sg.Frame('Des. Pos',
                               [[txt('x:'), self.input_pos[0],
                                 txt('y:'), self.input_pos[1]],
@@ -172,7 +174,7 @@ class MyGUI:
             for _ in range(16):
                 pos[0] -= 1.25
                 traj.append(pos.copy())
-            self.robot.followCartTraj(traj)
+            self.robot.start_traj_x(traj)
         elif event == 'Circle':
             traj = []
             center = [20, 15]
@@ -182,7 +184,7 @@ class MyGUI:
                 traj.append([center[0] + radius*math.cos(theta),
                              center[1] + radius*math.sin(theta)])
             traj.append([30, 15])
-            self.robot.followCartTraj(traj)
+            self.robot.start_traj_x(traj)
         elif event == 'Calculate Calibration':
             print(self.robot.calculate_calibration())
         elif event == 'Print Calibration':
@@ -227,7 +229,7 @@ class MyGUI:
             elif event[0] == 'zero':
                 axis = event[1]
                 print('zeroing axis {}'.format(axis))
-                self.robot.zero_axis(axis)
+                self.robot.home_axis(axis)
             else:
                 print(event, values)
         elif event[:-1] == 'set ax ':
@@ -257,12 +259,15 @@ class MyGUI:
             self.label_err[axis].Update('{}'.format(ax.errorcode),
                 background_color='black' if ax.errorcode == 0 else 'red')
             self.label_state[axis].Update('{}'.format(AxisStateEnum(ax.state).name[11:]))
-            self.label_pos[axis].Update('{:.2f}'.format(ax.pos_corr()))
+            self.label_pos[axis].Update('{:.2f}'.format(ax.get_pos()))
             self.label_current[axis].Update('{:.2f}'.format(ax.current_measured))
-        pos, err = self.robot.getpos()
+        pos, err = self.robot.get_pos()
         self.label_cart_pos[0].Update('{:.2f}'.format(pos[0]))
         self.label_cart_pos[1].Update('{:.2f}'.format(pos[1]))
         self.label_cart_FKerr.Update('{:.4f}\n{:.4f}\n{:.4f}\n{:.4f}'.format(*err))
+        perr = [ldes - lact for ldes, lact in zip(self.robot.get_cmd_lengths(),
+                                                  self.robot.get_lengths())]
+        self.label_pos_err.Update('{:.4f}\n{:.4f}\n{:.4f}\n{:.4f}'.format(*perr))
 
 if __name__ == '__main__':
     def exit_cb():
