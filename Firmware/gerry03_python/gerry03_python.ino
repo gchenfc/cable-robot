@@ -23,6 +23,13 @@
 
 struct CharBuffer_t;
 
+struct CanBufferTmp_t {
+  CAN_message_t buffer[30];
+  int size;
+};
+
+CanBufferTmp_t canBuffer;
+
 // function declarations
 uint8_t requestInfo(uint16_t node, uint8_t cmdId, bool rtr=false);
 uint8_t sendBytes(uint16_t node, uint8_t cmdId, uint8_t *data, bool rtr=false);
@@ -77,6 +84,7 @@ void setup(void)
   Can0.setNumTXBoxes(8);
 
   memset(last_hb_time, 0, sizeof last_hb_time);
+  canBuffer.size = 0;
 }
 
 // -------------------------------------------------------------
@@ -90,12 +98,15 @@ void loop(void)
       read_packet(inMsg);
     }
     read_serial();
+    if (canBuffer.size > 0) {
+      sendCanBuffer();
+    }
   }
 }
 
 struct CharBuffer_t
 {
-  char buffer[100];
+  char buffer[1000];
   int bufferi = 0, parsei = 0;
 };
 
@@ -115,43 +126,57 @@ static void read_serial(Stream &serial, CharBuffer_t &buf) {
         buf.parsei = 0;
         continue;
       }
-      uint8_t node = parseOneInt(buf, 'n');
-      if (buf.bufferi == 0) continue; // this is how to tell if parse succeeded
-      uint8_t cmd = parseOneInt(buf, 'c');
-      if (buf.bufferi == 0) continue;
+      int numcmds = scanCmds(buf);
+      for (int seq = 0; seq < numcmds; seq++) {
+        uint8_t node = parseOneInt(buf, 'n');
+        if (buf.bufferi == 0) break; // this is how to tell if parse succeeded
+        uint8_t cmd = parseOneInt(buf, 'c');
+        if (buf.bufferi == 0) break;
 
-      switch (cmd) {
-        case MSG_ODRIVE_ESTOP:
-        case MSG_START_ANTICOGGING:
-        case MSG_RESET_ODRIVE:
-        case MSG_CLEAR_ERRORS:
-          requestInfo(node, cmd);
-          break;
-        case MSG_GET_MOTOR_ERROR:
-        case MSG_GET_ENCODER_ERROR:
-        case MSG_GET_SENSORLESS_ERROR:
-        case MSG_GET_ENCODER_ESTIMATES:
-        case MSG_GET_ENCODER_COUNT:
-        case MSG_GET_IQ:
-        case MSG_GET_SENSORLESS_ESTIMATES:
-        case MSG_GET_VBUS_VOLTAGE:
-          requestInfo(node, cmd, true);
-          break;
-        case MSG_SET_AXIS_NODE_ID:
-        case MSG_SET_AXIS_REQUESTED_STATE:
-        case MSG_SET_AXIS_STARTUP_CONFIG:
-        case MSG_SET_CONTROLLER_MODES:
-        case MSG_SET_INPUT_POS:
-        case MSG_SET_INPUT_VEL:
-        case MSG_SET_INPUT_TORQUE:
-        case MSG_SET_VEL_LIMIT:
-        case MSG_SET_TRAJ_VEL_LIMIT:
-        case MSG_SET_TRAJ_ACCEL_LIMITS:
-        case MSG_SET_TRAJ_INERTIA:
-          setCmd(node, cmd, buf);
-          break;
-        default:
-          continue;
+        switch (cmd) {
+          case MSG_ODRIVE_ESTOP:
+          case MSG_START_ANTICOGGING:
+          case MSG_RESET_ODRIVE:
+          case MSG_CLEAR_ERRORS:
+            requestInfo(node, cmd);
+            break;
+          case MSG_GET_MOTOR_ERROR:
+          case MSG_GET_ENCODER_ERROR:
+          case MSG_GET_SENSORLESS_ERROR:
+          case MSG_GET_ENCODER_ESTIMATES:
+          case MSG_GET_ENCODER_COUNT:
+          case MSG_GET_IQ:
+          case MSG_GET_SENSORLESS_ESTIMATES:
+          case MSG_GET_VBUS_VOLTAGE:
+            requestInfo(node, cmd, true);
+            break;
+          case MSG_SET_AXIS_NODE_ID:
+          case MSG_SET_AXIS_REQUESTED_STATE:
+          case MSG_SET_AXIS_STARTUP_CONFIG:
+          case MSG_SET_CONTROLLER_MODES:
+          case MSG_SET_INPUT_POS:
+          case MSG_SET_INPUT_VEL:
+          case MSG_SET_INPUT_TORQUE:
+          case MSG_SET_VEL_LIMIT:
+          case MSG_SET_TRAJ_VEL_LIMIT:
+          case MSG_SET_TRAJ_ACCEL_LIMITS:
+          case MSG_SET_TRAJ_INERTIA:
+            setCmd(node, cmd, buf);
+            break;
+          default:
+            continue;
+        }
+        if (buf.bufferi == 0) break;
+      }
+      if (buf.bufferi != 0) {
+        sendCanBuffer();
+        if (numcmds > 1) {
+          Serial1.println("Affirmed multiple");
+        }
+      } else {
+        canBuffer.size = 0;
+        Serial.println("Error reading message - not sending anything");
+        Serial1.println("Error reading message - not sending anything");
       }
 
       buf.bufferi = 0;
@@ -168,35 +193,69 @@ static bool checksum(CharBuffer_t &buf) {
   return sum == buf.buffer[buf.bufferi-2];
 }
 
+static int scanCmds(CharBuffer_t &buf) {
+  int count = 1;
+  int tmpi = buf.parsei;
+  for (int tmpi = 0; tmpi < buf.bufferi; tmpi++) {
+    if (buf.buffer[tmpi] == '~') {
+      count++;
+      buf.buffer[tmpi] = '\n';
+    }
+  }
+  return count;
+}
+
 static void setCmd(uint16_t node, uint8_t cmd, CharBuffer_t &buf) {
+  int i1, i2, i3;
+  float f1, f2;
   switch (cmd) {
     case MSG_SET_AXIS_NODE_ID:
     case MSG_SET_AXIS_REQUESTED_STATE:
-      sendInt32(node, cmd, parseOneInt(buf, '\n'));
+      i1 = parseOneInt(buf, '\n');
+      if (buf.bufferi == 0)
+        return;
+      sendInt32(node, cmd, i1);
       break;
     case MSG_SET_AXIS_STARTUP_CONFIG:
       Serial.println("Not yet implemented!");
       Serial1.println("Not yet implemented!");
       break;
     case MSG_SET_CONTROLLER_MODES:
-      sendInt32(node, cmd, parseOneInt(buf, ','), parseOneInt(buf, '\n'));
+      i1 = parseOneInt(buf, ',');
+      i2 = parseOneInt(buf, '\n');
+      if (buf.bufferi == 0)
+        return;
+      sendInt32(node, cmd, i1, i2);
       break;
     case MSG_SET_INPUT_POS:
-      sendInputPos(node, cmd, parseOneFloat(buf, ','), parseOneInt(buf, ','), parseOneInt(buf, '\n'));
+      f1 = parseOneFloat(buf, ',');
+      i1 = parseOneInt(buf, ',');
+      i2 = parseOneInt(buf, '\n');
+      if (buf.bufferi == 0)
+        return;
+      sendInputPos(node, cmd, f1, i1, i2);
       break;
     case MSG_SET_INPUT_VEL:
     case MSG_SET_TRAJ_ACCEL_LIMITS:
-      sendFloat(node, cmd, parseOneFloat(buf, ','), parseOneFloat(buf, '\n'));
+      f1 = parseOneFloat(buf, ',');
+      f2 = parseOneFloat(buf, '\n');
+      if (buf.bufferi == 0)
+        return;
+      sendFloat(node, cmd, f1, f2);
       break;
     case MSG_SET_INPUT_TORQUE:
     case MSG_SET_VEL_LIMIT:
     case MSG_SET_TRAJ_VEL_LIMIT:
     case MSG_SET_TRAJ_INERTIA:
-      sendFloat(node, cmd, parseOneFloat(buf, '\n'));
+      f1 = parseOneFloat(buf, '\n');
+      if (buf.bufferi == 0)
+        return;
+      sendFloat(node, cmd, f1);
       break;
     default:
       Serial.println("Something went wrong");
       Serial1.println("Something went wrong");
+      buf.bufferi = 0;
   }
 }
 
@@ -260,12 +319,24 @@ uint8_t sendInputPos(uint16_t node, uint8_t cmdId, float pos, int16_t vel, int16
 }
 
 uint8_t sendBytes(uint16_t node, uint8_t cmdId, uint8_t *data, bool rtr) {
-  CAN_message_t outMsg;
+  CAN_message_t &outMsg = canBuffer.buffer[canBuffer.size];
+  canBuffer.size++;
   outMsg.id = cmdId | (node << 5);
   outMsg.rtr = rtr;
   outMsg.len = 8;
   outMsg.ext = 0;
   memcpy(outMsg.buf, data, 8);
-  uint8_t success = Can0.write(outMsg);
-  return success;
+  return 0;
+}
+
+uint8_t sendCanBuffer() {
+  for (int i = canBuffer.size-1; i >= 0; i--) {
+    uint8_t success = Can0.write(canBuffer.buffer[i]);
+    if (!success) {
+      canBuffer.size = i + 1;
+      return 0;
+    }
+  }
+  canBuffer.size = 0;
+  return 1;
 }

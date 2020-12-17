@@ -19,17 +19,40 @@ class MySerial:
                 node, cmd, data = msg[0], msg[1], msg[2:10]
                 robot_callback(node, cmd, data)
             else:
-                print('parse error: ' + str(msg) + msg.hex())
+                try:
+                    if msg[:17].decode() == 'Affirmed multiple':
+                        robot_callback(None, None, None, ack=True)
+                    else:
+                        print('parse error: ' + str(msg))
+                except:
+                    print('parse error: ' + str(msg))
 
-    def writeCan(self, node, cmd, data = None):
-        out = '{:d}n{:d}c'.format(node, cmd)
-        if data:
-            if not (isinstance(data, list) or isinstance(data, tuple)):
-                data = [data]
-            for datum in data:
-                out += '{},'.format(datum)
-            out = out[:-1]
-        self.writeRaw(out)
+    def writeCan(self, node, cmd, data=None, islist=False):
+        if not islist:
+            out = '{:d}n{:d}c'.format(node, cmd)
+            if data:
+                if not (isinstance(data, list) or isinstance(data, tuple)):
+                    data = [data]
+                for datum in data:
+                    out += '{},'.format(datum)
+                out = out[:-1]
+            self.writeRaw(out)
+        else:
+            if len(node) == 0:
+                print('empty list - not sending')
+                return
+            outAll = ''
+            for node, cmd, data in zip(node, cmd, data):
+                out = '{:d}n{:d}c'.format(node, cmd)
+                if data:
+                    if not (isinstance(data, list) or isinstance(data, tuple)):
+                        data = [data]
+                    for datum in data:
+                        out += '{},'.format(round(datum, 3))
+                    out = out[:-1]
+                outAll += out + '~'
+            print('sending multiple messages:', outAll[:-1])
+            self.writeRaw(outAll[:-1])
     
     def writeRaw(self, msg: str, debug=False):
         checksum = sum(msg.encode('raw_unicode_escape')) % 0x100

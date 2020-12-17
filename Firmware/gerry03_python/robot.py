@@ -10,10 +10,15 @@ import datetime, json
 import math
 import numpy as np
 import traceback
+from typing import Callable, Tuple
 
 class Robot:
     def __init__(self, sendMsgFcn: Callable[[int, int, Optional[Iterable]], None]=None):
-        self.sendMsgFcn = sendMsgFcn
+        # wrapper for sendMsgFcn
+        self.is_held = False
+        self.msgOutBuffer = []
+        self.sendMsgFcn_raw = sendMsgFcn
+
         self.axes = [Axis(self, i) for i in range(4)]
         self.last_hb_t = [time.time() + 3,] * 4
         self.state = RobotState.IDLE
@@ -28,10 +33,19 @@ class Robot:
              MSG_GET_VBUS_VOLTAGE]]
         self.height, self.width, self.diag = None, None, None
         self.movingTimer = None
+
+        # ack on held commands
+        # TODO(gerry): held commands with only 1 msg don't get acked and
+        # causes infinite resending waiting for ack
+        self.msgBufferAcked = True
+        self.msgOutBufferLast = []
+        self.msgBufferAckTimer = MyTimer(0.25, self.resendLastHold)
         
     def update(self):
         for timer in self.queryTimers:
             timer.update()
+        if not self.msgBufferAcked:
+            self.msgBufferAckTimer.update()
         if self.state == RobotState.MOVING:
             try:
                 self.movingTimer.update()
@@ -79,28 +93,18 @@ class Robot:
         self.setpoint_pos = pos
         self.trajectory = []
         self.trajectoryi = 0
-        tmppos, err = self.FK()
-        while Robot.dist(tmppos, self.setpoint_pos) > 3:
-            dx = [f-i for i,f in zip(tmppos, self.setpoint_pos)]
-            magdx = math.sqrt(sum(d*d for d in dx))
-            dx = [d / magdx for d in dx]
-            tmppos = [p + 2 * d for p, d in zip(tmppos, dx)]
-            # IK
-            ls = self.IK(tmppos, pretension=-1)
-            self.trajectory.append(ls)
-        ls = self.IK(self.setpoint_pos, pretension=0.1)
-        self.trajectory.append(ls)
+        self.trajectory.append(self.setpoint_pos)
         print('trajectory: {}'.format(self.trajectory))
 
-        ctrl_modes = [3,3,1,1]
-        for ai, axis in enumerate(self.axes):
-            if axis.control_mode_believed != ctrl_modes[ai]:
-                self.set_ctrl_mode(ai, ctrl_modes[ai])
-                self.set_ctrl_mode(ai, ctrl_modes[ai])
-                self.set_ctrl_mode(ai, ctrl_modes[ai])
-            # self.set_setpoint(ai, ls[ai])
-            # self.set_setpoint(ai, ls[ai])
-            # self.set_setpoint(ai, ls[ai])
+        self.dir = self.setpoint_pos[0] > self.FK()[0][0]
+        if self.dir:
+            ctrl_modes = [3,3,1,1]
+            vel_lims = [10,10,20,20]
+        else:
+            ctrl_modes = [1,1,3,3]
+            vel_lims = [20,20,10,10]
+        self.sendMsgs([*[(self.set_ctrl_mode, (ai, ctrl_mode)) for ai, ctrl_mode in enumerate(ctrl_modes)],
+                       *[(self.set_vel_limit, (ai, vel_lim)) for ai, vel_lim in enumerate(vel_lims)]])
         self.state = RobotState.MOVING
         self.movingTimer = MyTimer(0.2, self.update_traj)
     def start_traj_x(self, traj):
@@ -108,38 +112,59 @@ class Robot:
         self.trajectory = []
         self.trajectoryi = 0
         for tmppos in traj:
-            ls = self.IK(tmppos, pretension=-1)
-            self.trajectory.append(ls)
-        ctrl_modes = [3,3,1,1]
-        for ai, axis in enumerate(self.axes):
-            if axis.control_mode_believed != ctrl_modes[ai]:
-                self.set_ctrl_mode(ai, ctrl_modes[ai])
-                self.set_ctrl_mode(ai, ctrl_modes[ai])
-                self.set_ctrl_mode(ai, ctrl_modes[ai])
+            self.trajectory.append(tmppos)
+        self.dir = self.trajectory[0][0] > self.FK()[0][0]
+        if self.dir:
+            ctrl_modes = [3,3,1,1]
+            vel_lims = [10,10,20,20]
+        else:
+            ctrl_modes = [1,1,3,3]
+            vel_lims = [20,20,10,10]
+        self.sendMsgs([*[(self.set_ctrl_mode, (ai, ctrl_mode)) for ai, ctrl_mode in enumerate(ctrl_modes)],
+                       *[(self.set_vel_limit, (ai, vel_lim)) for ai, vel_lim in enumerate(vel_lims)]])
         self.state = RobotState.MOVING
         self.movingTimer = MyTimer(0.2, self.update_traj)
     def update_traj(self):
-        if True or self.trajectoryi >= len(self.trajectory):
-            ls = self.trajectory[-1]
+        # self.trajectoryi = len(self.trajectory)
+        if self.trajectoryi >= len(self.trajectory):
+            pos = self.trajectory[-1]
+            ls = self.IK(pos, pretension=0.1)
             print('attempting to reach final state {}'.format(self.setpoint_pos))
         else:
-            ls = self.trajectory[self.trajectoryi]
+            pos = self.trajectory[self.trajectoryi]
+            ls = self.IK(pos, pretension=0.1)
             if (max(abs(l - ax.get_pos()) for l,ax in zip(ls, self.axes)) < 3):
                 self.trajectoryi += 1
             print('checkpoint {} of {}'.format(self.trajectoryi, len(self.trajectory)))
 
         curpos, err = self.FK()
-        d = Robot.dist(curpos, self.setpoint_pos)
-        # ls = (0.2, 0.2, ls[2], ls[3])
-        ls = (ls[0], ls[1], 0.4, 0.4)
-        if d < 3 and (self.trajectoryi >= (len(self.trajectory)-3)):
+        d = Robot.dist(curpos, self.trajectory[-1])
+        msgs = [] # TODO(gerry): this has trouble sending more than 8 messages at a time I think - direction changes are jerky
+        newdir = pos[0] > curpos[0]
+        print('curdir: {}, newdir: {}'.format(self.dir, newdir))
+        if True:#newdir != self.dir:
+            self.dir = newdir
+            if self.dir:
+                ctrl_modes = [3,3,1,1]
+                vel_lims = [10,10,20,20]
+            else:
+                ctrl_modes = [1,1,3,3]
+                vel_lims = [20,20,10,10]
+            for ai, (ctrl_mode, vel_lim) in enumerate(zip(ctrl_modes, vel_lims)):
+                msgs.append((self.set_ctrl_mode, (ai, ctrl_mode)))
+                msgs.append((self.set_vel_limit, (ai, vel_lim)))
+        if self.dir:
+            ls = (ls[0], ls[1], 0.2, 0.2)
+        else:
+            ls = (0.2, 0.2, ls[2], ls[3])
+        if d < 3 and (self.trajectoryi >= (len(self.trajectory)-2)):
             self.state = RobotState.IDLE
-            for ai in range(4):
-                self.set_setpoint(ai, ls[ai])
             print('arrived!!!')
         else:
-            for ai in range(4):
-                self.set_setpoint(ai, ls[ai])
+            print('not arrived yet: d={}'.format(d))
+        for ai, l in enumerate(ls):
+            msgs.append((self.set_setpoint, (ai, l)))
+        self.sendMsgs(msgs)
 
     # calibration
     def is_calibrated(self):
@@ -156,7 +181,8 @@ class Robot:
         lengths, dims, _ = self.export_calibration(export=False)
         for i, ls in enumerate(lengths):
             print('\taxis {} lengths: {}'.format(i, str(ls)))
-        print('frame height: {:.2f}\twidth: {:.2f}\tdiagonal: {:.2f}'.format(*dims))
+        hypot = math.sqrt(dims[0]*dims[0] + dims[1]*dims[1])
+        print('frame height: {:.2f}\twidth: {:.2f}\tdiagonal: {:.2f}\tpredicted diagonal: {:.2f}'.format(*dims, hypot))
     def export_calibration(self, export=True):
         h,w,d = self.calculate_calibration(apply=False)
         data = {
@@ -228,16 +254,59 @@ class Robot:
     def clear_errors(self):
         self.query(MSG_CLEAR_ERRORS)
     def reboot(self, device: int):
-        self.sendMsgFcn(device // 2, MSG_RESET_ODRIVE)
+        self.sendMsgFcn(device * 2, MSG_RESET_ODRIVE)
     def set_state(self, axis, state):
         self.axes[axis].set_state(state)
+        print('setting state')
     def set_ctrl_mode(self, axis, mode):
         self.axes[axis].set_ctrl_mode(mode)
     def set_setpoint(self, axis, setpoint):
         self.axes[axis].set_setpoint(setpoint)
+    def set_vel_limit(self, axis, limit):
+        self.axes[axis].set_vel_limit(limit)
+    def sendMsgFcn(self, node, cmd, data=None, now=False):
+        if not self.is_held or now:
+            self.sendMsgFcn_raw(node, cmd, data)
+        else:
+            self.msgOutBuffer.append((node, cmd, data))
+    def sendMsgs(self, fcn_args: Iterable[Tuple[Callable, Iterable]]):
+        # fcn_args is of the form
+        # [(function1, (args1)), (function2, (args2)), ...]
+        tmphold = self.is_held
+        self.hold()
+        for fcn, args in fcn_args:
+            fcn(*args)
+        self.sendhold()
+        self.is_held = tmphold
+    def hold(self):
+        self.msgOutBuffer = []
+        self.is_held = True
+    def unhold(self):
+        self.msgOutBuffer = []
+        self.is_held = False
+    def sendhold(self):
+        if not self.is_held:
+            print("nothing to unhold")
+        else:
+            nodes = [buf[0] for buf in self.msgOutBuffer]
+            cmds = [buf[1] for buf in self.msgOutBuffer]
+            datas = [buf[2] for buf in self.msgOutBuffer]
+            self.sendMsgFcn_raw(nodes, cmds, datas, islist=True)
+            self.msgBufferAcked = False
+            self.msgOutBufferLast = self.msgOutBuffer.copy()
+            self.msgOutBuffer = []
+    def resendLastHold(self):
+        nodes = [buf[0] for buf in self.msgOutBufferLast]
+        cmds = [buf[1] for buf in self.msgOutBufferLast]
+        datas = [buf[2] for buf in self.msgOutBufferLast]
+        self.sendMsgFcn_raw(nodes, cmds, datas, islist=True)
 
     # receive message
-    def callback(self, node, cmd, data: bytes):
+    def callback(self, node, cmd, data: bytes, ack=False):
+        if ack:
+            print("ACKED!!!!!")
+            self.msgBufferAcked = True
+            return
         if (node > 3):
             print('\tinvalid node! - {} {} {}'.format(node, cmd, data.hex()))
             return
@@ -280,13 +349,8 @@ class Axis:
         self.resendCtrlModeTimer = MyTimer(0.5, self.resend_ctrl_mode)
     
     def update(self):
-        if not self.reached_state:
-            if self.state != self.commanded_state and \
-               self.commanded_state != 3: # calibration
-                self.set_state(self.commanded_state)
-            else:
-                self.reached_state = True
-        self.resendCtrlModeTimer.update()
+        pass
+        # note: resendCtrlModeTimer and resend command are replaced by "hold" functionality
 
     # util
     def get_pos(self):
@@ -298,7 +362,7 @@ class Axis:
 
     # send message
     def query(self, cmd):
-        self.sendMsgFcn(self.node, cmd)
+        self.sendMsgFcn(self.node, cmd, now=True)
     def set_state(self, state):
         self.sendMsgFcn(self.node, MSG_SET_AXIS_REQUESTED_STATE, state)
         self.commanded_state = state
@@ -320,6 +384,8 @@ class Axis:
             self.commanded_pos = setpoint
         else:
             print('unknown mode during setpoint command: {}'.format(mode))
+    def set_vel_limit(self, limit):
+        self.sendMsgFcn(self.node, MSG_SET_VEL_LIMIT, [limit])
     
     # receive message
     def readCAN(self, cmd, data):

@@ -95,7 +95,7 @@ class MyGUI:
                                [sg.Button('Go', key='gotopos'),
                                 sg.Button('Cancel', key='stoppos')]]),
                      sg.Frame('Trajectores',
-                                [[sg.Button('Square'), sg.Button('Circle')]])
+                                [[sg.Button('Square'), sg.Button('Diamond'), sg.Button('Circle')]])
                     ]
 
         # management
@@ -113,6 +113,8 @@ class MyGUI:
         
         # all together
         layout = [[col_labels, *col_axes],
+                  [sg.Text('_'*120)],
+                  [sg.Button('hold'), sg.Button('unhold'), sg.Button('send hold')],
                   [sg.Text('_'*120)],
                   cartesian,
                   [sg.Text('_'*120)],
@@ -152,6 +154,12 @@ class MyGUI:
     def parseInput(self, event, values):
         if event == '__TIMEOUT__':
             return
+        elif event == 'hold':
+            self.robot.hold()
+        elif event == 'unhold':
+            self.robot.unhold()
+        elif event == 'send hold':
+            self.robot.sendhold()
         elif event == 'gotopos':
             x, y = float(values['cartx']), float(values['carty'])
             print('go to pos {}, {}'.format(x, y))
@@ -159,21 +167,23 @@ class MyGUI:
         elif event == 'stoppos':
             self.robot.state = RobotState.IDLE
         elif event == 'Square':
-            traj = []
-            pos = [10,5]
-            traj.append(pos.copy())
-            for _ in range(16):
-                pos[1] += 1.25
-                traj.append(pos.copy())
-            for _ in range(16):
-                pos[0] += 1.25
-                traj.append(pos.copy())
-            for _ in range(16):
-                pos[1] -= 1.25
-                traj.append(pos.copy())
-            for _ in range(16):
-                pos[0] -= 1.25
-                traj.append(pos.copy())
+            x, y = 20, 15
+            dx, dy = 10, 5
+            traj = [[x-dx, y-dy],
+                    [x-dx, y+dy],
+                    [x+dx, y+dy],
+                    [x+dx, y-dy],
+                    [x-dx, y-dy]]
+            self.robot.start_traj_x(traj)
+        elif event == 'Diamond':
+            x, y = 20, 15
+            dx, dy = 5, 5
+            traj = [[x, y-dy],
+                    [x-dx, y],
+                    [x, y+dy],
+                    [x+dx, y],
+                    [x, y-dy]]
+            traj = [*traj, *traj[-2:0:-1], traj[0]]
             self.robot.start_traj_x(traj)
         elif event == 'Circle':
             traj = []
