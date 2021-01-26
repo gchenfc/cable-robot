@@ -103,10 +103,15 @@ class MyGUI:
             return sg.Column([[sg.Button(label)] for label in args], vertical_alignment='top')
         management = [col_buttons('Calculate Calibration', 'Print Calibration'),
                       col_buttons('Export Calibration', 'Import Calibration'),
+                      col_buttons('Start recording', 'Stop recording'),
                       col_buttons('run_anticogging'),
                       sg.Column([[sg.Button('ESTOP', button_color=('white','red'))], [sg.Button('Clear errors')]]),
                       col_buttons('reboot 0', 'reboot 1'),
                       col_buttons('QUIT')]
+
+        self.modeLabel = sg.Text('IDLE', size=(10, 1))
+        self.fpsLabel = sg.Text('0', size=(6, 1), justification='right')
+        self.statusLabel = sg.Text('', size=(35, 1))
 
         # raw
         self.input_manual = sg.InputText(size=(15, 1), key='manualcommand') 
@@ -114,7 +119,7 @@ class MyGUI:
         # all together
         layout = [[col_labels, *col_axes],
                   [sg.Text('_'*120)],
-                  [sg.Button('hold'), sg.Button('unhold'), sg.Button('send hold')],
+                  [sg.Button('hold'), sg.Button('unhold'), sg.Button('send hold'), self.modeLabel, self.fpsLabel, self.statusLabel],
                   [sg.Text('_'*120)],
                   cartesian,
                   [sg.Text('_'*120)],
@@ -206,6 +211,12 @@ class MyGUI:
             self.robot.import_calibration()
             print('imported calibration')
             self.robot.print_calibration()
+        elif event == 'Start recording':
+            print('starting recording')
+            self.robot.start_recording()
+        elif event == 'Stop recording':
+            self.robot.stop_recording()
+            print('ended recording')
         elif event == 'ESTOP':
             self.robot.estop()
         elif event == 'Clear errors':
@@ -278,6 +289,10 @@ class MyGUI:
         perr = [ldes - lact for ldes, lact in zip(self.robot.get_cmd_lengths(),
                                                   self.robot.get_lengths())]
         self.label_pos_err.Update('{:.4f}\n{:.4f}\n{:.4f}\n{:.4f}'.format(*perr))
+
+        self.modeLabel.Update(self.robot.state.name)
+        # self.fpsLabel.Update('{:5.0f}'.format(self.robot.fps))
+        self.statusLabel.Update(self.robot.status)
 
 if __name__ == '__main__':
     def exit_cb():

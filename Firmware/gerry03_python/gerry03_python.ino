@@ -49,6 +49,7 @@ static void read_packet(CAN_message_t inMsg) {
   strbuf[10] = -1;                  // end code
   strbuf[11] = 0;                   // end code
   strbuf[12] = -1;                  // end code
+  Serial.write(strbuf, 13);
   Serial1.write(strbuf, 13);
   // ascii version
   if ((inMsg.id & 0b11111) == MSG_ODRIVE_HEARTBEAT) {
@@ -124,6 +125,8 @@ static void read_serial(Stream &serial, CharBuffer_t &buf) {
       if (!checksum(buf)) {
         buf.bufferi = 0;
         buf.parsei = 0;
+        Serial.println("bad checksum");
+        Serial1.println("bad checksum");
         continue;
       }
       int numcmds = scanCmds(buf);
@@ -133,6 +136,8 @@ static void read_serial(Stream &serial, CharBuffer_t &buf) {
         uint8_t cmd = parseOneInt(buf, 'c');
         if (buf.bufferi == 0) break;
 
+        if (cmd == MSG_SET_AXIS_REQUESTED_STATE)
+          Serial1.println("***RECEIVED***");
         switch (cmd) {
           case MSG_ODRIVE_ESTOP:
           case MSG_START_ANTICOGGING:

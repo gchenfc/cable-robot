@@ -22,15 +22,17 @@ class Robot:
         self.axes = [Axis(self, i) for i in range(4)]
         self.last_hb_t = [time.time() + 3,] * 4
         self.state = RobotState.IDLE
-        self.queryTimers = [MyTimer(0.25, partial(self.query,cmd)) for cmd in
-            [MSG_GET_MOTOR_ERROR,
-             MSG_GET_ENCODER_ERROR,
-             MSG_GET_SENSORLESS_ERROR,
-             MSG_GET_ENCODER_ESTIMATES,
-             MSG_GET_ENCODER_COUNT,
-             MSG_GET_IQ,
-             MSG_GET_SENSORLESS_ESTIMATES,
-             MSG_GET_VBUS_VOLTAGE]]
+        self.queryTimers = [MyTimer(0.01, partial(self.query,cmd)) for cmd in
+            [MSG_GET_ENCODER_ESTIMATES,
+             MSG_GET_IQ]]
+        self.queryTimers.append(*[MyTimer(1, partial(self.query,cmd)) for cmd in
+            [
+            #  MSG_GET_MOTOR_ERROR,
+            #  MSG_GET_ENCODER_ERROR,
+            #  MSG_GET_SENSORLESS_ERROR,
+            #  MSG_GET_ENCODER_COUNT,
+            #  MSG_GET_SENSORLESS_ESTIMATES,
+             MSG_GET_VBUS_VOLTAGE]])
         self.height, self.width, self.diag = None, None, None
         self.movingTimer = None
 
@@ -39,13 +41,20 @@ class Robot:
         # causes infinite resending waiting for ack
         self.msgBufferAcked = True
         self.msgOutBufferLast = []
-        self.msgBufferAckTimer = MyTimer(0.25, self.resendLastHold)
+        # self.msgBufferAckTimer = MyTimer(0.05, self.resendLastHold)
+
+        # recording
+        self.is_recording = False
+        self.recording_timer = None
+        self.recording_data = []
+
+        self.status = ''
         
     def update(self):
         for timer in self.queryTimers:
             timer.update()
-        if not self.msgBufferAcked:
-            self.msgBufferAckTimer.update()
+        # if not self.msgBufferAcked:
+        #     self.msgBufferAckTimer.update()
         if self.state == RobotState.MOVING:
             try:
                 self.movingTimer.update()
@@ -54,6 +63,8 @@ class Robot:
                 print('error with moving timer')
         for axis in self.axes:
             axis.update()
+        if self.is_recording:
+            self.recording_timer.update()
 
     # control
     def dist(X, Y):
@@ -97,16 +108,21 @@ class Robot:
         print('trajectory: {}'.format(self.trajectory))
 
         self.dir = self.setpoint_pos[0] > self.FK()[0][0]
-        if self.dir:
-            ctrl_modes = [3,3,1,1]
-            vel_lims = [10,10,20,20]
-        else:
-            ctrl_modes = [1,1,3,3]
-            vel_lims = [20,20,10,10]
+        # if self.dir:
+        #     ctrl_modes = [3,3,1,1]
+        #     vel_lims = [10,10,20,20]
+        # else:
+        #     ctrl_modes = [1,1,3,3]
+        #     vel_lims = [20,20,10,10]
+        ctrl_modes = [1,1,1,1]
+        vel_lims = [2, 2, 2, 2]
         self.sendMsgs([*[(self.set_ctrl_mode, (ai, ctrl_mode)) for ai, ctrl_mode in enumerate(ctrl_modes)],
                        *[(self.set_vel_limit, (ai, vel_lim)) for ai, vel_lim in enumerate(vel_lims)]])
         self.state = RobotState.MOVING
-        self.movingTimer = MyTimer(0.2, self.update_traj)
+        self.xerr_prev = None
+        self.tprev = None
+        self.xerr_int = [0, 0]
+        self.movingTimer = MyTimer(0.01, self.update_traj)
     def start_traj_x(self, traj):
         self.setpoint_pos = traj[-1]
         self.trajectory = []
@@ -123,48 +139,88 @@ class Robot:
         self.sendMsgs([*[(self.set_ctrl_mode, (ai, ctrl_mode)) for ai, ctrl_mode in enumerate(ctrl_modes)],
                        *[(self.set_vel_limit, (ai, vel_lim)) for ai, vel_lim in enumerate(vel_lims)]])
         self.state = RobotState.MOVING
-        self.movingTimer = MyTimer(0.2, self.update_traj)
+        self.movingTimer = MyTimer(0.05, self.update_traj)
     def update_traj(self):
         # self.trajectoryi = len(self.trajectory)
         if self.trajectoryi >= len(self.trajectory):
             pos = self.trajectory[-1]
             ls = self.IK(pos, pretension=0.1)
-            print('attempting to reach final state {}'.format(self.setpoint_pos))
+            # print('attempting to reach final state {}'.format(self.setpoint_pos))
         else:
             pos = self.trajectory[self.trajectoryi]
             ls = self.IK(pos, pretension=0.1)
             if (max(abs(l - ax.get_pos()) for l,ax in zip(ls, self.axes)) < 3):
                 self.trajectoryi += 1
-            print('checkpoint {} of {}'.format(self.trajectoryi, len(self.trajectory)))
+            # print('checkpoint {} of {}'.format(self.trajectoryi, len(self.trajectory)))
 
         curpos, err = self.FK()
         d = Robot.dist(curpos, self.trajectory[-1])
         msgs = [] # TODO(gerry): this has trouble sending more than 8 messages at a time I think - direction changes are jerky
         newdir = pos[0] > curpos[0]
-        print('curdir: {}, newdir: {}'.format(self.dir, newdir))
-        if True:#newdir != self.dir:
-            self.dir = newdir
-            if self.dir:
-                ctrl_modes = [3,3,1,1]
-                vel_lims = [10,10,20,20]
-            else:
-                ctrl_modes = [1,1,3,3]
-                vel_lims = [20,20,10,10]
-            for ai, (ctrl_mode, vel_lim) in enumerate(zip(ctrl_modes, vel_lims)):
-                msgs.append((self.set_ctrl_mode, (ai, ctrl_mode)))
-                msgs.append((self.set_vel_limit, (ai, vel_lim)))
-        if self.dir:
-            ls = (ls[0], ls[1], 0.2, 0.2)
+        # print('curdir: {}, newdir: {}'.format(self.dir, newdir))
+        # controller
+        xerr = [c-p for p,c in zip(pos, curpos)]
+        tnow = time.time()
+        if self.tprev is None:
+            dt = 1e-3
         else:
-            ls = (0.2, 0.2, ls[2], ls[3])
-        if d < 3 and (self.trajectoryi >= (len(self.trajectory)-2)):
+            dt = tnow - self.tprev
+        self.tprev = tnow
+        if self.xerr_prev is None:
+            self.xerr_prev = xerr
+        xdot = [(x-xp) / dt for x, xp in zip(xerr, self.xerr_prev)]
+        ilim = 10
+        self.xerr_int = [min(max(i + x*dt, -ilim), ilim) for i, x in zip(self.xerr_int, xerr)]
+        Kp, Ki, Kd = 0.05, 0.05, 0
+        Kp, Ki, Kd = 0.05, 0, 0
+        u = [-Kp * x - Ki * i - Kd * d for x, i, d in zip(xerr, self.xerr_int, xdot)]
+        ulim = 0.7
+        u = [min(max(ui, -ulim), ulim) for ui in u]
+        ls = [0.2,]*4
+        if u[0] > 0:
+            ls[0] += u[0]
+            ls[1] += u[0]
+        else:
+            ls[2] += abs(u[0])
+            ls[3] += abs(u[0])
+        if u[1] > 0:
+            ls[1] += u[1]
+            ls[2] += u[1]
+        else:
+            ls[0] += abs(u[1])
+            ls[3] += abs(u[1])
+        if d < 1 and (self.trajectoryi >= (len(self.trajectory)-2)):
+            ls = [0.2,]*4
             self.state = RobotState.IDLE
             print('arrived!!!')
         else:
-            print('not arrived yet: d={}'.format(d))
+            pass
+            self.status = 'not arrived yet: d={}'.format(d)
         for ai, l in enumerate(ls):
             msgs.append((self.set_setpoint, (ai, l)))
-        self.sendMsgs(msgs)
+        # self.sendMsgs(msgs)
+    
+    # recording
+    def start_recording(self):
+        self.is_recording = True
+        self.recording_timer = MyTimer(0.1, self.record_sample)
+    def record_sample(self):
+        data = {ax.node: ax.export_sample() for ax in self.axes}
+        data['t'] = time.time()
+        data['x'], data['xerr'] = self.FK()
+        self.recording_data.append(data)
+    def stop_recording(self):
+        data = {'data': self.recording_data,
+                'config': {ax.node: ax.export_config() for ax in self.axes}}
+        datajson = json.dumps(data)
+        fname = 'recordings/' + datetime.datetime.now().strftime('%Y%m%d_%H%M') + '.json'
+        with open(fname, 'w') as f:
+            f.write(datajson)
+        with open('recordings/latest.json', 'w') as f:
+            f.write(datajson)
+        print('wrote recordig to {:}'.format(fname))
+        self.is_recording = False
+        self.recording_data = []
 
     # calibration
     def is_calibrated(self):
@@ -292,14 +348,15 @@ class Robot:
             cmds = [buf[1] for buf in self.msgOutBuffer]
             datas = [buf[2] for buf in self.msgOutBuffer]
             self.sendMsgFcn_raw(nodes, cmds, datas, islist=True)
-            self.msgBufferAcked = False
-            self.msgOutBufferLast = self.msgOutBuffer.copy()
-            self.msgOutBuffer = []
+            # self.msgBufferAcked = False
+            # self.msgOutBufferLast = self.msgOutBuffer.copy()
+            # self.msgOutBuffer = []
     def resendLastHold(self):
-        nodes = [buf[0] for buf in self.msgOutBufferLast]
-        cmds = [buf[1] for buf in self.msgOutBufferLast]
-        datas = [buf[2] for buf in self.msgOutBufferLast]
-        self.sendMsgFcn_raw(nodes, cmds, datas, islist=True)
+        # nodes = [buf[0] for buf in self.msgOutBufferLast]
+        # cmds = [buf[1] for buf in self.msgOutBufferLast]
+        # datas = [buf[2] for buf in self.msgOutBufferLast]
+        # self.sendMsgFcn_raw(nodes, cmds, datas, islist=True)
+        pass
 
     # receive message
     def callback(self, node, cmd, data: bytes, ack=False):
@@ -359,7 +416,26 @@ class Axis:
         self.zero = self.pos + offset
         ls = self.calib_lengths
         self.calib_lengths = [l - ls[self.node] + self.zero for l in ls]
-
+    def export_sample(self):
+        return {'last_hb_t': self.last_hb_t,
+                'errorcode': self.errorcode,
+                'state': self.state,
+                'pos': self.get_pos(),
+                'pos_raw': self.pos,
+                'vel': self.vel,
+                'Imeas': self.current_measured,
+                'Iset': self.current_setpoint,
+                'motorError': self.motorError,
+                'encoderError': self.encoderError,
+                'sensorlessError': self.sensorlessError,
+                'encoderCount': self.encoderCount,
+                'sensorlessEst': self.sensorlessEst,
+                'voltage': self.voltage,
+                'control_mode_believed': self.control_mode_believed}
+    def export_config(self):
+        return {'zero': self.zero,
+                'location': self.location,
+                'calib_lengths': self.calib_lengths}
     # send message
     def query(self, cmd):
         self.sendMsgFcn(self.node, cmd, now=True)
