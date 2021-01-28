@@ -50,11 +50,14 @@ class Robot:
 
         self.status = ''
         
+        self.paintIsOn = False
+        self.paintTimer = MyTimer(1.25, self.updatePaint)
     def update(self):
         for timer in self.queryTimers:
             timer.update()
         # if not self.msgBufferAcked:
         #     self.msgBufferAckTimer.update()
+        self.paintTimer.update()
         if self.state == RobotState.MOVING:
             try:
                 self.movingTimer.update()
@@ -198,8 +201,8 @@ class Robot:
             self.status = 'not arrived yet: d={}'.format(d)
         for ai, l in enumerate(ls):
             msgs.append((self.set_setpoint, (ai, l)))
-        # self.sendMsgs(msgs)
-    
+    def updatePaint(self):
+        self.sendMsgFcn(9, self.paintIsOn, now=True)
     # recording
     def start_recording(self):
         self.is_recording = True

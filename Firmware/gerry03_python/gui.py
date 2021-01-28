@@ -119,7 +119,7 @@ class MyGUI:
         # all together
         layout = [[col_labels, *col_axes],
                   [sg.Text('_'*120)],
-                  [sg.Button('hold'), sg.Button('unhold'), sg.Button('send hold'), self.modeLabel, self.fpsLabel, self.statusLabel],
+                  [sg.Button('Paint on'), sg.Button('Paint off'), sg.Button('hold'), sg.Button('unhold'), sg.Button('send hold'), self.modeLabel, self.fpsLabel, self.statusLabel],
                   [sg.Text('_'*120)],
                   cartesian,
                   [sg.Text('_'*120)],
@@ -159,6 +159,12 @@ class MyGUI:
     def parseInput(self, event, values):
         if event == '__TIMEOUT__':
             return
+        elif event == 'Paint on':
+            self.robot.paintIsOn = True
+            self.robot.paintTimer.callback()
+        elif event == 'Paint off':
+            self.robot.paintIsOn = False
+            self.robot.paintTimer.callback()
         elif event == 'hold':
             self.robot.hold()
         elif event == 'unhold':

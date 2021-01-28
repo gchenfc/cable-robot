@@ -30,6 +30,8 @@ struct CanBufferTmp_t {
 
 CanBufferTmp_t canBuffer;
 
+#define btSerial Serial2
+
 // function declarations
 uint8_t requestInfo(uint16_t node, uint8_t cmdId, bool rtr=false);
 uint8_t sendBytes(uint16_t node, uint8_t cmdId, uint8_t *data, bool rtr=false);
@@ -79,6 +81,7 @@ void setup(void)
   Serial1.begin(115200);
   Serial.begin(115200);
   Serial1.println("Hello Teensy 3.6 dual CAN Test.");
+  btSerial.begin(9600);
   pinMode(13, OUTPUT);
 
   Can0.begin(500000);
@@ -135,6 +138,18 @@ static void read_serial(Stream &serial, CharBuffer_t &buf) {
         if (buf.bufferi == 0) break; // this is how to tell if parse succeeded
         uint8_t cmd = parseOneInt(buf, 'c');
         if (buf.bufferi == 0) break;
+
+        if (node == 9) { // me
+          switch (cmd) {
+            case 1:
+              btSerial.write('1');
+              break;
+            case 0:
+              btSerial.write('0');
+              break;
+          }
+          continue;
+        }
 
         if (cmd == MSG_SET_AXIS_REQUESTED_STATE)
           Serial1.println("***RECEIVED***");
