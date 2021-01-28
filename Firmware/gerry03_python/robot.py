@@ -145,7 +145,7 @@ class Robot:
         # ctrl_modes = [1,1,1,1]
         # vel_lims = [2, 2, 2, 2]
         ctrl_modes = [1,3,3,1]
-        vel_lims = [0.5, 2, 2, 0.5]
+        vel_lims = [5, 2, 2, 5]
         self.sendMsgs([*[(self.set_ctrl_mode, (ai, ctrl_mode)) for ai, ctrl_mode in enumerate(ctrl_modes)],
                        *[(self.set_vel_limit, (ai, vel_lim)) for ai, vel_lim in enumerate(vel_lims)]])
         self.state = RobotState.MOVING
@@ -167,7 +167,7 @@ class Robot:
             self.trajectory.append(tmppos)
         
         ctrl_modes = [1,3,3,1]
-        vel_lims = [0.5, 2, 2, 0.5]
+        vel_lims = [5, 2, 2, 5]
         self.sendMsgs([*[(self.set_ctrl_mode, (ai, ctrl_mode)) for ai, ctrl_mode in enumerate(ctrl_modes)],
                        *[(self.set_vel_limit, (ai, vel_lim)) for ai, vel_lim in enumerate(vel_lims)]])
         # self.dir = self.trajectory[0][0] > self.FK()[0][0]
@@ -206,6 +206,20 @@ class Robot:
         v = np.abs(J @ dx * self.vmax)
         vcons = np.maximum(np.minimum(v, self.vmax), 0.5)
         v = np.maximum(np.minimum(v, self.vmax), 0.1)
+        # lower two torques
+        J0 = abs(J[0, 0])
+        J3 = abs(J[3, 0])
+        if J0 > J3:
+            t0 = 1
+            t3 = min(t0 * (J0/J3), 0.8)
+        else:
+            t3 = 1
+            t0 = min(t3 * (J3/J0), 0.8)
+        tf = t0*abs(J[0, 1]) + t3*abs(J[3, 1])
+        t0 = t0 / tf * 0.5 * (self.height - curxy[1]) / self.height
+        t3 = t3 / tf * 0.7 * (self.height - curxy[1]) / self.height
+        t0 = max(t0, 0.15)
+        t3 = max(t3, 0.15)
         # print(v[1, 0], v[2, 0])
         # if (max(abs(l - ax.get_pos()) for l,ax in zip(ls, self.axes)) < 3):
         #     self.trajectoryi += 1
@@ -213,7 +227,9 @@ class Robot:
         self.sendMsgs([(self.set_vel_limit, (1, vcons[1, 0])),
                         (self.set_vel_limit, (2, vcons[2, 0])),
                         (self.set_setpoint, (1, ls[1], v[1, 0])),
-                        (self.set_setpoint, (2, ls[2], v[2, 0]))])
+                        (self.set_setpoint, (2, ls[2], v[2, 0])),
+                        (self.set_setpoint, (0, t0)),
+                        (self.set_setpoint, (3, t3))])
         # self.sendMsgs([(self.set_setpoint, (1, ls[1])),
         #                (self.set_setpoint, (2, ls[2]))])
         self.status = 'sent to [{:.1f}, {:.1f}, {:.1f}, {:.1f}]'.format(float('nan'), ls[1], ls[2], float('nan'))
