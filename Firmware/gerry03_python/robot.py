@@ -22,17 +22,18 @@ class Robot:
         self.axes = [Axis(self, i) for i in range(4)]
         self.last_hb_t = [time.time() + 3,] * 4
         self.state = RobotState.IDLE
-        self.queryTimers = [MyTimer(0.01, partial(self.query,cmd)) for cmd in
+        self.queryTimers = [MyTimer(0.1, partial(self.query,cmd)) for cmd in
             [MSG_GET_ENCODER_ESTIMATES,
              MSG_GET_IQ]]
-        self.queryTimers.append(*[MyTimer(1, partial(self.query,cmd)) for cmd in
-            [
-            #  MSG_GET_MOTOR_ERROR,
-            #  MSG_GET_ENCODER_ERROR,
-            #  MSG_GET_SENSORLESS_ERROR,
-            #  MSG_GET_ENCODER_COUNT,
-            #  MSG_GET_SENSORLESS_ESTIMATES,
-             MSG_GET_VBUS_VOLTAGE]])
+        # self.queryTimers.append(*[MyTimer(1, partial(self.query,cmd)) for cmd in
+        #     [
+        #     #  MSG_GET_MOTOR_ERROR,
+        #     #  MSG_GET_ENCODER_ERROR,
+        #     #  MSG_GET_SENSORLESS_ERROR,
+        #     #  MSG_GET_ENCODER_COUNT,
+        #     #  MSG_GET_SENSORLESS_ESTIMATES,
+        #     #  MSG_GET_VBUS_VOLTAGE
+        #      ]])
         self.height, self.width, self.diag = None, None, None
         self.movingTimer = None
 
@@ -49,9 +50,11 @@ class Robot:
         self.recording_data = []
 
         self.status = ''
-        
+
         self.paintIsOn = False
         self.paintTimer = MyTimer(1.25, self.updatePaint)
+        self.vmax = 3
+        
     def update(self):
         for timer in self.queryTimers:
             timer.update()
@@ -77,19 +80,29 @@ class Robot:
         if locs is None:
             locs = self.get_anchor_locs()
         return tuple(Robot.dist(loc, pos)-pretension for loc in locs)
+    def IKjacobian(self, pos=None, locs=None):
+        if pos is None:
+            pos = self.FK()[0]
+        if locs is None:
+            locs = self.get_anchor_locs()
+        locs = np.array(locs) # 4x2
+        x = np.array(pos).reshape(1, 2)
+        dx = x - locs
+        jac = dx / np.sqrt(np.sum(np.square(dx), axis=1)).reshape(4, 1)
+        return jac
     def FK(self, lengths=None, locs=None):
         if lengths is None:
             lengths = self.get_lengths()
         if locs is None:
             locs = self.get_anchor_locs()
-        a = locs[0][0]-locs[3][0]
-        b = abs(lengths[3])
-        c = abs(lengths[0])
+        a = locs[1][0]-locs[2][0]
+        b = abs(lengths[2])
+        c = abs(lengths[1])
         try:
             gamma = math.acos((a*a + b*b - c*c) / (2*a*b))
         except:
             gamma = math.pi/4
-        pos = (b*math.cos(gamma), b*math.sin(gamma))
+        pos = (b*math.cos(gamma), locs[2][1] - b*math.sin(gamma))
         err = tuple(l - lhat for l,lhat in zip(lengths, self.IK(pos)))
         return pos, err
     def gotopos(self, pos, dry_run=False):
@@ -105,64 +118,125 @@ class Robot:
             return
         self.setpoint_lengths = ls
         self.setpoint_pos = pos
-        self.trajectory = []
+        self.trajectory = [self.FK()[0]]
         self.trajectoryi = 0
-        self.trajectory.append(self.setpoint_pos)
+        def stepTowards(init, final, d):
+            dtot = Robot.dist(init, final)
+            if dtot < d:
+                return final, True
+            else:
+                dx = [(f-i)/dtot for i, f in zip(init, final)]
+                return [ii + dxi*d for ii, dxi in zip(init, dx)], False
+        done = False
+        while not done:
+            n, done = stepTowards(self.trajectory[-1], pos, 2)
+            self.trajectory.append(n)
+        self.trajectory = [pos]
+        # self.trajectory.append(self.setpoint_pos)
         print('trajectory: {}'.format(self.trajectory))
 
-        self.dir = self.setpoint_pos[0] > self.FK()[0][0]
+        # self.dir = self.setpoint_pos[0] > self.FK()[0][0]
         # if self.dir:
         #     ctrl_modes = [3,3,1,1]
         #     vel_lims = [10,10,20,20]
         # else:
         #     ctrl_modes = [1,1,3,3]
         #     vel_lims = [20,20,10,10]
-        ctrl_modes = [1,1,1,1]
-        vel_lims = [2, 2, 2, 2]
+        # ctrl_modes = [1,1,1,1]
+        # vel_lims = [2, 2, 2, 2]
+        ctrl_modes = [1,3,3,1]
+        vel_lims = [0.5, 2, 2, 0.5]
         self.sendMsgs([*[(self.set_ctrl_mode, (ai, ctrl_mode)) for ai, ctrl_mode in enumerate(ctrl_modes)],
                        *[(self.set_vel_limit, (ai, vel_lim)) for ai, vel_lim in enumerate(vel_lims)]])
         self.state = RobotState.MOVING
         self.xerr_prev = None
         self.tprev = None
         self.xerr_int = [0, 0]
-        self.movingTimer = MyTimer(0.01, self.update_traj)
+
+        # self.sendMsgs([(self.set_setpoint, (1, ls[1])),
+        #                (self.set_setpoint, (2, ls[2]))])
+        # self.status = 'sent to [{:.1f}, {:.1f}, {:.1f}, {:.1f}]'.format(float('nan'), ls[1], ls[2], float('nan'))
+        
+        self.movingTimer = MyTimer(0.1, self.update_traj)
+        self.movingTimer.t = self.queryTimers[0].t + 0.05
     def start_traj_x(self, traj):
         self.setpoint_pos = traj[-1]
         self.trajectory = []
         self.trajectoryi = 0
         for tmppos in traj:
             self.trajectory.append(tmppos)
-        self.dir = self.trajectory[0][0] > self.FK()[0][0]
-        if self.dir:
-            ctrl_modes = [3,3,1,1]
-            vel_lims = [10,10,20,20]
-        else:
-            ctrl_modes = [1,1,3,3]
-            vel_lims = [20,20,10,10]
+        
+        ctrl_modes = [1,3,3,1]
+        vel_lims = [0.5, 2, 2, 0.5]
         self.sendMsgs([*[(self.set_ctrl_mode, (ai, ctrl_mode)) for ai, ctrl_mode in enumerate(ctrl_modes)],
                        *[(self.set_vel_limit, (ai, vel_lim)) for ai, vel_lim in enumerate(vel_lims)]])
+        # self.dir = self.trajectory[0][0] > self.FK()[0][0]
+        # if self.dir:
+        #     ctrl_modes = [3,3,1,1]
+        #     vel_lims = [10,10,20,20]
+        # else:
+        #     ctrl_modes = [1,1,3,3]
+        #     vel_lims = [20,20,10,10]
+        # self.sendMsgs([*[(self.set_ctrl_mode, (ai, ctrl_mode)) for ai, ctrl_mode in enumerate(ctrl_modes)],
+        #                *[(self.set_vel_limit, (ai, vel_lim)) for ai, vel_lim in enumerate(vel_lims)]])
         self.state = RobotState.MOVING
-        self.movingTimer = MyTimer(0.05, self.update_traj)
+        self.xerr_prev = None
+        self.tprev = None
+        self.xerr_int = [0, 0]
+        self.movingTimer = MyTimer(0.1, self.update_traj)
+        self.movingTimer.t = self.queryTimers[0].t + 0.05
     def update_traj(self):
         # self.trajectoryi = len(self.trajectory)
+        curxy, err = self.FK()
+        dthresh = self.vmax * 0.1 * 2
         if self.trajectoryi >= len(self.trajectory):
-            pos = self.trajectory[-1]
-            ls = self.IK(pos, pretension=0.1)
+            setxy = self.trajectory[-1]
             # print('attempting to reach final state {}'.format(self.setpoint_pos))
         else:
-            pos = self.trajectory[self.trajectoryi]
-            ls = self.IK(pos, pretension=0.1)
-            if (max(abs(l - ax.get_pos()) for l,ax in zip(ls, self.axes)) < 3):
+            setxy = self.trajectory[self.trajectoryi]
+            while Robot.dist(curxy, setxy) < dthresh and self.trajectoryi < len(self.trajectory)-1:
                 self.trajectoryi += 1
-            # print('checkpoint {} of {}'.format(self.trajectoryi, len(self.trajectory)))
+                setxy = self.trajectory[self.trajectoryi]
+                print('next waypoint: {:.0f}, {:.0f}'.format(*setxy))
+        ls = self.IK(setxy, pretension=0.1)
+        dx = np.array(setxy).reshape(2, 1) - np.array(curxy).reshape(2, 1)
+        dx = dx / np.sqrt(np.sum(np.square(dx)))
+        J = self.IKjacobian()
+        # velocities
+        v = np.abs(J @ dx * self.vmax)
+        vcons = np.maximum(np.minimum(v, self.vmax), 0.5)
+        v = np.maximum(np.minimum(v, self.vmax), 0.1)
+        # print(v[1, 0], v[2, 0])
+        # if (max(abs(l - ax.get_pos()) for l,ax in zip(ls, self.axes)) < 3):
+        #     self.trajectoryi += 1
+        # print('checkpoint {} of {}'.format(self.trajectoryi, len(self.trajectory)))
+        self.sendMsgs([(self.set_vel_limit, (1, vcons[1, 0])),
+                        (self.set_vel_limit, (2, vcons[2, 0])),
+                        (self.set_setpoint, (1, ls[1], v[1, 0])),
+                        (self.set_setpoint, (2, ls[2], v[2, 0]))])
+        # self.sendMsgs([(self.set_setpoint, (1, ls[1])),
+        #                (self.set_setpoint, (2, ls[2]))])
+        self.status = 'sent to [{:.1f}, {:.1f}, {:.1f}, {:.1f}]'.format(float('nan'), ls[1], ls[2], float('nan'))
+        
+        d = Robot.dist(curxy, self.trajectory[-1])
+        if d < 0.2 and (self.trajectoryi >= (len(self.trajectory)-2)):
+            ls = [0.2,]*4
+            self.state = RobotState.IDLE
+            print('arrived!!!')
+        else:
+            pass
+            self.status = 'not arrived yet: d={}'.format(d)
+        return
 
-        curpos, err = self.FK()
-        d = Robot.dist(curpos, self.trajectory[-1])
+        # FK
+        curxy, err = self.FK()
+        d = Robot.dist(curxy, self.trajectory[-1])
         msgs = [] # TODO(gerry): this has trouble sending more than 8 messages at a time I think - direction changes are jerky
-        newdir = pos[0] > curpos[0]
+        newdir = pos[0] > curxy[0]
         # print('curdir: {}, newdir: {}'.format(self.dir, newdir))
-        # controller
-        xerr = [c-p for p,c in zip(pos, curpos)]
+
+        # PID controller
+        xerr = [c-p for p,c in zip(pos, curxy)]
         tnow = time.time()
         if self.tprev is None:
             dt = 1e-3
@@ -178,8 +252,10 @@ class Robot:
         Kp, Ki, Kd = 0.05, 0, 0
         u = [-Kp * x - Ki * i - Kd * d for x, i, d in zip(xerr, self.xerr_int, xdot)]
         ulim = 0.7
-        u = [min(max(ui, -ulim), ulim) for ui in u]
-        ls = [0.2,]*4
+        u = [min(max(ui, -ulim), ulim) for ui in u] # force in x/y
+
+        # simplified IK + tension distribution
+        ls = [0.2,]*4 # force each cable needs to exert
         if u[0] > 0:
             ls[0] += u[0]
             ls[1] += u[0]
@@ -201,6 +277,7 @@ class Robot:
             self.status = 'not arrived yet: d={}'.format(d)
         for ai, l in enumerate(ls):
             msgs.append((self.set_setpoint, (ai, l)))
+        self.sendMsgs(msgs)
     def updatePaint(self):
         self.sendMsgFcn(9, self.paintIsOn, now=True)
     # recording
@@ -319,8 +396,8 @@ class Robot:
         print('setting state')
     def set_ctrl_mode(self, axis, mode):
         self.axes[axis].set_ctrl_mode(mode)
-    def set_setpoint(self, axis, setpoint):
-        self.axes[axis].set_setpoint(setpoint)
+    def set_setpoint(self, axis, setpoint, *args):
+        self.axes[axis].set_setpoint(setpoint, *args)
     def set_vel_limit(self, axis, limit):
         self.axes[axis].set_vel_limit(limit)
     def sendMsgFcn(self, node, cmd, data=None, now=False):
@@ -364,7 +441,7 @@ class Robot:
     # receive message
     def callback(self, node, cmd, data: bytes, ack=False):
         if ack:
-            print("ACKED!!!!!")
+            # print("ACKED!!!!!")
             self.msgBufferAcked = True
             return
         if (node > 3):
@@ -451,15 +528,15 @@ class Axis:
         self.control_mode_believed = mode
     def resend_ctrl_mode(self):
         self.set_ctrl_mode(self.control_mode_believed)
-    def set_setpoint(self, setpoint):
+    def set_setpoint(self, setpoint, ffv=0, fft=0):
         mode = self.control_mode_believed
         self.commanded_pos = float('nan')
         if mode == 1:
             self.sendMsgFcn(self.node, MSG_SET_INPUT_TORQUE, [setpoint])
         elif mode == 2:
-            self.sendMsgFcn(self.node, MSG_SET_INPUT_VEL, [setpoint, 0])
+            self.sendMsgFcn(self.node, MSG_SET_INPUT_VEL, [setpoint, fft])
         elif mode == 3:
-            self.sendMsgFcn(self.node, MSG_SET_INPUT_POS, [self.pos_robot2raw(setpoint), 0, 0])
+            self.sendMsgFcn(self.node, MSG_SET_INPUT_POS, [self.pos_robot2raw(setpoint), ffv, fft])
             self.commanded_pos = setpoint
         else:
             print('unknown mode during setpoint command: {}'.format(mode))

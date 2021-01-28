@@ -82,6 +82,7 @@ class MyGUI:
         self.label_pos_err = sg.Text('-', size=(10,4))
         self.input_pos = [sg.InputText('-', key='cartx', size=(6,1)),
                           sg.InputText('-', key='carty', size=(6,1))]
+        self.movement_speed = sg.InputText('{:f}'.format(self.robot.vmax), key='vmax', size=(5, 1))
         def txt(desc: str):
             return sg.Text(desc)
         cartesian = [sg.Frame('Est. Pos',
@@ -94,8 +95,12 @@ class MyGUI:
                                 txt('y:'), self.input_pos[1]],
                                [sg.Button('Go', key='gotopos'),
                                 sg.Button('Cancel', key='stoppos')]]),
+                     sg.Frame('Speed',
+                              [[self.movement_speed],
+                               [sg.Button('Set', key='setvmax')]]),
                      sg.Frame('Trajectores',
-                                [[sg.Button('Square'), sg.Button('Diamond'), sg.Button('Circle')]])
+                                [[sg.Button('Square'), sg.Button('Diamond')],
+                                 [sg.Button('Circle'), sg.Button('Heart')]])
                     ]
 
         # management
@@ -177,6 +182,9 @@ class MyGUI:
             self.robot.gotopos((x, y), dry_run=False)
         elif event == 'stoppos':
             self.robot.state = RobotState.IDLE
+        elif event == 'setvmax':
+            self.robot.vmax = float(values['vmax'])
+            print('vmax set to {:f}'.format(self.robot.vmax))
         elif event == 'Square':
             x, y = 20, 15
             dx, dy = 10, 5
@@ -198,14 +206,27 @@ class MyGUI:
             self.robot.start_traj_x(traj)
         elif event == 'Circle':
             traj = []
-            center = [20, 15]
-            radius = 10
+            center = [18, 13]
+            radius = 7
             for i in range(50):
                 theta = -i * 2*math.pi / 50
                 traj.append([center[0] + radius*math.cos(theta),
                              center[1] + radius*math.sin(theta)])
-            traj.append([30, 15])
+            traj.append(traj[0])
             self.robot.start_traj_x(traj)
+        elif event == 'Heart':
+            center = [18, 13]
+            tvals = np.linspace(0, 2*np.pi, 21)
+            x = 16*np.power(np.sin(tvals), 3)
+            y = 13*np.cos(tvals) - 5*np.cos(2*tvals) - \
+                2*np.cos(3*tvals) - np.cos(4*tvals)
+            def scale(arr):
+                return (arr - np.min(arr)) / (np.max(arr) - np.min(arr)) * 2 - 1
+            x = scale(x) * 10 + center[0]
+            y = scale(y) * 10 + 11
+            traj = [[xi, yi] for xi, yi in zip(x, y)]
+            self.robot.start_traj_x(traj)
+            # [print(traji) for traji in traj]
         elif event == 'Calculate Calibration':
             print(self.robot.calculate_calibration())
         elif event == 'Print Calibration':

@@ -56,7 +56,7 @@ class MySerial:
                         out += '{},'.format(round(datum, 3))
                     out = out[:-1]
                 outAll += out + '~'
-            print('sending multiple messages:', outAll[:-1])
+            # print('sending multiple messages:', outAll[:-1])
             self.writeRaw(outAll[:-1])
     
     def writeRaw(self, msg: str, debug=False):
