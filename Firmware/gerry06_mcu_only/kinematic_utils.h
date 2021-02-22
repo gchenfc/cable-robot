@@ -19,6 +19,9 @@ float getLenDot(uint8_t node) {
 float getPos(uint8_t node, float len) {
   return len / r / tau + zeros[node];
 }
+void clamp(float &x, float xmin, float xmax) {
+  x = min(xmax, max(xmin, x));
+}
 void LPF(float &oldV, const float &newV, float alph = 0.1);
 void inv2x2(float A[2][2]);
 float towards(float maxD, float x, float y, float tx, float ty, float &nx, float &ny);

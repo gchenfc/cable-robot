@@ -46,10 +46,16 @@ static void read_serial() {
           stop_closed_loop_4();
           break;
         case 56:
-          start_closed_loop_4_traj();
+          step_closed_loop_4_traj();
           break;
         case 57:
+          start_closed_loop_4_traj();
+          break;
+        case 58:
           stop_closed_loop_4_traj();
+          break;
+        case 59:
+          seti_closed_loop_4_traj(parseOneInt('\n'));
           break;
         case MSG_ODRIVE_ESTOP:
         case MSG_START_ANTICOGGING:
