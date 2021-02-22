@@ -24,6 +24,9 @@ static void read_serial() {
           if ((cmd - 60) & 0b0010) sendFloat(1, 0x0E, 0.2);
           if ((cmd - 60) & 0b0001) sendFloat(0, 0x0E, 0.2);
           break;
+        case 80:
+          setZero(node);
+          break;
         case 50:
           start_closed_loop_1(node);
           break;
@@ -41,6 +44,12 @@ static void read_serial() {
           break;
         case 55:
           stop_closed_loop_4();
+          break;
+        case 56:
+          start_closed_loop_4_traj();
+          break;
+        case 57:
+          stop_closed_loop_4_traj();
           break;
         case MSG_ODRIVE_ESTOP:
         case MSG_START_ANTICOGGING:

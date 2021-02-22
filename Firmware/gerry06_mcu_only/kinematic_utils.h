@@ -1,6 +1,15 @@
 static float mountPoints[4][2] = {{width, 0}, {width, height}, {0, height}, {0, 0}};
 
 // headers and convenience
+float setZero(uint8_t node) {
+  zeros[node] = pos[node];
+  Serial1.print("Zeros:\t");
+  for (auto z : zeros) {
+    Serial1.print(z);
+    Serial1.print(", ");
+  }
+  Serial1.println();
+}
 float getLen(uint8_t node) {
   return (pos[node] - zeros[node]) * r * tau;  // this has a sign error but too risky to change
 }
@@ -12,6 +21,7 @@ float getPos(uint8_t node, float len) {
 }
 void LPF(float &oldV, const float &newV, float alph = 0.1);
 void inv2x2(float A[2][2]);
+float towards(float maxD, float x, float y, float tx, float ty, float &nx, float &ny);
 void jacobian(float W[4][2]);
 void IK(float lengths[4], float x, float y);
 void FK(float &x, float &y, const float lengths[4]);
@@ -39,6 +49,22 @@ float inv2x2(float A[2][2], float Ainv[2][2]) {
   Ainv[0][0] = A[1][1]/det;     Ainv[0][1] = -A[0][1]/det;
   Ainv[1][0] = -A[1][0]/det;    Ainv[1][1] = A[0][0]/det;
 }
+float towards(float maxD, float x, float y, float tx, float ty, float &nx, float &ny) {
+  float dx = tx - x;
+  float dy = ty - y;
+  float d2 = dx*dx + dy*dy;
+  if (d2 > (maxD*maxD)) {
+    float scale = maxD / sqrt(d2);
+    nx = x + dx * scale;
+    ny = y + dy * scale;
+    // return false;
+  } else {
+    nx = tx;
+    ny = ty;
+    // return true;
+  }
+  return d2;
+}
 void jacobian(float W[4][2]) {
   float x, y;
   FK(x, y);
@@ -64,7 +90,7 @@ void FK(float &x, float &y, const float lengths[4]) {
   float cosC = (a*a + b*b - c*c) / (2*a*b);
   if ((cosC <= 1) && (cosC >= -1)) {
     x = b * cosC;
-    y = b * (1-cosC*cosC);
+    y = b * sqrt(1-cosC*cosC);
   } else {
     // kinematically infeasible
     x = 0;

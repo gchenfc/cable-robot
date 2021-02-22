@@ -36,13 +36,15 @@ volatile bool estopStatus = false;
 Metro printTimer(50);
 uint32_t status[4], state[4];
 float pos[4], vel[4], iqset[4], iqmeas[4], tset[4];
-float zeros[4] = {45.75,	1.79,	2.00,	3.5};
-float width = 2.84, height = 2.44;
+float zeros[4] = {46.35, 34.53, 2.91, 33.67};
+// float width = 2.84, height = 2.44;
+// float width = 37 * (3.1415*0.0254), height = 27 * (3.1415*0.0254);
+float width = 2.93, height = 2.32;
 // width = 3.048
 
 // control stuff
 bool closed[4];
-bool closed2, closed4;
+bool closed2, closed4, closed4t;
 float pos_set[4];
 float vel_lpf, errI;
 uint64_t closed2_toff, c2_tlast;
@@ -53,8 +55,12 @@ float vel4_lpf[2], err4I[2];
 uint64_t c4_toff, c4_tlast;
 float W[4][2];
 
+uint32_t ct4_ind;
+float ct4_xset, ct4_yset;
+bool ct4_proceed;
+
 // "constants"
-static float T = 1, A = 0.50, tau = 2*3.1415, r = 0.0254/2;
+static float T = 5, A = 0.50, tau = 2*3.1415, r = 0.0254/2;
 
 // function declarations
 #include "can_utils.h"
@@ -67,6 +73,7 @@ void stop_closed_loop_2();
 void update_control_2();
 void printInfo();
 #include "serial.h"
+#include "iros_logo.h" // trajectory
 
 // -------------------------------------------------------------
 void setup(void)
@@ -139,6 +146,9 @@ void loop(void)
     FK(x4, y4);
     if (closed4) {
       update_control_4();
+    }
+    if (closed4t) {
+      update_control_4_traj();
     }
   }
 
@@ -284,6 +294,93 @@ void update_control_4() {
   // Serial1.print(", ");
   // Serial1.print(tensions[3]);
   // Serial1.print('\n');
+  for (uint8_t i = 0; i < 4; ++i)
+    sendFloat(i, 0x0E, tensions[i] * r);
+}
+
+void start_closed_loop_4_traj() {
+  x4start = 0.1;  // 0.44 - 2.35
+  y4start = 0.488; // 0.28 - 1.07
+  jacobian(W);
+  FKv(W, vel4_lpf[0], vel4_lpf[1]);
+  err4I[0] = 0; err4I[1] = 0;
+  c4_tlast = millis();
+  ct4_ind = 0;
+  ct4_xset = (traj[ct4_ind][0] + x4start) * 0.5 + width/4;
+  ct4_yset = (traj[ct4_ind][1] + y4start) * 0.5 + height/4;
+  ct4_proceed = false;
+  closed4t = true;
+}
+void stop_closed_loop_4_traj() {
+  closed4t = false;
+  sendFloat(0, 0x0E, 0);
+  sendFloat(1, 0x0E, 0);
+  sendFloat(2, 0x0E, 0);
+  sendFloat(3, 0x0E, 0);
+}
+void update_control_4_traj() {
+  // update timing
+  uint64_t tnow = millis(); float dt = (tnow - c4_tlast) / 1000.0; c4_tlast = tnow;
+  // update setpoint
+  ct4_xset = traj[ct4_ind][0];
+  ct4_yset = traj[ct4_ind][1];
+  if (ct4_proceed) {
+    ++ct4_ind;
+  }
+  if (towards(0.5 * dt, x4, y4, ct4_xset, ct4_yset, x4des, y4des) < (0.5 * dt * 10)) {
+    // advance counter
+    ++ct4_ind;
+    if (ct4_ind >= (sizeof(traj) / sizeof(traj[0]))) {
+      stop_closed_loop_4_traj();
+      return;
+    }
+    ct4_xset = (traj[ct4_ind][0] + x4start) * 0.5 + width/4;
+    ct4_yset = (traj[ct4_ind][1] + y4start) * 0.5 + height/4;
+  }
+  vx4des = (x4des - x4) / dt; // m/s
+  vy4des = (y4des - y4) / dt;
+  Serial1.print("Traj: ");
+  Serial1.print(ct4_ind); Serial.print('\t');
+  Serial1.print(x4); Serial1.print(", ");
+  Serial1.print(y4); Serial1.print(", ");
+  Serial1.print(ct4_xset); Serial1.print(", ");
+  Serial1.print(ct4_yset); Serial1.print(", ");
+  Serial1.print(x4des); Serial1.print(", ");
+  Serial1.print(y4des); Serial1.print(", ");
+  Serial1.print(vx4des); Serial1.print(", ");
+  Serial1.print(vy4des); Serial1.print("\t");
+
+  // calculate current velocity
+  jacobian(W);
+  float vx, vy;
+  FKv(W, vx, vy);
+  // PID
+  LPF(vel4_lpf[0], vx);
+  LPF(vel4_lpf[1], vy);
+  float errx = x4des - x4, erry = y4des - y4;
+  err4I[0] += errx * dt; err4I[1] += erry * dt;
+  err4I[0] = min(0.5, max(-0.5, err4I[0]));     err4I[1] = min(0.5, max(-0.5, err4I[1]));
+  float derrx = vx4des - vel4_lpf[0], derry = vy4des - vel4_lpf[1];
+  // float fx = 1000 * errx + 500 * err4I[0] + 250 * derrx;
+  // float fy = 1000 * erry + 500 * err4I[1] + 250 * derry;
+  float fx = 400.0 * errx + 200.0 * err4I[0] + 100.0 * derrx;
+  float fy = 400.0 * erry + 200.0 * err4I[1] + 100.0 * derry;
+  Serial1.print(fx);
+  Serial1.print(", ");
+  Serial1.print(fy);
+  Serial1.print('\t');
+
+  // TD
+  float tensions[4];
+  forceSolver(tensions, fx, fy);
+  Serial1.print(tensions[0]);
+  Serial1.print(", ");
+  Serial1.print(tensions[1]);
+  Serial1.print(", ");
+  Serial1.print(tensions[2]);
+  Serial1.print(", ");
+  Serial1.print(tensions[3]);
+  Serial1.print('\n');
   for (uint8_t i = 0; i < 4; ++i)
     sendFloat(i, 0x0E, tensions[i] * r);
 }
