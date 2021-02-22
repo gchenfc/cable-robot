@@ -36,6 +36,7 @@ void FK(float &x, float &y) {
   FK(x, y, lengths);
 }
 void FKv(float W[4][2], float &vx, float &vy);
+void forceSolverPott(float tensions[4], float Fx, float Fy, float x, float y);
 void forceSolver(float tensions[4], float Fx, float Fy, float x, float y);
 void forceSolver(float tensions[4], float Fx, float Fy) {
   float x, y;
@@ -125,6 +126,34 @@ void FKv(float W[4][2], float &vx, float &vy) {
     vy = 0;
 }
 
+void forceSolverPott(float tensions[4], float Fx, float Fy, float x, float y) {
+  // t = tm - pinv(W)*(f + W' * tm) = tm - W.inv(W'.W).(f + W'.tm)
+  float tm[4] = {0.6 / r, 0.6 / r, 0.6 / r, 0.6 / r};
+  // f - W'.tm
+  for (int i = 0; i < 4; ++i) {
+    Fx -= W[i][0] * tm[i];
+    Fy -= W[i][1] * tm[i];
+  }
+
+  // inv(W'.W)'
+  float WTW[2][2] = {};
+  for (uint8_t i = 0; i < 4; ++i) {
+    WTW[0][0] += W[i][0] * W[i][0];
+    WTW[1][0] += W[i][1] * W[i][0];
+    WTW[1][1] += W[i][1] * W[i][1];
+  }
+  WTW[0][1] = WTW[1][0];
+  float WTWinv[2][2];
+  inv2x2(WTW, WTWinv);
+  // inv(W'.W) * (f + W' * tm)
+  float intermediate[2];
+  intermediate[0] = WTWinv[0][0] * Fx + WTWinv[0][1] * Fy;
+  intermediate[1] = WTWinv[1][0] * Fx + WTWinv[1][1] * Fy;
+  // tm - W.inv(W'.W).(f + W'.tm)
+  for (int i = 0; i < 4; ++i) {
+    tensions[i] = tm[i] + W[i][0] * intermediate[0] + W[i][1] * intermediate[1];
+  }
+}
 void forceSolver(float tensions[4], float Fx, float Fy, float x, float y) {
   float mountPoints[4][2] = {{width, 0}, {width, height}, {0, height}, {0, 0}};
   uint8_t i; // cable index
