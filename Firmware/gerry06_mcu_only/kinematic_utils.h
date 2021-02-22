@@ -139,16 +139,21 @@ void forceSolver(float tensions[4], float Fx, float Fy, float x, float y) {
   for (i = 0; i < 4; ++i) {
     tensions[i] = 0.2 / r;
     float qdot = getLenDot(i);
-    float off;
+    // static friction
+    float fs;
     if (qdot > 0) {
-      off = -0.075 / r;
+      fs = -0.1 / r;
     } else if (qdot == 0) {
-      off = 0;
+      fs = 0;
     } else {
-      off = 0.075 / r;
+      fs = 0.1 / r;
     }
-    Fx -= (tensions[i] + off)*(mountPoints[i][0] - x) / norms[i];
-    Fy -= (tensions[i] + off)*(mountPoints[i][1] - y) / norms[i];
+    // motor inertia
+    float Tmotor = 1.0*qddot4des[i];
+    // sum
+    float Ti = tensions[i] + fs - Tmotor;
+    Fx -= Ti * (mountPoints[i][0] - x) / norms[i];
+    Fy -= Ti * (mountPoints[i][1] - y) / norms[i];
   }
 
   // identify which cables to use.

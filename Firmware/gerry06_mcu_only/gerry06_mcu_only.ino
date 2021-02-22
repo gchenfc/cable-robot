@@ -50,7 +50,8 @@ float vel_lpf, errI;
 uint64_t closed2_toff, c2_tlast;
 float t, xdes, vdes;
 
-float t4, x4start, y4start, x4, y4, x4des, y4des, vx4des, vy4des;
+float t4, x4start, y4start, x4, y4, x4des, y4des, vx4des, vy4des, ax4des, ay4des, FFx, FFy;
+float qdot4des[4], qddot4des[4];
 float vel4_lpf[2], err4I[2];
 uint64_t c4_toff, c4_tlast;
 float W[4][2];
@@ -322,6 +323,10 @@ void start_closed_loop_4_traj() {
     ct4_keepind = false;
   updateSetpoint();
   x4des = ct4_xset; y4des = ct4_yset; // needed for derivative calc
+  vx4des = 0; vy4des = 0; // needed for derivative calc
+  memset(qdot4des, 0, sizeof(qdot4des)); // needed for derivative calc
+  ax4des = 0; ay4des = 0; // LPF
+  FFx = 0; FFy = 0;
   ct4_proceed = false;
   ct4_run = true;
   closed4t = true;
@@ -372,8 +377,17 @@ void update_control_4_traj() {
   float prev_xdes = x4des, prev_ydes = y4des;
   x4des = ct4_xset;
   y4des = ct4_yset;
+  float prev_vx4des = vx4des, prev_vy4des = vy4des;
   vx4des = (x4des - prev_xdes) / dt; // m/s
   vy4des = (y4des - prev_ydes) / dt;
+  ax4des = (vx4des - prev_vx4des) / dt;
+  ay4des = (vy4des - prev_vy4des) / dt;
+  for (uint8_t i = 0; i < 4; ++i) {
+    float prev_qdot4des = qdot4des[i];
+    qdot4des[i] = W[i][0] * vx4des + W[i][1] * vy4des;
+    qddot4des[i] = (qdot4des[i] - prev_qdot4des) / dt;
+    clamp(qddot4des[i], -100, 100);
+  }
   // vx4des = 0;
   // vy4des = 0;
 
@@ -381,6 +395,7 @@ void update_control_4_traj() {
   jacobian(W);
   float vx, vy;
   FKv(W, vx, vy);
+
   // PID
   LPF(vel4_lpf[0], vx);
   LPF(vel4_lpf[1], vy);
@@ -390,10 +405,16 @@ void update_control_4_traj() {
   clamp(err4I[0], -0.5, 0.5); clamp(err4I[1], -0.5, 0.5);
   float derrx = vx4des - vel4_lpf[0], derry = vy4des - vel4_lpf[1];
   clamp(derrx, -0.5, 0.5); clamp(derry, -0.5, 0.5);
+  // feedforward
+  FFx += 0.1 * ax4des, FFy += 0.1 * ay4des;
+  float FFxAction = FFx, FFyAction = FFy;
+  clamp(FFxAction, -100, 100); clamp(FFyAction, -100, 100);
+  FFx -= FFxAction; FFy -= FFyAction;
+  FFx = 0; FFy = 0;
   // float fx = 1000 * errx + 500 * err4I[0] + 250 * derrx;
   // float fy = 1000 * erry + 500 * err4I[1] + 250 * derry;
-  float fx = 400.0 * errx + 200.0 * err4I[0] + 100.0 * derrx;
-  float fy = 400.0 * erry + 200.0 * err4I[1] + 100.0 * derry;
+  float fx = 400.0 * errx + 200.0 * err4I[0] + 100.0 * derrx + FFxAction;
+  float fy = 400.0 * erry + 200.0 * err4I[1] + 100.0 * derry + FFyAction;
   // float fx = 200.0 * errx + 100.0 * err4I[0] + 10.0 * derrx;
   // float fy = 200.0 * erry + 100.0 * err4I[1] + 10.0 * derry;
   clamp(fx, -100, 100); clamp(fy, -100, 100);
@@ -446,6 +467,7 @@ void printInfo() {
   } Serial1.print('\t');
   for (auto v : vel) {
     if (v >= 0) Serial1.print(' ');
+    if (abs(v) < 10) Serial1.print(' ');
     Serial1.print(v);
     Serial1.print(", ");
   } Serial1.print('\t');
@@ -454,7 +476,7 @@ void printInfo() {
     Serial1.print(", ");
   } Serial1.print('\t');
   Serial1.print(ct4_ind);
-  Serial1.print(", ");
+  Serial1.print(",\t");
   Serial1.print(setpaint); Serial1.print(", ");
   Serial1.print(setcolor); Serial1.print(", ");
   Serial1.print(x4);
