@@ -58,6 +58,8 @@ float W[4][2];
 uint32_t ct4_ind;
 float ct4_xset, ct4_yset;
 bool ct4_proceed, ct4_run, ct4_keepind = false;
+bool setpaint;
+uint8_t setcolor;
 
 // "constants"
 static float T = 5, A = 0.50, tau = 2*3.1415, r = 0.0254/2;
@@ -73,7 +75,8 @@ void stop_closed_loop_2();
 void update_control_2();
 void printInfo();
 #include "serial.h"
-#include "iros_logo.h" // trajectory
+// #include "iros_logo.h" // trajectory
+#include "step.h" // trajectory
 
 // -------------------------------------------------------------
 void setup(void)
@@ -91,6 +94,10 @@ void setup(void)
   memset(closed, 0, 4);
   closed2 = false;
   estopStatus = false;
+
+  #ifdef TRAJ_SETUP
+  setup_traj();
+  #endif
 }
 
 void estop() {
@@ -299,8 +306,10 @@ void update_control_4() {
 }
 
 void updateSetpoint() {
-  ct4_xset = (traj[ct4_ind][0] - width/2) * 0.8 + width/2;
-  ct4_yset = (traj[ct4_ind][1] - height/2) * 0.8 + height/2;
+  ct4_xset = (traj[ct4_ind][0] - width/2) * TRAJ_SCALE + width/2;
+  ct4_yset = (traj[ct4_ind][1] - height/2) * TRAJ_SCALE + height/2;
+  setpaint = painton[ct4_ind];
+  setcolor = colorinds[ct4_ind];
 }
 void start_closed_loop_4_traj() {
   jacobian(W);
@@ -351,8 +360,12 @@ void update_control_4_traj() {
   if (ct4_proceed) {
     ++ct4_ind;
     if (ct4_ind >= (sizeof(traj) / sizeof(traj[0]))) {
+      #ifdef TRAJ_LOOP
+      ct4_ind = 0;
+      #else
       stop_closed_loop_4_traj();
       return;
+      #endif
     }
     ct4_proceed = false;
   }
@@ -363,16 +376,6 @@ void update_control_4_traj() {
   vy4des = (y4des - prev_ydes) / dt;
   // vx4des = 0;
   // vy4des = 0;
-  Serial1.print("Traj: ");
-  Serial1.print(ct4_ind); Serial1.print('\t');
-  Serial1.print(x4); Serial1.print(", ");
-  Serial1.print(y4); Serial1.print(", ");
-  Serial1.print(ct4_xset); Serial1.print(", ");
-  Serial1.print(ct4_yset); Serial1.print(", ");
-  Serial1.print(x4des); Serial1.print(", ");
-  Serial1.print(y4des); Serial1.print(", ");
-  Serial1.print(vx4des); Serial1.print(", ");
-  Serial1.print(vy4des); Serial1.print("\t");
 
   // calculate current velocity
   jacobian(W);
@@ -394,24 +397,34 @@ void update_control_4_traj() {
   // float fx = 200.0 * errx + 100.0 * err4I[0] + 10.0 * derrx;
   // float fy = 200.0 * erry + 100.0 * err4I[1] + 10.0 * derry;
   clamp(fx, -100, 100); clamp(fy, -100, 100);
-  Serial1.print(fx);
-  Serial1.print(", ");
-  Serial1.print(fy);
-  Serial1.print('\t');
 
   // TD
   float tensions[4];
   forceSolver(tensions, fx, fy);
-  Serial1.print(tensions[0]);
-  Serial1.print(", ");
-  Serial1.print(tensions[1]);
-  Serial1.print(", ");
-  Serial1.print(tensions[2]);
-  Serial1.print(", ");
-  Serial1.print(tensions[3]);
-  Serial1.print('\n');
   for (uint8_t i = 0; i < 4; ++i)
     sendFloat(i, 0x0E, tensions[i] * r);
+
+  // Serial1.print("Traj: ");
+  // Serial1.print(ct4_ind); Serial1.print('\t');
+  // Serial1.print(x4); Serial1.print(", ");
+  // Serial1.print(y4); Serial1.print(", ");
+  // Serial1.print(x4des); Serial1.print(", ");
+  // Serial1.print(y4des); Serial1.print(", ");
+  // Serial1.print(setpaint); Serial1.print(", ");
+  // Serial1.print(setcolor); Serial1.print(", ");
+  // Serial1.print(sqrt(errx*errx + erry*erry)); Serial1.print(", ");
+  // Serial1.print(fx);
+  // Serial1.print(", ");
+  // Serial1.print(fy);
+  // Serial1.print('\t');
+  // Serial1.print(tensions[0]);
+  // Serial1.print(", ");
+  // Serial1.print(tensions[1]);
+  // Serial1.print(", ");
+  // Serial1.print(tensions[2]);
+  // Serial1.print(", ");
+  // Serial1.print(tensions[3]);
+  // Serial1.print('\n');
 }
 
 void printInfo() {
@@ -440,6 +453,10 @@ void printInfo() {
     Serial1.print(t);
     Serial1.print(", ");
   } Serial1.print('\t');
+  Serial1.print(ct4_ind);
+  Serial1.print(", ");
+  Serial1.print(setpaint); Serial1.print(", ");
+  Serial1.print(setcolor); Serial1.print(", ");
   Serial1.print(x4);
   Serial1.print(',');
   Serial1.print(y4);
@@ -448,12 +465,7 @@ void printInfo() {
   Serial1.print(',');
   Serial1.print(y4des);
   Serial1.print(", ");
-  Serial1.print(err4I[0]);
-  Serial1.print(',');
-  Serial1.print(err4I[1]);
-  Serial1.print(',');
-  Serial1.print(vel4_lpf[0]);
-  Serial1.print(',');
-  Serial1.print(vel4_lpf[1]);
+  float errx = x4des - x4, erry = y4des - y4;
+  Serial1.print(sqrt(errx*errx + erry*erry));
   Serial1.println();
 }

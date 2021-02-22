@@ -138,8 +138,17 @@ void forceSolver(float tensions[4], float Fx, float Fy, float x, float y) {
   // first assume every cable will pull with at least 0.2Nm and figure out how much remaining force we need
   for (i = 0; i < 4; ++i) {
     tensions[i] = 0.2 / r;
-    Fx -= tensions[i]*(mountPoints[i][0] - x) / norms[i];
-    Fy -= tensions[i]*(mountPoints[i][1] - y) / norms[i];
+    float qdot = getLenDot(i);
+    float off;
+    if (qdot > 0) {
+      off = -0.075 / r;
+    } else if (qdot == 0) {
+      off = 0;
+    } else {
+      off = 0.075 / r;
+    }
+    Fx -= (tensions[i] + off)*(mountPoints[i][0] - x) / norms[i];
+    Fy -= (tensions[i] + off)*(mountPoints[i][1] - y) / norms[i];
   }
 
   // identify which cables to use.
