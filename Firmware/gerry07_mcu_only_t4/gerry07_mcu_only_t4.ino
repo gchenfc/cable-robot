@@ -81,6 +81,15 @@ void update_control(uint8_t node);
 void start_closed_loop_2();
 void stop_closed_loop_2();
 void update_control_2();
+void start_closed_loop_4();
+void stop_closed_loop_4();
+void update_control_4();
+void start_closed_loop_4_traj();
+void step_closed_loop_4_traj();
+void seti_closed_loop_4_traj(uint16_t ind);
+void stop_closed_loop_4_traj();
+void stop_closed_loop_4_traj();
+void update_control_4_traj();
 void printInfo();
 #include "serial.h"
 // #include "iros_logo.h" // trajectory
