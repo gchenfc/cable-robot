@@ -4,7 +4,6 @@ uint8_t colorpalette[2][3] = {{0,0,0}, {255,255,255}};
 float traj[400][2];
 
 #define TRAJ_SETUP
-#define TRAJ_SCALE 1.0
 #define TRAJ_LOOP
 
 void setup_traj() {
