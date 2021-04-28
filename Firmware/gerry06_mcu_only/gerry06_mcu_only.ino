@@ -23,6 +23,7 @@
 #endif
 
 #define ESTOP 24
+#define btSerial Serial2
 
 // query variables
 Metro queryTimer(10);
@@ -36,10 +37,10 @@ volatile bool estopStatus = false;
 Metro printTimer(50);
 uint32_t status[4], state[4];
 float pos[4], vel[4], iqset[4], iqmeas[4], tset[4];
-float zeros[4] = {17.36, 18.86, 63.97, 31.28};
+float zeros[4] = {61.59, 27.46, 24.04, 21.18};
 // float width = 2.84, height = 2.44;
 // float width = 37 * (3.1415*0.0254), height = 27 * (3.1415*0.0254);
-float width = 2.95, height = 2.3;
+float width = 3.02, height = 2.3;
 // width = 3.048
 
 // control stuff
@@ -61,6 +62,8 @@ float ct4_xset, ct4_yset;
 bool ct4_proceed, ct4_run, ct4_keepind = false;
 bool setpaint;
 uint8_t setcolor;
+
+bool manualpaint = false;
 
 // "constants"
 static float T = 5, A = 0.50, tau = 2*3.1415, r = 0.0254/2;
@@ -91,6 +94,8 @@ void setup(void)
   // estop
   pinMode(ESTOP, INPUT_PULLDOWN);
   attachInterrupt(ESTOP, estop, FALLING);
+  // bluetooth
+  btSerial.begin(9600);
   // initialization
   memset(closed, 0, 4);
   closed2 = false;
@@ -490,4 +495,9 @@ void printInfo() {
   float errx = x4des - x4, erry = y4des - y4;
   Serial1.print(sqrt(errx*errx + erry*erry));
   Serial1.println();
+
+  if ((setpaint && closed4t) || manualpaint)
+    btSerial.write('1');
+  else 
+    btSerial.write('0');
 }

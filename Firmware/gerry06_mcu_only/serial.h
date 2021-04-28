@@ -57,6 +57,9 @@ static void read_serial() {
         case 59:
           seti_closed_loop_4_traj(parseOneInt('\n'));
           break;
+        case 100:
+          manualpaint = parseOneInt('\n');
+          break;
         case MSG_ODRIVE_ESTOP:
         case MSG_START_ANTICOGGING:
         case MSG_RESET_ODRIVE:
