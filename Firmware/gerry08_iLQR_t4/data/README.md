@@ -114,3 +114,23 @@ Also the optimizer actually didn't converge but I just let it be.
 ![gtsam prediction](../trajectories/ATL_controller_1e0_static.png)
 
 Video: https://www.dropbox.com/s/cdn4df2vlavsa3l/ATL_9.mov?dl=0
+
+## ATL_10
+
+Going back to very first test, just to make sure it's repeatable over time.
+
+Running with `ATL_controller_1e2.h`.
+
+attention: the spray can is not empty (aka full) and has the battery pack on the bottom, so I guess technically this is more like test ATL_6.
+
+Controller parameters:
+| | |
+|-|-|
+| Q / R ratio | 1e2 |
+| End-effector mass | 0.5 kg |
+| Motor inertia | 9.26e-5 * 890 / 420   
+|| = 1.96e-4 kg.m^2 |
+| Friction | no friction |
+
+Results:
+* It worked pretty much just as well as ATL_6 from what I can tell.  Was a little shaky compared to ATL_0, as expected, due to extra mass.

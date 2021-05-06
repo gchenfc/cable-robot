@@ -110,7 +110,7 @@ void printInfo();
 // #include "trajectories/iros_logo_2.h"
 // #include "trajectories/iros_logo_2_controller.h"
 #include "trajectories/ATL.h"
-#include "trajectories/ATL_controller_1e0_static.h"
+#include "trajectories/ATL_controller_1e2.h"
 
 // -------------------------------------------------------------
 void setup(void)
