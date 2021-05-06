@@ -41,10 +41,18 @@ volatile bool estopStatus = false;
 Metro printTimer(50);
 uint32_t status[4], state[4];
 float pos[4], vel[4], iqset[4], iqmeas[4], tset[4];
-float zeros[4] = {61.59, 27.46, 24.04, 21.18};
+float zeros[4] = {-5.97, 3.88, 106.47, 16.81};
 // float width = 2.84, height = 2.44;
 // float width = 37 * (3.1415*0.0254), height = 27 * (3.1415*0.0254);
-float width = 3.02, height = 2.3;
+// float width = 3.02, height = 2.3;
+
+// Klaus lab measurements:
+//     w        h    aspect ratio     diag
+// 0: 2.96  -  2.24  (1.3214 : 1)  -  3.77
+// 1: 2.91  -  2.19  (1.3288 : 1)  -  3.72
+// 2: 3.00  -  2.28  (1.3158 : 1)  -  3.82
+// 3: 2.89  -  2.17  (1.3318 : 1)  -  3.70
+float width = 2.94, height = 2.22;
 
 // width = 3.048
 
