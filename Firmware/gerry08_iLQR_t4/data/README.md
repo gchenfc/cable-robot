@@ -21,3 +21,7 @@ Q/R ratio of 1e6 was way too powerful and error-ed out.
 ## ATL_2.txt
 Attempt number 2 with Q/R ratio of 1e6 - still too powerful.
 Video: https://www.dropbox.com/s/ymhe4rv08weq9zu/ATL_2.mov?dl=0
+
+## ATL_3.txt
+Attempt number 3 with Q/R ratio of 1e6.  This time I tried adding current limits, but that still didn't work.
+Video: https://www.dropbox.com/s/z3avdaa9wqkob6h/ATL_3.mov?dl=0

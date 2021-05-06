@@ -509,6 +509,9 @@ void update_control_4_traj() {
     }
   }
 
+  for (uint8_t ci = 0; ci < 4; ++ci)
+    clamp(torques[ci], -1.5, 1.5);
+
   // write to odrive
   for (uint8_t i = 0; i < 4; ++i)
     sendFloat(i, 0x0E, torques[i]);
