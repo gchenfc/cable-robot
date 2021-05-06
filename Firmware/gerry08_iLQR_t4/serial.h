@@ -7,8 +7,8 @@ static void setCmd(uint16_t node, uint8_t cmd);
 char buffer[100];
 int bufferi = 0, parsei = 0;
 static void read_serial() {
-  while (Serial1.available()) {
-    char c = Serial1.read();
+  while (SerialD.available()) {
+    char c = SerialD.read();
     buffer[bufferi] = c;
     bufferi++;
     if (c == '\n') {
@@ -65,8 +65,8 @@ static void read_serial() {
         case MSG_RESET_ODRIVE:
         case MSG_CLEAR_ERRORS:
           requestInfo(node, cmd);
-          Serial1.print("Commanded ");
-          Serial1.println(COMMANDS[cmd]);
+          SerialD.print("Commanded ");
+          SerialD.println(COMMANDS[cmd]);
           break;
         case MSG_GET_MOTOR_ERROR:
         case MSG_GET_ENCODER_ERROR:
@@ -77,8 +77,8 @@ static void read_serial() {
         case MSG_GET_SENSORLESS_ESTIMATES:
         case MSG_GET_VBUS_VOLTAGE:
           requestInfo(node, cmd, true);
-          Serial1.print("Requested ");
-          Serial1.println(COMMANDS[cmd]);
+          SerialD.print("Requested ");
+          SerialD.println(COMMANDS[cmd]);
           break;
         case MSG_SET_AXIS_NODE_ID:
         case MSG_SET_AXIS_REQUESTED_STATE:
@@ -92,14 +92,14 @@ static void read_serial() {
         case MSG_SET_TRAJ_ACCEL_LIMITS:
         case MSG_SET_TRAJ_INERTIA:
           setCmd(node, cmd);
-          Serial1.print("Set ");
-          Serial1.println(COMMANDS[cmd]);
+          SerialD.print("Set ");
+          SerialD.println(COMMANDS[cmd]);
           break;
         default:
-          Serial1.println("Command not recognized!");
-          Serial1.print(node);
-          Serial1.print('\t');
-          Serial1.println(cmd);
+          SerialD.println("Command not recognized!");
+          SerialD.print(node);
+          SerialD.print('\t');
+          SerialD.println(cmd);
           continue;
       }
 
@@ -135,7 +135,7 @@ static void setCmd(uint16_t node, uint8_t cmd) {
       sendFloat(node, cmd, parseOneFloat('\n'));
       break;
     default:
-      Serial1.println("Something went wrong");
+      SerialD.println("Something went wrong");
   }
 }
 
@@ -144,7 +144,7 @@ static uint32_t parseOneInt(char delim) {
   while ((parsei < bufferi) && (buffer[parsei] != delim))
     parsei++;
   if (parsei == bufferi) {
-    Serial1.println("Invalid parse!");
+    SerialD.println("Invalid parse!");
     bufferi = 0;
     parsei = 0;
     return 0;
@@ -159,7 +159,7 @@ static float parseOneFloat(char delim) {
   while ((parsei < bufferi) && (buffer[parsei] != delim))
     parsei++;
   if (parsei == bufferi) {
-    Serial1.println("Invalid parse!");
+    SerialD.println("Invalid parse!");
     bufferi = 0;
     return 0;
   }
