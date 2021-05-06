@@ -82,7 +82,7 @@ Use `ATL_controller_1e0.h` - smaller Q/R ratio
 Controller parameters:
 | | |
 |-|-|
-| Q / R ratio | 1 |
+| **Q / R ratio** | **1** |
 | End-effector mass | 0.5 kg |
 | Motor inertia | 9.26e-5 * 890 / 420   
 || = 1.96e-4 kg.m^2 |
@@ -91,3 +91,26 @@ Controller parameters:
 In simulation this looked super cool, but in practice this totally failed.  I think this is because static friction wasn't accounted for and the gains were just too weak to compensate.
 
 ![gtsam prediction](../trajectories/ATL_controller_1e0.png)
+
+Video: https://www.dropbox.com/s/8vfghn7nrmquq6k/ATL_8.mov?dl=0
+
+## ATL_9
+
+Use `ATL_controller_1e0_static.h` - add static friction
+
+Controller parameters:
+| | |
+|-|-|
+| **Q / R ratio** | **1** |
+| End-effector mass | 0.5 kg |
+| Motor inertia | 9.26e-5 * 890 / 420   
+|| = 1.96e-4 kg.m^2 |
+| **Static Friction** | **0.075 Nm** |
+| Viscous Friction | 0 |
+
+This neither looked cool in simulation nor in real life.
+Also the optimizer actually didn't converge but I just let it be.
+
+![gtsam prediction](../trajectories/ATL_controller_1e0_static.png)
+
+Video: https://www.dropbox.com/s/cdn4df2vlavsa3l/ATL_9.mov?dl=0
