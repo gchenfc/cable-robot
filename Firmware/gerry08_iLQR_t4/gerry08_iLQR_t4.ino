@@ -41,7 +41,7 @@ volatile bool estopStatus = false;
 Metro printTimer(50);
 uint32_t status[4], state[4];
 float pos[4], vel[4], iqset[4], iqmeas[4], tset[4];
-float zeros[4] = {21.92, 3.88, 106.47, 16.81};
+float zeros[4] = {21.92, 4.75, 106.47, 16.81};
 // float width = 2.84, height = 2.44;
 // float width = 37 * (3.1415*0.0254), height = 27 * (3.1415*0.0254);
 // float width = 3.02, height = 2.3;
@@ -110,7 +110,7 @@ void printInfo();
 // #include "trajectories/iros_logo_2.h"
 // #include "trajectories/iros_logo_2_controller.h"
 #include "trajectories/ATL.h"
-#include "trajectories/ATL_controller_1e2.h"
+#include "trajectories/ATL_controller_1e0.h"
 
 // -------------------------------------------------------------
 void setup(void)
@@ -442,7 +442,6 @@ void update_control_4_traj() {
       // stop_closed_loop_4_traj();
       pause_closed_loop_4_traj();
       --ct4_ind;
-      return;
       #endif
     }
     ct4_proceed = false;
