@@ -134,3 +134,14 @@ Controller parameters:
 
 Results:
 * It worked pretty much just as well as ATL_6 from what I can tell.  Was a little shaky compared to ATL_0, as expected, due to extra mass.
+
+## ATL_11
+
+Ok this is really back to the first test: no spray can and no battery pack
+
+Running with `ATL_controller_1e2.h`.
+
+Results:
+* It worked well - smoother than ATL_10, but still a _little_ bit jerky.  Hard to recall if ATL_0 was jerky at all
+
+Video: https://www.dropbox.com/s/fu5udrhp3vvfyak/ATL_11.mp4?dl=0
