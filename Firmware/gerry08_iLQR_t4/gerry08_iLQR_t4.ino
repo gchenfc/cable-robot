@@ -26,7 +26,7 @@ FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can0;
 
 #define ESTOP 12
 #define ESTOP_HIGHx
-#define SerialD Serial1
+#define SerialD Serial
 #define btSerial Serial2
 
 // query variables
@@ -45,6 +45,7 @@ float zeros[4] = {61.59, 27.46, 24.04, 21.18};
 // float width = 2.84, height = 2.44;
 // float width = 37 * (3.1415*0.0254), height = 27 * (3.1415*0.0254);
 float width = 3.02, height = 2.3;
+
 // width = 3.048
 
 // control stuff
@@ -82,8 +83,20 @@ void update_control(uint8_t node);
 void start_closed_loop_2();
 void stop_closed_loop_2();
 void update_control_2();
+void start_closed_loop_4();
+void stop_closed_loop_4();
+void update_control_4();
+void start_closed_loop_4_traj();
+void step_closed_loop_4_traj();
+void pause_closed_loop_4_traj();
+void resume_closed_loop_4_traj();
+void seti_closed_loop_4_traj(uint16_t ind);
+void stop_closed_loop_4_traj();
+void stop_closed_loop_4_traj();
+void update_control_4_traj();
 void printInfo();
 #include "serial.h"
+#define TRAJ_SCALE 1.0
 // #include "trajectories/iros_logo.h" // trajectory
 // #include "step.h" // trajectory
 // #include "trajectories/iros_logo_2.h"
@@ -107,7 +120,7 @@ void setup(void)
   pinMode(ESTOP_HIGH, OUTPUT);
   digitalWrite(ESTOP_HIGH, HIGH);
   #endif
-  attachInterrupt(ESTOP, estop, FALLING);
+  // attachInterrupt(ESTOP, estop, FALLING);
   // bluetooth
   btSerial.begin(9600);
   // initialization
@@ -330,10 +343,27 @@ void updateSetpoint() {
   ct4_yset = (xffs[ct4_ind][1] - height/2) * TRAJ_SCALE + height/2;
   ct4_vxset = vffs[ct4_ind][0] * TRAJ_SCALE;
   ct4_vyset = vffs[ct4_ind][1] * TRAJ_SCALE;
-  setpaint = painton[ct4_ind];
-  setcolor = colorinds[ct4_ind];
   memcpy(ct4_uff, uffs[ct4_ind], sizeof(ct4_uff));
   memcpy(ct4_K, Ks[ct4_ind], sizeof(ct4_K));
+
+  if (ct4_run) {
+    if (painton[ct4_ind] && (colorinds[ct4_ind] != setcolor)) {
+      pause_closed_loop_4_traj();
+      SerialD.println("TIME TO CHANGE THE PAINT");
+      SerialD.print("New color: #");
+      uint8_t cind = colorinds[ct4_ind];
+      for (uint8_t rgb = 0; rgb < 3; ++rgb) {
+        if (colorpalette[cind][rgb] < 16)
+          SerialD.print('0');
+        SerialD.print(colorpalette[cind][rgb], HEX);
+      }
+      SerialD.println();
+      return;
+    }
+    setpaint = painton[ct4_ind];
+    if (setpaint)
+      setcolor = colorinds[ct4_ind];
+  }
 }
 void start_closed_loop_4_traj() {
   jacobian(W);
@@ -371,6 +401,15 @@ void seti_closed_loop_4_traj(uint16_t ind) {
   SerialD.print("Set trajectory index to ");
   SerialD.println(ct4_ind);
 }
+void pause_closed_loop_4_traj() {
+  ct4_run = false;
+  setpaint = false;
+}
+void resume_closed_loop_4_traj() {
+  ct4_run = true;
+  setpaint = painton[ct4_ind];
+  setcolor = colorinds[ct4_ind];
+}
 void stop_closed_loop_4_traj() {
   closed4t = false;
   sendFloat(0, 0x0E, 0);
@@ -378,6 +417,7 @@ void stop_closed_loop_4_traj() {
   sendFloat(2, 0x0E, 0);
   sendFloat(3, 0x0E, 0);
   ct4_ind = 0;
+  setpaint = false; // shouldn't be necessary, but just in case
 }
 void update_control_4_traj() {
   // update timing

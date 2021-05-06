@@ -18,7 +18,8 @@ static void read_serial() {
       if (bufferi == 0) continue;
 
       switch (cmd) {
-        case 60 ... 75:
+        case 65 ... 75:
+          // set selected motors to 0.2Nm torque
           if ((cmd - 60) & 0b1000) sendFloat(3, 0x0E, 0.2);
           if ((cmd - 60) & 0b0100) sendFloat(2, 0x0E, 0.2);
           if ((cmd - 60) & 0b0010) sendFloat(1, 0x0E, 0.2);
@@ -56,6 +57,12 @@ static void read_serial() {
           break;
         case 59:
           seti_closed_loop_4_traj(parseOneInt('\n'));
+          break;
+        case 60:
+          resume_closed_loop_4_traj();
+          break;
+        case 61:
+          pause_closed_loop_4_traj();
           break;
         case 100:
           manualpaint = parseOneInt('\n');
