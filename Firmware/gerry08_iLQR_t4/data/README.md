@@ -33,3 +33,13 @@ Use `ATL_controller_1e2.h` again, but with a heavier spray can (full)
 Same parameters as in ATL_0.txt, just with full spray can (white "KOBRA")
 Video:
 https://www.dropbox.com/s/5u2ohaypsewaw3d/ATL_4.mov?dl=0
+
+## ATL_5.txt
+Use `ATL_controller_1e2.h` again, but also with a battery pack.  Same parameters.
+Qualitatively, I found that it was much more shaky, especially in the rotational direction, with normal vector in the z-axis (yaw).
+
+The additional shakiness makes sense - if I don't account for friction properly, then it's going to be more shaky as the end-effector mass increases.
+
+The rotating also makes sense, since the battery pack is mounted off-center.
+
+Video: https://www.dropbox.com/s/gnuyepocstixagp/ATL_5.mov?dl=0
