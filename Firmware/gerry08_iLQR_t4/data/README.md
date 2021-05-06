@@ -43,3 +43,10 @@ The additional shakiness makes sense - if I don't account for friction properly,
 The rotating also makes sense, since the battery pack is mounted off-center.
 
 Video: https://www.dropbox.com/s/gnuyepocstixagp/ATL_5.mov?dl=0
+
+## ATL_6.txt
+Use `ATL_controller_1e2.h` again, but put battery pack on the bottom of the end effector instead of the front.
+
+As hypothesized, it is still jerky but not rotate-y.  Visually, I saw pretty much no rotation, though it's hard to tell on video.
+
+Video: https://www.dropbox.com/s/85c0rozttg51xto/ATL_6.mov?dl=0
