@@ -110,7 +110,7 @@ void printInfo();
 // #include "trajectories/iros_logo_2.h"
 // #include "trajectories/iros_logo_2_controller.h"
 #include "trajectories/ATL.h"
-#include "trajectories/ATL_controller_1e6.h"
+#include "trajectories/ATL_controller_1e2.h"
 
 // -------------------------------------------------------------
 void setup(void)
@@ -508,9 +508,6 @@ void update_control_4_traj() {
       torques[row] += ct4_K[row][col] * state[col];
     }
   }
-
-  for (uint8_t ci = 0; ci < 4; ++ci)
-    clamp(torques[ci], -1.5, 1.5);
 
   // write to odrive
   for (uint8_t i = 0; i < 4; ++i)
