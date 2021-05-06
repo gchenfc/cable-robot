@@ -1,9 +1,0 @@
-ATL_controller_1e2.h filter=lfs diff=lfs merge=lfs -text
-IROS.h filter=lfs diff=lfs merge=lfs -text
-iros_logo_2.h filter=lfs diff=lfs merge=lfs -text
-step.h filter=lfs diff=lfs merge=lfs -text
-ATL_controller_1e6.h filter=lfs diff=lfs merge=lfs -text
-iros_logo.h filter=lfs diff=lfs merge=lfs -text
-iros_logo_2_controller.h filter=lfs diff=lfs merge=lfs -text
-ATL.h filter=lfs diff=lfs merge=lfs -text
-ATL_controller_1e4.h filter=lfs diff=lfs merge=lfs -text

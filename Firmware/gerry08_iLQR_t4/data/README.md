@@ -50,3 +50,25 @@ Use `ATL_controller_1e2.h` again, but put battery pack on the bottom of the end 
 As hypothesized, it is still jerky but not rotate-y.  Visually, I saw pretty much no rotation, though it's hard to tell on video.
 
 Video: https://www.dropbox.com/s/85c0rozttg51xto/ATL_6.mov?dl=0
+
+## ATL_7.txt
+
+Added static friction of 0.075Nm to the controller model.
+
+Controller parameters:
+| | |
+|-|-|
+| Q / R ratio | 1e2 |
+| End-effector mass | 0.5 kg |
+| Motor inertia | 9.26e-5 * 890 / 420   
+|| = 1.96e-4 kg.m^2 |
+| **Static Friction** | **0.075 Nm** |
+| Viscous Friction | 0 |
+
+(note: adding viscous friction caused the optimizer to fail)
+
+<ins>Observations</ins>:
+* The corners are certainly much sharper.  It was really easy to tell in person that direction changes were really snappy.  I bet this would show up much better during a lawnmower infill path.  Not sure if it will show up in the data or not, due to limited framerate of data collection (20Hz for telemetry and 30Hz video)
+* The linear parts of the trajectory looked a little more shaky, but I think this showed up in the ff (gtsam open-loop prediction, see image below) trajectory as well, so that's expected.  Perhaps these correspond to times when the velocity of a cable changes during a straight-line and might be mitigated either with tuning or with a less sharp `sign` model (e.g. reduce "epsilon" in tanh).  ![gtsam prediction](ATL_7_prediction.png)
+
+Video: https://www.dropbox.com/s/ml5hqma2lvh8svc/ATL_7.mov?dl=0
