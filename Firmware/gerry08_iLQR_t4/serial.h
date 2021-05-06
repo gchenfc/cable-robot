@@ -11,7 +11,7 @@ static void read_serial() {
     char c = SerialD.read();
     buffer[bufferi] = c;
     bufferi++;
-    if (c == '\n') {
+    if (c == '\n' || c == ';') {
       uint8_t node = parseOneInt('n');
       if (bufferi == 0) continue;
       uint8_t cmd = parseOneInt('c');
@@ -146,9 +146,18 @@ static void setCmd(uint16_t node, uint8_t cmd) {
   }
 }
 
+bool isDelim(char c, char delim) {
+  // manually add semicolon as a newline so that I can type multiple commands on
+  // one line
+  if (delim == '\n')
+    return c == delim || c == ';';
+  else
+    return c == delim;
+}
+
 static uint32_t parseOneInt(char delim) {
   int starti = parsei;
-  while ((parsei < bufferi) && (buffer[parsei] != delim))
+  while ((parsei < bufferi) && (!isDelim(buffer[parsei], delim)))
     parsei++;
   if (parsei == bufferi) {
     SerialD.println("Invalid parse!");
@@ -163,7 +172,7 @@ static uint32_t parseOneInt(char delim) {
 
 static float parseOneFloat(char delim) {
   int starti = parsei;
-  while ((parsei < bufferi) && (buffer[parsei] != delim))
+  while ((parsei < bufferi) && (!isDelim(buffer[parsei], delim)))
     parsei++;
   if (parsei == bufferi) {
     SerialD.println("Invalid parse!");
