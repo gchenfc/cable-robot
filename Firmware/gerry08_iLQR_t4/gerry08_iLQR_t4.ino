@@ -34,14 +34,14 @@ Metro queryTimer(10);
 CAN_message_t inMsg;
 
 // estop
-Metro estopTimer(50);
+Metro estopTimer(250);
 volatile bool estopStatus = false;
 
 // state management
 Metro printTimer(50);
 uint32_t status[4], state[4];
 float pos[4], vel[4], iqset[4], iqmeas[4], tset[4];
-float zeros[4] = {21.92, 4.75, 106.47, 16.81};
+float zeros[4] = {5.24, 2.69, 92.93, 23.40};
 // float width = 2.84, height = 2.44;
 // float width = 37 * (3.1415*0.0254), height = 27 * (3.1415*0.0254);
 // float width = 3.02, height = 2.3;
@@ -52,7 +52,16 @@ float zeros[4] = {21.92, 4.75, 106.47, 16.81};
 // 1: 2.91  -  2.19  (1.3288 : 1)  -  3.72
 // 2: 3.00  -  2.28  (1.3158 : 1)  -  3.82
 // 3: 2.89  -  2.17  (1.3318 : 1)  -  3.70
-float width = 2.94, height = 2.22;
+// float width = 2.94, height = 2.22;
+
+
+// DFL Measurements
+// 0: 3.05  -  2.26
+// 1: 3.12  -  2.35
+// 2: 3.14  -  2.38
+// 3: 3.05  -  2.29
+// float width = 3.09, height = 2.32;
+float width = 3.05 - 0.17, height = 2.32;
 
 // width = 3.048
 

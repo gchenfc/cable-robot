@@ -71,7 +71,7 @@ Controller parameters:
 
 <ins>Observations</ins>:
 * The corners are certainly much sharper.  It was really easy to tell in person that direction changes were really snappy.  I bet this would show up much better during a lawnmower infill path.  Not sure if it will show up in the data or not, due to limited framerate of data collection (20Hz for telemetry and 30Hz video)
-* The linear parts of the trajectory looked a little more shaky, but I think this showed up in the ff (gtsam open-loop prediction, see image below) trajectory as well, so that's expected.  Perhaps these correspond to times when the velocity of a cable changes during a straight-line and might be mitigated either with tuning or with a less sharp `sign` model (e.g. reduce "epsilon" in tanh).
+* The linear parts of the trajectory looked a little more shaky, but I think this showed up in the ff (gtsam open-loop prediction, see image below) trajectory as well, so that's expected.  Perhaps these correspond to times when the velocity of a cable changes during a straight-line and might be mitigated either with tuning or with a less sharp `sign` model (e.g. reduce "epsilon" in tanh).  
   ![gtsam prediction](../trajectories/ATL_controller_1e2_static.png)
 
 Video: https://www.dropbox.com/s/ml5hqma2lvh8svc/ATL_7.mov?dl=0
