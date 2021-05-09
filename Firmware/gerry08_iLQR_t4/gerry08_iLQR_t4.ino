@@ -34,14 +34,14 @@ Metro queryTimer(10);
 CAN_message_t inMsg;
 
 // estop
-Metro estopTimer(250);
+Metro estopTimer(50);
 volatile bool estopStatus = false;
 
 // state management
 Metro printTimer(50);
 uint32_t status[4], state[4];
 float pos[4], vel[4], iqset[4], iqmeas[4], tset[4];
-float zeros[4] = {5.24, 2.69, 92.93, 23.40};
+float zeros[4] = {20.15, 49.39, 34.14, 22.21};
 // float width = 2.84, height = 2.44;
 // float width = 37 * (3.1415*0.0254), height = 27 * (3.1415*0.0254);
 // float width = 3.02, height = 2.3;
@@ -118,8 +118,8 @@ void printInfo();
 // #include "step.h" // trajectory
 // #include "trajectories/iros_logo_2.h"
 // #include "trajectories/iros_logo_2_controller.h"
-#include "trajectories/ATL.h"
-#include "trajectories/ATL_controller_1e2.h"
+#include "trajectories/ATL_2.h"
+#include "trajectories/ATL_2_controller_1e2.h"
 
 // -------------------------------------------------------------
 void setup(void)
@@ -357,7 +357,7 @@ void update_control_4() {
 
 void updateSetpoint() {
   ct4_xset = (xffs[ct4_ind][0] - width/2) * TRAJ_SCALE + width/2;
-  ct4_yset = (xffs[ct4_ind][1] - height/2) * TRAJ_SCALE + height/2;
+  ct4_yset = (xffs[ct4_ind][1] - height/2) * TRAJ_SCALE + height/2 - 0.075;
   ct4_vxset = vffs[ct4_ind][0] * TRAJ_SCALE;
   ct4_vyset = vffs[ct4_ind][1] * TRAJ_SCALE;
   memcpy(ct4_uff, uffs[ct4_ind], sizeof(ct4_uff));
