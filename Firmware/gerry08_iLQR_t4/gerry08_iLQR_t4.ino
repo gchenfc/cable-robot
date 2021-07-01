@@ -34,7 +34,7 @@ Metro queryTimer(10);
 CAN_message_t inMsg;
 
 // estop
-Metro estopTimer(50);
+Metro estopTimer(500);
 volatile bool estopStatus = false;
 
 // state management
@@ -431,10 +431,10 @@ void resume_closed_loop_4_traj() {
 }
 void stop_closed_loop_4_traj() {
   closed4t = false;
-  sendFloat(0, 0x0E, 0);
-  sendFloat(1, 0x0E, 0);
-  sendFloat(2, 0x0E, 0);
-  sendFloat(3, 0x0E, 0);
+  sendFloat(0, 0x0E, 0.2);
+  sendFloat(1, 0x0E, 0.2);
+  sendFloat(2, 0x0E, 0.2);
+  sendFloat(3, 0x0E, 0.2);
   ct4_ind = 0;
   setpaint = false; // shouldn't be necessary, but just in case
 }
@@ -450,9 +450,8 @@ void update_control_4_traj() {
       #ifdef TRAJ_LOOP
       ct4_ind = 0;
       #else
-      // stop_closed_loop_4_traj();
-      pause_closed_loop_4_traj();
-      --ct4_ind;
+      stop_closed_loop_4_traj();
+      return;
       #endif
     }
     ct4_proceed = false;
@@ -547,6 +546,14 @@ void update_control_4_traj() {
 }
 
 void printInfo() {
+  // SerialD.print(sizeof(painton) / sizeof(painton[0])); SerialD.print(", ");
+  // SerialD.print(sizeof(colorinds) / sizeof(colorinds[0])); SerialD.print(", ");
+  // SerialD.print(sizeof(colorpalette) / sizeof(colorpalette[0])); SerialD.print(", ");
+  // SerialD.print(sizeof(traj) / sizeof(traj[0])); SerialD.print(", ");
+  // SerialD.print(sizeof(xffs) / sizeof(xffs[0])); SerialD.print(", ");
+  // SerialD.print(sizeof(vffs) / sizeof(vffs[0])); SerialD.print(", ");
+  // SerialD.print(sizeof(uffs) / sizeof(uffs[0])); SerialD.print(", ");
+  // SerialD.print(sizeof(Ks) / sizeof(Ks[0])); SerialD.print(",\t");
   for (auto s : status) {
     SerialD.print(s, HEX);
     SerialD.print(',');
