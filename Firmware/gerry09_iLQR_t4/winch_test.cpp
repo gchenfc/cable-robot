@@ -22,6 +22,13 @@ TEST(Winch, test1) {
   winch.setTheta(-987);
   EXPECT_DOUBLES_EQUAL(winch.theta(), winch.theta(winch.len()), 1e-12);
 
+  // thetaDot() function
+  EXPECT_DOUBLES_EQUAL(winch.thetaDot(), winch.thetaDot(winch.lenDot()), 1e-12);
+  winch.setThetaDot(1.234);
+  EXPECT_DOUBLES_EQUAL(winch.thetaDot(), winch.thetaDot(winch.lenDot()), 1e-12);
+  winch.setThetaDot(-987);
+  EXPECT_DOUBLES_EQUAL(winch.thetaDot(), winch.thetaDot(winch.lenDot()), 1e-12);
+
   winch.setZero();
   EXPECT_DOUBLES_EQUAL(-987, winch.zero(), 1e-12);
 }

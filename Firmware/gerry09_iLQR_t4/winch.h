@@ -21,8 +21,11 @@ class Winch {
            kTau;  // this has a sign error but too risky to change
   }
   float lenDot() const { return thetaDot_ * radius_ * kTau; }
+  // Units of revolutions and rev/s!!!
   float theta() const { return theta_; }
+  float thetaDot() const { return thetaDot_; }
   float theta(float len) const { return len / radius_ / kTau + zero_; }
+  float thetaDot(float lenDot) const { return lenDot / radius_ / kTau; }
 
   // State updates from ODrive
   void setTheta(float theta) { theta_ = theta; }

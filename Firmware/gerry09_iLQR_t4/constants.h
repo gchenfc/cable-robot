@@ -1,7 +1,8 @@
 #pragma once
+#ifndef DEBUG_CONSTANTS
 
 /******** Winch Parameters **********/
-float zeros[4] = {40.24, 43.93, 33.59, 10.96};
+float kZeros[4] = {40.24, 43.93, 33.59, 10.96};
 static constexpr float kR = 0.0254 / 2;
 
 /******** Frame Geometry **********/
@@ -23,3 +24,5 @@ static constexpr float kWidth = 3.05 - 0.17, kHeight = 2.32;
 
 /******** Mathematical Constants **********/
 static constexpr float kTau = 2 * 3.1415926535897932384626433832795;
+
+#endif
