@@ -9,26 +9,26 @@
 TEST(utils, clamp) {
   float x = 10;
 
-  clamp(x, 5, 15);
+  clamp(&x, 5, 15);
   EXPECT_DOUBLES_EQUAL(10, x, 1e-12);
-  clamp(x, 15, 16);
+  clamp(&x, 15, 16);
   EXPECT_DOUBLES_EQUAL(15, x, 1e-12);
-  clamp(x, 5, 17);
+  clamp(&x, 5, 17);
   EXPECT_DOUBLES_EQUAL(15, x, 1e-12);
-  clamp(x, 5, 7);
+  clamp(&x, 5, 7);
   EXPECT_DOUBLES_EQUAL(7, x, 1e-12);
 }
 
 TEST(utils, lpf) {
   float x = 0;
 
-  lpf(x, 1, 0.1);
+  lpf(&x, 1, 0.1);
   EXPECT_DOUBLES_EQUAL(0.1, x, 1e-6);
-  lpf(x, 1, 0.1);
+  lpf(&x, 1, 0.1);
   EXPECT_DOUBLES_EQUAL(0.19, x, 1e-6);
-  lpf(x, 1, 1);
+  lpf(&x, 1, 1);
   EXPECT_DOUBLES_EQUAL(1, x, 1e-6);
-  lpf(x, 2, 0.6);
+  lpf(&x, 2, 0.6);
   EXPECT_DOUBLES_EQUAL(1.6, x, 1e-6);
 }
 
@@ -63,13 +63,13 @@ TEST(utils, matmul) {
 
 TEST(utils, towards) {
   float nx, ny;
-  towards(1, 0, 0, 1, 1, nx, ny);
+  towards(1, 0, 0, 1, 1, &nx, &ny);
   EXPECT_DOUBLES_EQUAL(0.7071067812, nx, 1e-6);
   EXPECT_DOUBLES_EQUAL(0.7071067812, ny, 1e-6);
-  towards(1, 1, 3, 1.5, 3.5, nx, ny);
+  towards(1, 1, 3, 1.5, 3.5, &nx, &ny);
   EXPECT_DOUBLES_EQUAL(1.5, nx, 1e-6);
   EXPECT_DOUBLES_EQUAL(3.5, ny, 1e-6);
-  towards(std::sqrt(10), -1.1, 72.1, 0.9, 66.1, nx, ny);
+  towards(std::sqrt(10), -1.1, 72.1, 0.9, 66.1, &nx, &ny);
   EXPECT_DOUBLES_EQUAL(-0.1, nx, 1e-6);
   EXPECT_DOUBLES_EQUAL(69.1, ny, 1e-5);
 }
