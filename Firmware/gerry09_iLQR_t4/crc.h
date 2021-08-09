@@ -38,7 +38,7 @@ static constexpr T CRC_INITIAL;
 template <typename T>
 static constexpr T CRC_TABLE[256];
 template <typename T>
-T crc(uint8_t bytes[], size_t len, T initial = CRC_INITIAL<T>);
+T crc(const uint8_t bytes[], size_t len, T initial = CRC_INITIAL<T>);
 
 // Initial values
 template <>
@@ -105,7 +105,7 @@ constexpr uint8_t CRC_TABLE<uint8_t>[256] = {
 
 // Function implementations
 template <>
-uint16_t crc<uint16_t>(uint8_t bytes[], size_t len, uint16_t initial) {
+uint16_t crc<uint16_t>(const uint8_t bytes[], size_t len, uint16_t initial) {
   uint16_t crc = initial;  // Initial value
   for (size_t i = 0; i < len; ++i) {
     uint8_t pos = (crc >> 8) ^ bytes[i];
@@ -114,7 +114,7 @@ uint16_t crc<uint16_t>(uint8_t bytes[], size_t len, uint16_t initial) {
   return crc;
 }
 template <>
-uint8_t crc<uint8_t>(uint8_t bytes[], size_t len, uint8_t initial) {
+uint8_t crc<uint8_t>(const uint8_t bytes[], size_t len, uint8_t initial) {
   uint8_t crc = initial;  // Initial value
   for (size_t i = 0; i < len; ++i) {
     uint8_t pos = crc ^ bytes[i];
@@ -126,11 +126,11 @@ uint8_t crc<uint8_t>(uint8_t bytes[], size_t len, uint8_t initial) {
 }  // namespace crc
 
 // Function aliases, for easier typing
-uint16_t crc16(uint8_t bytes[], size_t len,
+uint16_t crc16(const uint8_t bytes[], size_t len,
                uint16_t initial = crc::CRC_INITIAL<uint16_t>) {
   return crc::crc<uint16_t>(bytes, len, initial);
 }
-uint16_t crc8(uint8_t bytes[], size_t len,
+uint16_t crc8(const uint8_t bytes[], size_t len,
               uint16_t initial = crc::CRC_INITIAL<uint8_t>) {
   return crc::crc<uint8_t>(bytes, len, initial);
 }
