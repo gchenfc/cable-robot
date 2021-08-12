@@ -30,6 +30,8 @@
 
 #pragma once
 
+#include "arduino_test_utils.h"
+
 namespace crc {
 
 // Template declarations
