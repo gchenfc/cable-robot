@@ -1,3 +1,6 @@
 {
-    "python.pythonPath": "/usr/bin/python"
+    "python.pythonPath": "/usr/bin/python",
+    "C_Cpp.default.includePath": [
+        "/Applications/Teensyduino.app/Contents/Java/hardware/teensy/avr"
+    ]
 }
