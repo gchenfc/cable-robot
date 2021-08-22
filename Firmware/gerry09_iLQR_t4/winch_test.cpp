@@ -1,6 +1,8 @@
+#ifndef ARDUINO
+
 #include "winch.h"
 
-#include <CppUnitLite/TestHarness.h>
+#include "CppUnitLite/TestHarness.h"
 
 TEST(Winch, test1) {
   Winch winch(1.23, 100 / 2 / M_PI);
@@ -37,3 +39,5 @@ int main() {
   TestResult tr;
   return TestRegistry::runAllTests(tr);
 }
+
+#endif

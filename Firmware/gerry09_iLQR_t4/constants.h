@@ -1,4 +1,10 @@
 #pragma once
+
+#define ESTOP 12
+#define ESTOP_HIGHx
+#define SerialD Serial
+#define btSerial Serial2
+
 #ifndef DEBUG_CONSTANTS
 
 /******** Winch Parameters **********/

@@ -22,8 +22,8 @@
 #include <cstring>  // for memcpy
 
 #include "arduino_test_utils.h"
-#include "crc.h"
-#include "fibre_endpoints.h"
+#include "communication/crc.h"
+#include "communication/fibre_endpoints.h"
 
 // Constants
 constexpr static uint8_t SYNC = 0xAA;
@@ -121,4 +121,4 @@ class DebugSerial : public Print {
 };
 
 // Implementations
-#include "fibre_protocol-impl.h"
+#include "communication/fibre_protocol-impl.h"

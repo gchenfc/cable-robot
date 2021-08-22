@@ -40,6 +40,8 @@ void Test::setNext(Test *test)
 
 bool Test::check(long expected, long actual, TestResult& result, const std::string& fileName, long lineNumber)
 {
+  (void)(fileName);    // suppress unused warning
+  (void)(lineNumber);  // suppress unused warning
   if (expected == actual)
     return true;
   result.addFailure (
@@ -57,6 +59,8 @@ bool Test::check(long expected, long actual, TestResult& result, const std::stri
 
 bool Test::check(const std::string& expected, const std::string& actual, TestResult& result, const std::string& fileName, long lineNumber)
 {
+  (void)(fileName);    // suppress unused warning
+  (void)(lineNumber);  // suppress unused warning
   if (expected == actual)
     return true;
   result.addFailure (

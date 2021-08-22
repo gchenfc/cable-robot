@@ -1,3 +1,7 @@
+/**
+ * The Robot class just keeps track of the state of the robot.
+ */
+
 #pragma once
 
 #include <stdint.h>
@@ -20,6 +24,10 @@ struct Robot {
   // Delete copy/assign constructors
   Robot(const Robot&) = delete;
   Robot& operator=(const Robot&) = delete;
+
+  // Common API
+  void setup() {}
+  void update() {}
 
   // Getter functions
   float len(uint8_t node) const { return winches[node].len(); }

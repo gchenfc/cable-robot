@@ -1,3 +1,5 @@
+#ifndef ARDUINO
+
 #define DEBUG_CONSTANTS
 float kZeros[4] = {40.24, 43.93, 33.59, 10.96};
 static constexpr float kR = 1;
@@ -10,7 +12,7 @@ static constexpr float kTau = 2 * 3.1415926535897932384626433832795;
 #include "kinematics.h"
 // clang-on
 
-#include <CppUnitLite/TestHarness.h>
+#include "CppUnitLite/TestHarness.h"
 
 #include <iostream>
 
@@ -105,3 +107,5 @@ int main() {
   TestResult tr;
   return TestRegistry::runAllTests(tr);
 }
+
+#endif

@@ -1,8 +1,9 @@
+#ifndef ARDUINO
 // clang-off
 #include "arduino_test_utils.h"
 // clang-on
 
-#include <CppUnitLite/TestHarness.h>
+#include "CppUnitLite/TestHarness.h"
 
 #include "utils.h"
 
@@ -78,3 +79,5 @@ int main() {
   TestResult tr;
   return TestRegistry::runAllTests(tr);
 }
+
+#endif

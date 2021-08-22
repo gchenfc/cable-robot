@@ -1,6 +1,8 @@
-#include "crc.h"
+#ifndef ARDUINO
 
-#include <CppUnitLite/TestHarness.h>
+#include "communication/crc.h"
+
+#include "../CppUnitLite/TestHarness.h"
 
 TEST(crc16, test1234) {
   const uint8_t buf[4] = {0x01, 0x02, 0x03, 0x04};
@@ -34,3 +36,5 @@ int main() {
   TestResult tr;
   return TestRegistry::runAllTests(tr);
 }
+
+#endif

@@ -1,6 +1,8 @@
-#include "fibre_protocol.h"
+#ifndef ARDUINO
 
-#include <CppUnitLite/TestHarness.h>
+#include "communication/fibre_protocol.h"
+
+#include "../CppUnitLite/TestHarness.h"
 
 #include "arduino_test_utils.h"
 
@@ -46,3 +48,5 @@ int main() {
   TestResult tr;
   return TestRegistry::runAllTests(tr);
 }
+
+#endif

@@ -1,3 +1,10 @@
+/**
+ * The Winch class keeps track of the state of a single winch and handles e.g.
+ * conversions between rotations and length.
+ */
+
+#pragma once
+
 #include "constants.h"
 
 class Winch {
