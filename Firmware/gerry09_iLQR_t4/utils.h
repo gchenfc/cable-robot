@@ -74,3 +74,25 @@ float towards(const float maxD, const float x, const float y, const float tx,
   }
   return d2;
 }
+
+/**
+ * This is a convenience datatype that holds both a value as well as the last
+ * time it got updated.  This way we can check if a value is old/expired.
+ */
+template <typename T>
+struct Timestamped {
+  T value_;
+  uint64_t last_update_us_;
+
+  explicit Timestamped(T value) : value_(value), last_update_us_(0) {}
+  Timestamped<T> &operator=(T other) noexcept {
+    last_update_us_ = micros();
+    value_ = other;
+    return *this;
+  }
+  operator T &() { return value_; }
+  operator T() const { return value_; }
+  bool isValid(uint64_t max_age_us = 5e3) const {
+    return (last_update_us_) && ((micros() - last_update_us_) < max_age_us);
+  }
+};

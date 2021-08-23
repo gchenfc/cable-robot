@@ -35,6 +35,33 @@ TEST(Winch, test1) {
   EXPECT_DOUBLES_EQUAL(-987, winch.zero(), 1e-12);
 }
 
+TEST(Winch, valid) {
+  manual_micros = 1e6;
+
+  Winch winch(1.23, 100);
+  EXPECT(!winch.isThetaValid());
+  EXPECT(!winch.isThetaDotValid());
+
+  winch.setTheta(5.5);
+  EXPECT(winch.isThetaValid());
+  EXPECT(!winch.isThetaDotValid());
+
+  manual_micros += 1e3;
+  winch.setThetaDot(8.8);
+  EXPECT(winch.isThetaValid());
+  EXPECT(winch.isThetaDotValid());
+
+  manual_micros += 1e3;
+  EXPECT(!winch.isThetaValid(2000));
+  EXPECT(winch.isThetaValid(2001));
+  EXPECT(winch.isThetaDotValid());
+
+  manual_micros += 3e3 - 1;
+  EXPECT(winch.isThetaValid());
+  manual_micros += 1;
+  EXPECT(!winch.isThetaValid());
+}
+
 int main() {
   TestResult tr;
   return TestRegistry::runAllTests(tr);

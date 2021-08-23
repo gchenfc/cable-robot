@@ -75,6 +75,27 @@ TEST(utils, towards) {
   EXPECT_DOUBLES_EQUAL(69.1, ny, 1e-5);
 }
 
+TEST(utils, Timestamped) {
+  Timestamped<float> f(0);
+  EXPECT_DOUBLES_EQUAL(0.0, f, 1e-5);
+  EXPECT(!f.isValid());
+  f = 1.23;
+  EXPECT_DOUBLES_EQUAL(1.23, f, 1e-5);
+  EXPECT(f.isValid());
+
+  manual_micros = 123456L;
+  f = 8.23;
+  manual_micros += 1234;
+  EXPECT(!f.isValid(1234));
+  EXPECT(f.isValid(1235));
+  EXPECT_DOUBLES_EQUAL(8.23, f, 1e-5);
+  manual_micros = 123456L + 4999L;
+  EXPECT(f.isValid());
+  manual_micros = 123456L + 5000L;
+  EXPECT(!f.isValid());
+  EXPECT_DOUBLES_EQUAL(8.23, f, 1e-5);
+}
+
 int main() {
   TestResult tr;
   return TestRegistry::runAllTests(tr);

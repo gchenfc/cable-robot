@@ -13,7 +13,7 @@
 #include <cmath>
 #include <iostream>
 #include <sstream>
-time_t t_start = time(0);
+#include <chrono>
 
 template <class T>
 T min(const T& t1, const T& t2) {
@@ -29,7 +29,22 @@ T sqrt(const T& t) {
   return std::sqrt(t);
 }
 
-uint64_t millis() { return difftime(time(0), t_start) * 1000; }
+using std::chrono::duration_cast;
+using std::chrono::microseconds;
+using std::chrono::milliseconds;
+using Clock = std::chrono::high_resolution_clock;
+auto t_start = Clock::now();
+uint64_t manual_millis = 0, manual_micros = 0;
+uint64_t millis() {
+  return manual_millis
+             ? manual_millis
+             : duration_cast<milliseconds>(Clock::now() - t_start).count();
+}
+uint64_t micros() {
+  return manual_micros
+             ? manual_micros
+             : (duration_cast<microseconds>(Clock::now() - t_start).count());
+}
 
 class Print {
  public:
@@ -50,9 +65,7 @@ class Print {
     std::string s = ss.str();
     write(reinterpret_cast<const uint8_t*>(s.c_str()), s.size());
   }
-  void println() {
-    write('\n');
-  }
+  void println() { write('\n'); }
 };
 
 class StringPrinter : public Print {

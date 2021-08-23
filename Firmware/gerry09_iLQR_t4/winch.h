@@ -5,7 +5,9 @@
 
 #pragma once
 
+#include "arduino_test_utils.h"
 #include "constants.h"
+#include "utils.h"
 
 class Winch {
  public:
@@ -34,6 +36,12 @@ class Winch {
   float theta(float len) const { return len / radius_ / kTau + zero_; }
   float thetaDot(float lenDot) const { return lenDot / radius_ / kTau; }
 
+  // Check if valid
+  bool isThetaValid() const { return theta_.isValid(); }
+  bool isThetaDotValid() const { return thetaDot_.isValid(); }
+  bool isThetaValid(uint64_t th) const { return theta_.isValid(th); }
+  bool isThetaDotValid(uint64_t th) const { return thetaDot_.isValid(th); }
+
   // State updates from ODrive
   void setTheta(float theta) { theta_ = theta; }
   void setThetaDot(float thetaDot) { thetaDot_ = thetaDot; }
@@ -41,5 +49,5 @@ class Winch {
  protected:
   // Private variables
   float zero_, radius_;
-  float theta_, thetaDot_;
+  Timestamped<float> theta_, thetaDot_;
 };
