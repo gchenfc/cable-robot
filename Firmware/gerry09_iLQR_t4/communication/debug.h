@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <Metro.h>
 #include <Stream.h>
 
 extern Robot robot;
@@ -17,14 +18,18 @@ class Debug {
   // Common API
   void setup() {}
   void update() {
-    for (int i = 0; i < 4; ++i) {
-      const Winch& winch = robot.winches.at(i);
-      serial_.printf("%d %d %.2f %.2f\t|\t", winch.error(), winch.state(),
-                    winch.len(), winch.lenDot());
+    if (print_timer_.check()) {
+      for (int i = 0; i < 4; ++i) {
+        const Winch& winch = robot.winches.at(i);
+        serial_.printf("%d %d %.2f %.2f\t|\t", winch.error(), winch.state(),
+                       winch.len(), winch.lenDot());
+      }
+      serial_.println();
     }
-    serial_.println();
   }
 
  private:
   Stream& serial_;
+  Metro print_timer_ = Metro(100);
+
 };
