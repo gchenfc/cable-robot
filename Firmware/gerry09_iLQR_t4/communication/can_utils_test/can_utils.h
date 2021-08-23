@@ -12,21 +12,23 @@ class CanUtils : public FlexCAN_T4<_bus, RX_SIZE_256, TX_SIZE_16> {
 
   // templated parses
   template <typename T>
-  static void parse(uint8_t *data, T *out);
+  static void parse(const uint8_t *data, T *out);
   template <typename T>
-  static T parse(uint8_t *data);
+  static T parse(const uint8_t *data);
   // convenience aliases
-  static void parseFloat(uint8_t *data, float *f) { parse(data, f); }
-  static void parseInt32(uint8_t *data, int32_t *i) { parse(data, i); }
-  static float parseFloat(uint8_t *data) { return parse<float>(data); }
-  static int32_t parseInt32(uint8_t *data) { return parse<int32_t>(data); }
+  static void parseFloat(const uint8_t *data, float *f) { parse(data, f); }
+  static void parseInt32(const uint8_t *data, int32_t *i) { parse(data, i); }
+  static float parseFloat(const uint8_t *data) { return parse<float>(data); }
+  static int32_t parseInt32(const uint8_t *data) {
+    return parse<int32_t>(data);
+  }
   // parse two at a time
-  static void parseFloats(uint8_t *data, float *float1, float *float2);
-  static void parseInt32s(uint8_t *data, int32_t *i1, int32_t *i2);
-  static std::pair<float, float> parseFloats(uint8_t *data) {
+  static void parseFloats(const uint8_t *data, float *float1, float *float2);
+  static void parseInt32s(const uint8_t *data, int32_t *i1, int32_t *i2);
+  static std::pair<float, float> parseFloats(const uint8_t *data) {
     return parse<std::pair<float, float>>(data);
   }
-  static std::pair<int32_t, int32_t> parseInt32s(uint8_t *data) {
+  static std::pair<int32_t, int32_t> parseInt32s(const uint8_t *data) {
     return parse<std::pair<int32_t, int32_t>>(data);
   }
 
@@ -49,25 +51,26 @@ uint8_t CanUtils<T>::requestInfo(uint16_t node, uint8_t cmdId, bool rtr) {
 
 template <CAN_DEV_TABLE T1>
 template <typename T2>
-void CanUtils<T1>::parse(uint8_t *data, T2 *f) {
+void CanUtils<T1>::parse(const uint8_t *data, T2 *f) {
   static_assert(sizeof(T2) <= 8, "Data type too large for 8-byte CAN data");
   memcpy(f, data, sizeof(T2));
 }
 template <CAN_DEV_TABLE T1>
 template <typename T2>
-T2 CanUtils<T1>::parse(uint8_t *data) {
+T2 CanUtils<T1>::parse(const uint8_t *data) {
   static T2 tmp;
   memcpy(&tmp, data, sizeof(T2));
   return tmp;
 }
 
 template <CAN_DEV_TABLE T>
-void CanUtils<T>::parseFloats(uint8_t *data, float *float1, float *float2) {
+void CanUtils<T>::parseFloats(const uint8_t *data, float *float1,
+                              float *float2) {
   memcpy(float1, data, 4);
   memcpy(float2, data + 4, 4);
 }
 template <CAN_DEV_TABLE T>
-void CanUtils<T>::parseInt32s(uint8_t *data, int32_t *i1, int32_t *i2) {
+void CanUtils<T>::parseInt32s(const uint8_t *data, int32_t *i1, int32_t *i2) {
   memcpy(i1, data, 4);
   memcpy(i2, data + 4, 4);
 }

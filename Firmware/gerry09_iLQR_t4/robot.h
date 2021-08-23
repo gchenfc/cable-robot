@@ -4,12 +4,13 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <array>
 
+#include "arduino_test_utils.h"
 #include "winch.h"
 
 struct Robot {
-  Winch winches[4];
+  std::array<Winch, 4> winches;
 
   // Constructors
   Robot()

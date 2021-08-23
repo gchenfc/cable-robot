@@ -24,7 +24,6 @@
  * controller according to the trajectory and/or computer commands.
  */
 
-#include <FlexCAN_T4.h>
 #include <Metro.h>
 
 #include "constants.h"
@@ -36,12 +35,9 @@
 #include "communication/debug.h"
 #include "communication/slave.h"
 
-FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can0;
-FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can1;
-
 Robot robot{};
 ControllerDummy controller{};
-Odrive<CAN1, CAN2> odrive(Can0, Can1, robot, controller);
+Odrive odrive(robot, controller);
 Spray spray(btSerial);
 Estop estop(ESTOP);
 Debug debug(SerialD);
