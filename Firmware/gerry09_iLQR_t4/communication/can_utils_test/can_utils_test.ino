@@ -98,7 +98,8 @@ void parsePacket(CAN_message_t inMsg) {
         node.stats_encoder.add(time - node.last_encoder.first);
       }
       node.last_encoder = {time, Can0.parseFloats(inMsg.buf)};
-      Can0.sendFloat(nodei, MSG_SET_INPUT_TORQUE, millis() / 100.0);
+      Can0.send(nodei, MSG_SET_INPUT_TORQUE,
+                static_cast<float>(millis() / 100.0));
       Can0.requestInfo(nodei, MSG_GET_VBUS_VOLTAGE, true);
       break;
     case MSG_GET_VBUS_VOLTAGE:

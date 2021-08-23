@@ -21,12 +21,15 @@ class Odrive {
   void update();
 
   //
-  void parsePacket(const CAN_message_t& msg);
+  template <typename... Params>
+  void send(uint8_t node, uint8_t cmd, Params&&... params);
 
  private:
   Robot& robot_;
   ControllerInterface& controller_;
   std::array<std::array<uint64_t, MSG_CLEAR_ERRORS + 1>, 4> last_received_us_;
+
+  void parsePacket(const CAN_message_t& msg);
 };
 
 /******************************************************************************/
@@ -43,6 +46,25 @@ void Odrive::update() {
   static CAN_message_t inMsg;
   while (Can0.read(inMsg)) {
     parsePacket(inMsg);
+  }
+}
+
+template <typename... Params>
+void Odrive::send(uint8_t node, uint8_t cmd, Params&&... params) {
+  // TODO(gerry): find a way other than hard-coding to identify which node is on
+  // which bus
+  switch (node) {
+    case 0:
+    case 1:
+      Can0.send(node, cmd, std::forward<Params>(params)...);
+      break;
+    case 2:
+    case 3:
+      Can1.send(node, cmd, std::forward<Params>(params)...);
+      break;
+    default:
+      // TODO: figure out what to do here...
+      break;
   }
 }
 
@@ -67,8 +89,7 @@ void Odrive::parsePacket(const CAN_message_t& msg) {
       Can0.parseFloats(data, &pos, &vel);
       robot_.winches.at(nodei).setTheta(pos);
       robot_.winches.at(nodei).setThetaDot(vel);
-      Can0.sendFloat(nodei, MSG_SET_INPUT_TORQUE,
-                     controller_.get_torque_now(nodei));
+      send(nodei, MSG_SET_INPUT_TORQUE, controller_.get_torque_now(nodei));
       break;
     }
     default:

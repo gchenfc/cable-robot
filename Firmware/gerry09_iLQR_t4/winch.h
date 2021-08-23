@@ -38,8 +38,8 @@ class Winch {
   // Units of revolutions and rev/s!!!
   float theta() const { return theta_; }
   float thetaDot() const { return thetaDot_; }
-  float error() const { return error_; }
-  float state() const { return state_; }
+  uint32_t error() const { return error_; }
+  uint32_t state() const { return state_; }
 
   // Getter functions with conversions
   float theta(float len) const { return len / radius_ / kTau + zero_; }
