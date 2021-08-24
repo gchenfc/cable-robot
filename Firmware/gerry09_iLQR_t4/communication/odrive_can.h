@@ -22,7 +22,7 @@ class Odrive {
 
   //
   template <typename... Params>
-  void send(uint8_t node, uint8_t cmd, Params&&... params);
+  uint8_t send(uint8_t node, uint8_t cmd, Params&&... params);
 
  private:
   Robot& robot_;
@@ -50,22 +50,21 @@ void Odrive::update() {
 }
 
 template <typename... Params>
-void Odrive::send(uint8_t node, uint8_t cmd, Params&&... params) {
+uint8_t Odrive::send(uint8_t node, uint8_t cmd, Params&&... params) {
   // TODO(gerry): find a way other than hard-coding to identify which node is on
   // which bus
   switch (node) {
     case 0:
     case 1:
-      Can0.send(node, cmd, std::forward<Params>(params)...);
-      break;
+      return Can0.send(node, cmd, std::forward<Params>(params)...);
     case 2:
     case 3:
-      Can1.send(node, cmd, std::forward<Params>(params)...);
-      break;
+      return Can1.send(node, cmd, std::forward<Params>(params)...);
     default:
       // TODO: figure out what to do here...
       break;
   }
+  return -1;
 }
 
 void Odrive::parsePacket(const CAN_message_t& msg) {
@@ -89,10 +88,25 @@ void Odrive::parsePacket(const CAN_message_t& msg) {
       Can0.parseFloats(data, &pos, &vel);
       robot_.winches.at(nodei).setTheta(pos);
       robot_.winches.at(nodei).setThetaDot(vel);
-      send(nodei, MSG_SET_INPUT_TORQUE, controller_.get_torque_now(nodei));
+      // send(nodei, MSG_SET_INPUT_TORQUE, controller_.get_torque_now(nodei));
+      Can0.requestInfo(nodei, MSG_GET_VBUS_VOLTAGE, true);
       break;
     }
+    case MSG_GET_VBUS_VOLTAGE:
+      break;
     default:
+      Serial.print("CAN bus 0:\tnode=");
+      Serial.print(nodei);
+      Serial.print("\tcmd=");
+      Serial.print(cmd, HEX);
+      Serial.print("\t\tdata = ");
+      Serial.print(Can0.parseInt32(data));
+      Serial.print('\t');
+      Serial.print(Can0.parseInt32(data + 4));
+      Serial.print('\t');
+      Serial.print(Can0.parseFloat(data));
+      Serial.print('\t');
+      Serial.println(Can0.parseFloat((data + 4)));
       // TODO
       break;
   }
