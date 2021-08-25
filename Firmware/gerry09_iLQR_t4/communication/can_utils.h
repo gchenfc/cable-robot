@@ -37,6 +37,7 @@ class CanUtils : public FlexCAN_T4<_bus, RX_SIZE_256, TX_SIZE_16> {
                Stream &debug_serial = Serial);
   uint8_t send(uint16_t node, uint8_t cmdId, float pos, int16_t vel,
                int16_t torque);
+  uint8_t send(uint16_t node, uint8_t cmdId, bool rtr = false);
   uint8_t send(uint16_t node, uint8_t cmdId, const uint8_t *data,
                bool rtr = false);
 };
@@ -45,8 +46,7 @@ class CanUtils : public FlexCAN_T4<_bus, RX_SIZE_256, TX_SIZE_16> {
 
 template <CAN_DEV_TABLE T>
 uint8_t CanUtils<T>::requestInfo(uint16_t node, uint8_t cmdId, bool rtr) {
-  static const uint8_t can_data[8] = {0};
-  return send(node, cmdId, can_data, rtr);
+  send(node, cmdId, rtr);
 }
 
 template <CAN_DEV_TABLE T1>
@@ -108,6 +108,12 @@ uint8_t CanUtils<T>::send(uint16_t node, uint8_t cmdId, float pos, int16_t vel,
   memcpy(((uint8_t *)&data) + 4, (uint8_t *)(&vel), 2);
   memcpy(((uint8_t *)&data) + 6, (uint8_t *)(&torque), 2);
   return send(node, cmdId, data);
+}
+
+template <CAN_DEV_TABLE T>
+uint8_t CanUtils<T>::send(uint16_t node, uint8_t cmdId, bool rtr) {
+  static const uint8_t can_data[8] = {0};
+  return send(node, cmdId, can_data, rtr);
 }
 
 template <CAN_DEV_TABLE T>

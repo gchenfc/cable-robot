@@ -75,7 +75,7 @@ bool parseMsg(char* buffer, int size, Stream& serial) {
     case MSG_START_ANTICOGGING:
     case MSG_RESET_ODRIVE:
     case MSG_CLEAR_ERRORS:
-      Can0.requestInfo(node, cmd);
+      odrive.send(node, cmd);
       serial.print("Commanded ");
       serial.println(COMMANDS[cmd]);
       return true;
@@ -87,7 +87,7 @@ bool parseMsg(char* buffer, int size, Stream& serial) {
     case MSG_GET_IQ:
     case MSG_GET_SENSORLESS_ESTIMATES:
     case MSG_GET_VBUS_VOLTAGE:
-      Can0.requestInfo(node, cmd, true);
+      odrive.send(node, cmd, true);
       serial.print("Requested ");
       serial.println(COMMANDS[cmd]);
       return true;

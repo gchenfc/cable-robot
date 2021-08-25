@@ -47,6 +47,9 @@ void Odrive::update() {
   while (Can0.read(inMsg)) {
     parsePacket(inMsg);
   }
+  while (Can1.read(inMsg)) {
+    parsePacket(inMsg);
+  }
 }
 
 template <typename... Params>
@@ -89,11 +92,9 @@ void Odrive::parsePacket(const CAN_message_t& msg) {
       robot_.winches.at(nodei).setTheta(pos);
       robot_.winches.at(nodei).setThetaDot(vel);
       // send(nodei, MSG_SET_INPUT_TORQUE, controller_.get_torque_now(nodei));
-      Can0.requestInfo(nodei, MSG_GET_VBUS_VOLTAGE, true);
+      send(nodei, MSG_CO_HEARTBEAT_CMD, true); // service watchdog
       break;
     }
-    case MSG_GET_VBUS_VOLTAGE:
-      break;
     default:
       Serial.print("CAN bus 0:\tnode=");
       Serial.print(nodei);
