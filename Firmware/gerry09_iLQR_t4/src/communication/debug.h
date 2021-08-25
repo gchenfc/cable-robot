@@ -80,8 +80,28 @@ bool parseMsgController(ControllerInterface* controller, char* buffer, int size,
   if (!parseInt(&parse_cur, parse_end, '\n', &cmd)) return false;
   switch (cmd) {
     case 1:
-      serial.println("GOT COMMAND TO START TRAJECTORY");
-      // controller->startTraj();
+      serial.println("START TRAJECTORY");
+      controller->startTraj();
+      return true;
+    case 2:
+      serial.println("STOP TRAJECTORY");
+      controller->stopTraj();
+      return true;
+    case 3:
+      serial.println("RESET TRAJ");
+      controller->resetTraj();
+      return true;
+    case 4:
+      serial.println("SET TO TRAJ INDEX");
+      controller->setToTrajIndex(0);  // TODO(gerry): parse another number
+      return true;
+    case 5:
+      serial.println("HOLD");
+      controller->hold();
+      return true;
+    case 6:
+      serial.println("RELEASE");
+      controller->release();
       return true;
     default:
       serial.println("Invalid controller command code");
