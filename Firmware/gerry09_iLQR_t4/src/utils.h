@@ -1,5 +1,8 @@
 #pragma once
 
+#include <algorithm>
+#include <numeric>
+
 /// Clamps the value (in-place) between bounds
 inline void clamp(float *x, float xmin, float xmax) {
   *x = min(xmax, max(xmin, *x));
@@ -30,6 +33,19 @@ void matmul(const float A[M][N], const float B[N][P], float C[M][P]);
  */
 float towards(const float maxD, const float x, const float y, const float tx,
               const float ty, float *nx, float *ny);
+
+// Find the squared euclidian length of a vector
+template <int M>
+float norm2(const float vec[M]);
+// Find the euclidian length of a vector
+template <int M>
+float norm(const float vec[M]);
+// Normalize a vector
+template <int M>
+void normalize(float vec[M]);
+// Find the dot product of two vectors
+template <int M>
+float dot(const float v1[M], const float v2[M]);
 
 /************************ Implementations ************************/
 
@@ -75,6 +91,39 @@ float towards(const float maxD, const float x, const float y, const float tx,
   return d2;
 }
 
+/******************************************************************************/
+template <int M>
+float norm2(const float vec[M]) {
+  return std::accumulate(vec, vec + M, 0,
+                         [](const float &running_sum, const float &value) {
+                           return running_sum + value * value;
+                         });
+}
+
+/******************************************************************************/
+template <int M>
+float norm(const float vec[M]) {
+  return sqrt(norm2<M>(vec));
+}
+
+/******************************************************************************/
+template <int M>
+void normalize(float vec[M]) {
+  float n = norm<M>(vec);
+  std::transform(vec, vec + M, vec, [n](float f) { return f / n; });
+}
+
+/******************************************************************************/
+template <int M>
+float dot(const float v1[M], const float v2[M]) {
+  float res = 0;
+  for (int i = 0; i < M; ++i) {
+    res += v1[i] * v2[i];
+  }
+  return res;
+}
+
+/******************************************************************************/
 /**
  * This is a convenience datatype that holds both a value as well as the last
  * time it got updated.  This way we can check if a value is old/expired.

@@ -1,10 +1,10 @@
 #ifndef ARDUINO
 
-#include "communication/fibre_protocol.h"
+#include "fibre_protocol.h"
 
-#include "../CppUnitLite/TestHarness.h"
+#include "../../CppUnitLite/TestHarness.h"
 
-#include "arduino_test_utils.h"
+#include "../arduino_test_utils.h"
 
 TEST(fibre_protocol, testjsoncrc) {
   StringPrinter serial;

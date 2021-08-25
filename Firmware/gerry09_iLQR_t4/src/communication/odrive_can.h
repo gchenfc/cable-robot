@@ -8,8 +8,10 @@
 #include "can_utils.h"
 #include "can_simple.h"
 
+namespace can_internal {
 CanUtils<CAN1> Can0;
 CanUtils<CAN2> Can1;
+}  // namespace can_internal
 
 class Odrive {
  public:
@@ -35,19 +37,19 @@ class Odrive {
 /******************************************************************************/
 
 void Odrive::setup() {
-  Can0.begin();
-  Can0.setBaudRate(1000000);
-  Can1.begin();
-  Can1.setBaudRate(1000000);
+  can_internal::Can0.begin();
+  can_internal::Can0.setBaudRate(1000000);
+  can_internal::Can1.begin();
+  can_internal::Can1.setBaudRate(1000000);
   last_received_us_ = {};
 }
 
 void Odrive::update() {
   static CAN_message_t inMsg;
-  while (Can0.read(inMsg)) {
+  while (can_internal::Can0.read(inMsg)) {
     parsePacket(inMsg);
   }
-  while (Can1.read(inMsg)) {
+  while (can_internal::Can1.read(inMsg)) {
     parsePacket(inMsg);
   }
 }
@@ -59,10 +61,12 @@ uint8_t Odrive::send(uint8_t node, uint8_t cmd, Params&&... params) {
   switch (node) {
     case 0:
     case 1:
-      return Can0.send(node, cmd, std::forward<Params>(params)...);
+      return can_internal::Can0.send(node, cmd,
+                                     std::forward<Params>(params)...);
     case 2:
     case 3:
-      return Can1.send(node, cmd, std::forward<Params>(params)...);
+      return can_internal::Can1.send(node, cmd,
+                                     std::forward<Params>(params)...);
     default:
       // TODO: figure out what to do here...
       break;
@@ -83,16 +87,18 @@ void Odrive::parsePacket(const CAN_message_t& msg) {
   last_received_us_.at(nodei).at(cmd) = time;
   switch (cmd) {
     case MSG_ODRIVE_HEARTBEAT:
-      robot_.winches.at(nodei).setError(Can0.parse<uint32_t>(data));
-      robot_.winches.at(nodei).setState(Can0.parse<uint32_t>(data + 4));
+      robot_.winches.at(nodei).setError(
+          can_internal::Can0.parse<uint32_t>(data));
+      robot_.winches.at(nodei).setState(
+          can_internal::Can0.parse<uint32_t>(data + 4));
       break;
     case MSG_GET_ENCODER_ESTIMATES: {
       static float pos, vel;
-      Can0.parseFloats(data, &pos, &vel);
+      can_internal::Can0.parseFloats(data, &pos, &vel);
       robot_.winches.at(nodei).setTheta(pos);
       robot_.winches.at(nodei).setThetaDot(vel);
       if (!controller_.encoderMsgCallback(this, nodei)) {
-        send(nodei, MSG_CO_HEARTBEAT_CMD, true);  // service watchdog
+        send(nodei, 0b11111, true);  // service watchdog
       }
       break;
     }
@@ -102,13 +108,13 @@ void Odrive::parsePacket(const CAN_message_t& msg) {
       Serial.print("\tcmd=");
       Serial.print(cmd, HEX);
       Serial.print("\t\tdata = ");
-      Serial.print(Can0.parseInt32(data));
+      Serial.print(can_internal::Can0.parseInt32(data));
       Serial.print('\t');
-      Serial.print(Can0.parseInt32(data + 4));
+      Serial.print(can_internal::Can0.parseInt32(data + 4));
       Serial.print('\t');
-      Serial.print(Can0.parseFloat(data));
+      Serial.print(can_internal::Can0.parseFloat(data));
       Serial.print('\t');
-      Serial.println(Can0.parseFloat((data + 4)));
+      Serial.println(can_internal::Can0.parseFloat((data + 4)));
       // TODO
       break;
   }

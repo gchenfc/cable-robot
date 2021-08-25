@@ -75,6 +75,23 @@ TEST(utils, towards) {
   EXPECT_DOUBLES_EQUAL(69.1, ny, 1e-5);
 }
 
+TEST(utils, vector_stuff) {
+  const float vec[4] = {1,2,3,4};
+  EXPECT_DOUBLES_EQUAL(30, norm2<4>(vec), 0.0);
+  EXPECT_DOUBLES_EQUAL(5.4772255751, norm<4>(vec), 1e-5);
+
+  float unit_vec[4];
+  memcpy(unit_vec, vec, sizeof(vec));
+  normalize<4>(unit_vec);
+  EXPECT_DOUBLES_EQUAL(0.1825741858, unit_vec[0], 1e-5);
+  EXPECT_DOUBLES_EQUAL(0.3651483717, unit_vec[1], 1e-5);
+  EXPECT_DOUBLES_EQUAL(0.5477225575, unit_vec[2], 1e-5);
+  EXPECT_DOUBLES_EQUAL(0.7302967433, unit_vec[3], 1e-5);
+
+  const float vec2[4] = {8,7,6,5};
+  EXPECT_DOUBLES_EQUAL(8+14+18+20, dot<4>(vec, vec2), 0.0);
+}
+
 TEST(utils, Timestamped) {
   Timestamped<float> f(0);
   EXPECT_DOUBLES_EQUAL(0.0, f, 1e-5);

@@ -5,11 +5,11 @@
 class ControllerDummy : public ControllerInterface {
  public:
   // Common API
-  void setup() {}
-  void update() {}
+  void setup() override {}
+  void update() override {}
 
   // Controller API
-  bool encoderMsgCallback(Odrive* odrive, uint8_t winchnum) override {
+  bool encoderMsgCallback(Odrive* odrive, uint8_t winchnum) const override {
     return false;
   }
 };

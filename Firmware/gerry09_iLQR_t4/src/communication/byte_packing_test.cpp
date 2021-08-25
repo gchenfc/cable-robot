@@ -4,9 +4,9 @@
  * This test must be run on the real MCU hardware to make sure the endianness
  * is correct.
  */
-#include "communication/byte_packing.h"
+#include "byte_packing.h"
 
-#include "../CppUnitLite/TestHarness.h"
+#include "../../CppUnitLite/TestHarness.h"
 
 #define testWriteLe(T, input, buf_expected, buf_len) \
   {                                                  \

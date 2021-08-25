@@ -26,26 +26,29 @@
 
 #include <Metro.h>
 
-#include "constants.h"
-#include "robot.h"
-#include "controllers/controller_dummy.h"
-#include "communication/odrive_can.h"
-#include "spray.h"
-#include "estop.h"
-#include "communication/debug.h"
-#include "communication/slave.h"
+#include "src/constants.h"
+#include "src/robot.h"
+#include "src/state_estimators/state_estimator_first_order.h"
+#include "src/controllers/controller_simple.h"
+#include "src/communication/odrive_can.h"
+#include "src/spray.h"
+#include "src/estop.h"
+#include "src/communication/debug.h"
+#include "src/communication/slave.h"
 
 Robot robot{};
-ControllerDummy controller{};
+StateEstimatorFirstOrder state_estimator(robot);
+ControllerSimple controller(&state_estimator);
 Odrive odrive(robot, controller);
 Spray spray(btSerial);
 Estop estop(ESTOP);
-Debug debug(SerialD);
+Debug debug(SerialD, robot, &controller, odrive);
 Slave slave(Serial);
 
 // -------------------------------------------------------------
 void setup(void) {
   robot.setup();
+  state_estimator.setup();
   controller.setup();
   odrive.setup();
   spray.setup();
@@ -57,6 +60,7 @@ void setup(void) {
 // -------------------------------------------------------------
 void loop(void) {
   estop.update();
+  state_estimator.update();
   robot.update();
   controller.update();
   odrive.update();

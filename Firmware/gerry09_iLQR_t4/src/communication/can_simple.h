@@ -33,6 +33,7 @@ enum {
   MSG_RESET_ODRIVE,              // 22
   MSG_GET_VBUS_VOLTAGE,          // 23
   MSG_CLEAR_ERRORS,              // 24
+  MSG_SET_LINEAR_COUNT,          // 25
   MSG_CO_HEARTBEAT_CMD = 0x700,  // ??  // CANOpen NMT Heartbeat  SEND
 };
 
@@ -62,5 +63,6 @@ static constexpr char const* COMMANDS[] = {
     "MSG_RESET_ODRIVE",              // 22
     "MSG_GET_VBUS_VOLTAGE",          // 23
     "MSG_CLEAR_ERRORS",              // 24
+    "MSG_SET_LINEAR_COUNT",          // 25
     "MSG_CO_HEARTBEAT_CMD",          // ??  // CANOpen NMT Heartbeat  SEND
 };

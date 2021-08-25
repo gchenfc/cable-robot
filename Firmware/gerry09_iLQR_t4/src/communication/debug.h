@@ -9,19 +9,25 @@
 #include <Metro.h>
 #include <Stream.h>
 
-extern Robot robot;
-extern Odrive odrive;
+#include "../robot.h"
+#include "odrive_can.h"
+#include "../controllers/controller_interface.h"
 
 class Debug {
  public:
-  Debug(Stream& serial) : serial_(serial) {}
+  Debug(Stream& serial, Robot& robot, ControllerInterface* controller,
+        Odrive& odrive)
+      : serial_(serial),
+        robot_(robot),
+        controller_(controller),
+        odrive_(odrive) {}
 
   // Common API
   void setup() {}
   void update() {
     if (print_timer_.check()) {
       for (int i = 0; i < 4; ++i) {
-        const Winch& winch = robot.winches.at(i);
+        const Winch& winch = robot_.winches.at(i);
         serial_.printf("%d %d %.2f %.2f\t|\t", winch.error(), winch.state(),
                        winch.len(), winch.lenDot());
       }
@@ -32,6 +38,9 @@ class Debug {
 
  private:
   Stream& serial_;
+  Robot& robot_;
+  ControllerInterface* controller_;
+  Odrive& odrive_;
   Metro print_timer_ = Metro(100);
 
   void readSerial();
@@ -61,7 +70,27 @@ bool parseFloat(char** buffer_start, char* buffer_end, char delim, T* value) {
   return true;
 }
 
-bool parseMsg(char* buffer, int size, Stream& serial) {
+bool parseMsgController(ControllerInterface* controller, char* buffer, int size,
+                        Stream& serial) {
+  char* parse_cur = buffer;
+  char* parse_end = buffer + size;
+  uint32_t cmd;
+  if (parse_cur[0] != 'g') return false;
+  ++parse_cur;
+  if (!parseInt(&parse_cur, parse_end, '\n', &cmd)) return false;
+  switch (cmd) {
+    case 1:
+      serial.println("GOT COMMAND TO START TRAJECTORY");
+      // controller->startTraj();
+      return true;
+    default:
+      serial.println("Invalid controller command code");
+      return false;
+  }
+}
+
+bool parseMsgCanPassthrough(Odrive& odrive, char* buffer, int size,
+                            Stream& serial) {
   char* parse_cur = buffer;
   char* parse_end = buffer + size;
   uint8_t node, cmd;
@@ -95,7 +124,7 @@ bool parseMsg(char* buffer, int size, Stream& serial) {
     case MSG_SET_AXIS_REQUESTED_STATE:
     case MSG_SET_LINEAR_COUNT:
       if (!parseInt(&parse_cur, parse_end, '\n', &i1)) return false;
-      Serial.println(odrive.send(node, cmd, i1));
+      odrive.send(node, cmd, i1);
       break;
     case MSG_SET_AXIS_STARTUP_CONFIG:
       serial.println("Not yet implemented!");
@@ -147,8 +176,10 @@ void Debug::readSerial() {
     buffer[bufferi] = c;
     bufferi++;
     if (c == '\n') {
-      // TODO: Can1
-      if (!human_serial::parseMsg(buffer, bufferi, serial_)) {
+      if ((!human_serial::parseMsgController(controller_, buffer, bufferi,
+                                             serial_)) &&
+          (!human_serial::parseMsgCanPassthrough(odrive_, buffer, bufferi,
+                                                 serial_))) {
         serial_.println("Parse Error");
       };
       bufferi = 0;

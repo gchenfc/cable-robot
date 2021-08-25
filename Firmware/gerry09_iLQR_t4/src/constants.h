@@ -32,3 +32,6 @@ static constexpr float kWidth = 3.05 - 0.17, kHeight = 2.32;
 static constexpr float kTau = 2 * 3.1415926535897932384626433832795;
 
 #endif
+
+static constexpr float kMountPoints[4][2] = {
+    {kWidth, 0}, {kWidth, kHeight}, {0, kHeight}, {0, 0}};

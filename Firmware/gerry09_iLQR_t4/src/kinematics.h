@@ -50,8 +50,6 @@ class Kinematics {
   // }
 
  protected:
-  static constexpr float kMountPoints[4][2] = {
-      {kWidth, 0}, {kWidth, kHeight}, {0, kHeight}, {0, 0}};
   const Robot &robot_;
 };
 
