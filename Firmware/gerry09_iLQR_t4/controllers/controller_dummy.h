@@ -9,7 +9,7 @@ class ControllerDummy : public ControllerInterface {
   void update() {}
 
   // Controller API
-  virtual bool encoderMsgCallback(Odrive* odrive, uint8_t winchnum) {
+  bool encoderMsgCallback(Odrive* odrive, uint8_t winchnum) override {
     return false;
   }
 };

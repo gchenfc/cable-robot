@@ -1,5 +1,12 @@
 #pragma once
 
+class Odrive;
+
+/**
+ * ControllerInterface defines the common interface for the callback function
+ * `encoderMsgCallback` that `Odrive` calls on encoder messages so that an
+ * immediate (realtime) response can be made.
+ */
 class ControllerInterface {
  public:
   // Common API
