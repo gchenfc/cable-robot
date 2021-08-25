@@ -7,5 +7,7 @@ class ControllerInterface {
   virtual void update() = 0;
 
   // Controller API
-  virtual float get_torque_now(uint8_t winch_num) const = 0;
+  // Returns true if a CAN message was sent, false otherwise (to know whether or
+  // not caller should service the watchdog)
+  virtual bool encoderMsgCallback(Odrive* odrive, uint8_t winchnum) const = 0;
 };

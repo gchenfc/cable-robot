@@ -91,8 +91,9 @@ void Odrive::parsePacket(const CAN_message_t& msg) {
       Can0.parseFloats(data, &pos, &vel);
       robot_.winches.at(nodei).setTheta(pos);
       robot_.winches.at(nodei).setThetaDot(vel);
-      // send(nodei, MSG_SET_INPUT_TORQUE, controller_.get_torque_now(nodei));
-      send(nodei, MSG_CO_HEARTBEAT_CMD, true); // service watchdog
+      if (!controller_.encoderMsgCallback(this, nodei)) {
+        send(nodei, MSG_CO_HEARTBEAT_CMD, true);  // service watchdog
+      }
       break;
     }
     default:

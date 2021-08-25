@@ -9,5 +9,7 @@ class ControllerDummy : public ControllerInterface {
   void update() {}
 
   // Controller API
-  float get_torque_now(uint8_t winch_num) const override { return 0; };
+  virtual bool encoderMsgCallback(Odrive* odrive, uint8_t winchnum) {
+    return false;
+  }
 };
