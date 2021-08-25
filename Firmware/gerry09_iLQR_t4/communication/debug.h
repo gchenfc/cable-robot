@@ -95,7 +95,7 @@ bool parseMsg(char* buffer, int size, Stream& serial) {
     case MSG_SET_AXIS_REQUESTED_STATE:
     case MSG_SET_LINEAR_COUNT:
       if (!parseInt(&parse_cur, parse_end, '\n', &i1)) return false;
-      Serial.println(odrive.send(node, cmd, i1));
+      odrive.send(node, cmd, i1);
       break;
     case MSG_SET_AXIS_STARTUP_CONFIG:
       serial.println("Not yet implemented!");
@@ -147,7 +147,6 @@ void Debug::readSerial() {
     buffer[bufferi] = c;
     bufferi++;
     if (c == '\n') {
-      // TODO: Can1
       if (!human_serial::parseMsg(buffer, bufferi, serial_)) {
         serial_.println("Parse Error");
       };
