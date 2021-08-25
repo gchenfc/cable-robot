@@ -30,7 +30,7 @@
 
 #pragma once
 
-#include "../arduino_test_utils.h"
+#include "../../unit_test_simulator/arduino_test_utils.h"
 
 namespace crc {
 

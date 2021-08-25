@@ -4,7 +4,7 @@
 
 #include "../../CppUnitLite/TestHarness.h"
 
-#include "../arduino_test_utils.h"
+#include "../../unit_test_simulator/arduino_test_utils.h"
 
 TEST(fibre_protocol, testjsoncrc) {
   StringPrinter serial;

@@ -16,35 +16,23 @@
 #include <chrono>
 
 template <class T>
-T min(const T& t1, const T& t2) {
+inline T min(const T& t1, const T& t2) {
   return std::min(t1, t2);
 }
 template <class T>
-T max(const T& t1, const T& t2) {
+inline T max(const T& t1, const T& t2) {
   return std::max(t1, t2);
 }
 
 template <class T>
-T sqrt(const T& t) {
+inline T sqrt(const T& t) {
   return std::sqrt(t);
 }
 
-using std::chrono::duration_cast;
-using std::chrono::microseconds;
-using std::chrono::milliseconds;
-using Clock = std::chrono::high_resolution_clock;
-auto t_start = Clock::now();
-uint64_t manual_millis = 0, manual_micros = 0;
-uint64_t millis() {
-  return manual_millis
-             ? manual_millis
-             : duration_cast<milliseconds>(Clock::now() - t_start).count();
-}
-uint64_t micros() {
-  return manual_micros
-             ? manual_micros
-             : (duration_cast<microseconds>(Clock::now() - t_start).count());
-}
+uint64_t millis();
+uint64_t micros();
+void set_time_us(uint64_t t_us);
+uint64_t& getMicros();
 
 class Print {
  public:
@@ -66,9 +54,19 @@ class Print {
     write(reinterpret_cast<const uint8_t*>(s.c_str()), s.size());
   }
   void println() { write('\n'); }
+
+  int printf(const char* format, ...) {
+    char buf[1024];
+    va_list args;
+    va_start(args, format);
+    int ret = vsprintf(buf, format, args);
+    va_end(args);
+    print(buf);
+    return ret;
+  }
 };
 
-class StringPrinter : public Print {
+class StringPrinter : public virtual Print {
  public:
   std::stringstream& getStream() { return ss; }
 
@@ -83,6 +81,34 @@ class StringPrinter : public Print {
 
  private:
   std::stringstream ss;
+};
+
+class Stream : public virtual Print {
+ public:
+  // There are supposed to be lots more functions but we don't use them
+  virtual int available() = 0;
+  virtual int read() = 0;
+  virtual int peek() = 0;
+};
+
+// diamond inheritance pattern... hopefully it's fine...
+class StringStreamer : public Stream, public StringPrinter {
+ public:
+  template <typename T>
+  StringStreamer& operator<<(T arg) {
+    os << arg;
+    return *this;
+  }
+  int available() override { return os.str().length(); };
+  int read() override {
+    auto toret = os.str().at(0);
+    os = std::ostringstream{os.str().substr(1)};
+    return toret;
+  }
+  int peek() override { return os.rdbuf()->sgetc(); }
+
+ private:
+  std::ostringstream os;
 };
 
 class HardwareSerial : public Print {};

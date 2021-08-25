@@ -6,7 +6,7 @@
 
 #include <array>
 
-#include "arduino_test_utils.h"
+#include "../unit_test_simulator/arduino_test_utils.h"
 #include "winch.h"
 
 struct Robot {

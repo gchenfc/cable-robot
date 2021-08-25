@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Metro.h>
+
 #include "state_estimator_interface.h"
 #include "../kinematics.h"
 
@@ -8,6 +10,9 @@ class StateEstimatorFirstOrder : public StateEstimatorInterface {
   StateEstimatorFirstOrder(Robot& robot) : kinematics_(robot) {}
 
   void update() override {
+    if (!update_timer_.check()) {
+      return;
+    }
     static float W[4][2];
     last_us_ = micros();
     kinematics_.FK(&last_pos_.first, &last_pos_.second);
@@ -23,9 +28,14 @@ class StateEstimatorFirstOrder : public StateEstimatorInterface {
     pos_now.second = last_pos_.second + last_vel_.second * dt_s;
     return last_pos_;
   };
-  std::pair<float, float> vel() const override { return last_vel_; };
+  std::pair<float, float> vel(uint64_t time_us) const override {
+    (void)(time_us);  // unused
+    return last_vel_;
+  };
 
  private:
+  Metro update_timer_{5};
+
   Kinematics kinematics_;
   uint64_t last_us_;
   std::pair<float, float> last_pos_;

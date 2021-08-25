@@ -1,7 +1,5 @@
 #pragma once
 
-#include <Arduino.h>
-
 class Odrive;
 
 /**
@@ -31,6 +29,7 @@ class ControllerInterface {
   virtual bool encoderMsgCallback(Odrive* odrive, uint8_t winchnum) const = 0;
 
   // State transition requests
+  virtual bool setupFor(ControllerState state) = 0;  // prep for next state
   virtual bool startTraj() = 0;  // start (or resume) trajectory
   virtual bool stopTraj() = 0;   // pause trajectory
   virtual bool resetTraj() = 0;  // reset back to beginning of trajectory

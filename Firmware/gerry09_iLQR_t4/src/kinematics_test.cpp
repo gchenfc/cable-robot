@@ -6,7 +6,7 @@ static constexpr float kR = 1;
 static constexpr float kWidth = 4, kHeight = 3;
 static constexpr float kTau = 2 * 3.1415926535897932384626433832795;
 // clang-off
-#include "arduino_test_utils.h"
+#include "../unit_test_simulator/arduino_test_utils.h"
 // clang-on
 // clang-off
 #include "kinematics.h"

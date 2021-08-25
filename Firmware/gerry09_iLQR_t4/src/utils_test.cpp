@@ -1,6 +1,6 @@
 #ifndef ARDUINO
 // clang-off
-#include "arduino_test_utils.h"
+#include "../unit_test_simulator/arduino_test_utils.h"
 // clang-on
 
 #include "CppUnitLite/TestHarness.h"
@@ -100,15 +100,15 @@ TEST(utils, Timestamped) {
   EXPECT_DOUBLES_EQUAL(1.23, f, 1e-5);
   EXPECT(f.isValid());
 
-  manual_micros = 123456L;
+  getMicros() = 123456L;
   f = 8.23;
-  manual_micros += 1234;
+  getMicros() += 1234;
   EXPECT(!f.isValid(1234));
   EXPECT(f.isValid(1235));
   EXPECT_DOUBLES_EQUAL(8.23, f, 1e-5);
-  manual_micros = 123456L + 4999L;
+  getMicros() = 123456L + 4999L;
   EXPECT(f.isValid());
-  manual_micros = 123456L + 5000L;
+  getMicros() = 123456L + 5000L;
   EXPECT(!f.isValid());
   EXPECT_DOUBLES_EQUAL(8.23, f, 1e-5);
 }

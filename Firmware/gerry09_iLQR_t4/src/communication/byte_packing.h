@@ -10,7 +10,7 @@
 
 #include <limits>
 
-#include "../arduino_test_utils.h"
+#include "../../unit_test_simulator/arduino_test_utils.h"
 
 // Temporary object for reversing a byte array
 uint8_t backwards_buf[1000];

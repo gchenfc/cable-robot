@@ -6,6 +6,7 @@
 #include "../state_estimators/state_estimator_interface.h"
 #include "../communication/odrive_can.h"
 #include "../utils.h"
+#include "../communication/can_simple.h"
 
 extern Odrive odrive;
 
@@ -20,6 +21,7 @@ class ControllerSimple : public ControllerInterface {
   bool encoderMsgCallback(Odrive* odrive, uint8_t winchnum) const override;
 
   // State transition requests
+  bool setupFor(ControllerState state) override;
   bool startTraj() override;
   bool stopTraj() override;
   bool resetTraj() override;
@@ -41,11 +43,13 @@ class ControllerSimple : public ControllerInterface {
 
 /************* KEY FUNCTIONS **************/
 ControllerSimple::Vector2 ControllerSimple::calcDesPos(float t) const {
-  return {0.5 * cosf(t * M_PI / 5),  //
-          0.5 * sinf(t * M_PI / 5)};
+  return {1.5 + 0.5 * cosf(t * M_PI / 5),  //
+          1.1 + 0.5 * sinf(t * M_PI / 5)};
 }
 float ControllerSimple::calcTorque(Vector2 pos, Vector2 vel, Vector2 des_pos,
                                    Vector2 des_vel, uint8_t winchnum) const {
+  (void)(vel);
+  (void)(des_vel);
   float error[2], bPa[2];
   error[0] = des_pos.first - pos.first;
   error[1] = des_pos.second - pos.second;
@@ -66,13 +70,7 @@ void ControllerSimple::update() {
     case IDLE:
       break;
     case SETUP:
-      tstart_us_ = micros();
-      for (int i = 0; i < 4; ++i) {
-        odrive.send(0, MSG_SET_INPUT_TORQUE, 0.0f);
-        odrive.send(0, MSG_SET_CONTROLLER_MODES, static_cast<int32_t>(3),
-                    static_cast<int32_t>(1));
-      }
-      next_state = RUNNING_TRAJ;
+      next_state = IDLE;  // unused state
       break;
     case RUNNING_TRAJ:
       break;
@@ -112,10 +110,30 @@ bool ControllerSimple::encoderMsgCallback(Odrive* odrive,
   return false;
 }
 
+bool ControllerSimple::setupFor(ControllerState state) {
+  for (int i = 0; i < 4; ++i) {
+    switch (state) {
+      case HOLDING_BAN_INPUT:
+      case HOLDING_ALLOW_INPUT:
+        odrive.send(i, MSG_SET_INPUT_TORQUE, 0.2f);
+        break;
+      case RUNNING_TRAJ:
+        odrive.send(i, MSG_SET_INPUT_TORQUE, 0.0f);
+        break;
+      default:
+        odrive.send(i, MSG_SET_INPUT_TORQUE, 0.0f);
+    }
+    odrive.send(i, MSG_SET_CONTROLLER_MODES, static_cast<int32_t>(3),
+                static_cast<int32_t>(1));
+  }
+  return true;
+}
 bool ControllerSimple::startTraj() {
   if ((state_ == IDLE) || (state_ == HOLDING_BAN_INPUT) ||
       (state_ == HOLDING_ALLOW_INPUT)) {
-    state_ = SETUP;
+    tstart_us_ = micros();
+    setupFor(RUNNING_TRAJ);
+    state_ = RUNNING_TRAJ;
     return true;
   }
   return false;
@@ -128,9 +146,14 @@ bool ControllerSimple::stopTraj() {
   return false;
 }
 bool ControllerSimple::resetTraj() { return true; }
-bool ControllerSimple::setToTrajIndex(uint64_t index) { return true; }
+bool ControllerSimple::setToTrajIndex(uint64_t index) {
+  (void)(index);  // unused
+  return true;
+}
 bool ControllerSimple::hold() {
-  state_ = HOLDING_BAN_INPUT;
+  tstart_us_ = micros();
+  setupFor(HOLDING_ALLOW_INPUT);
+  state_ = HOLDING_ALLOW_INPUT;
   return true;
 }
 bool ControllerSimple::release() {

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ODRIVE_CAN_H  // use old-style include guard for easier unit testing
+#define ODRIVE_CAN_H
 
 #include <array>
 #include <FlexCAN_T4.h>
@@ -13,6 +14,13 @@ CanUtils<CAN1> Can0;
 CanUtils<CAN2> Can1;
 }  // namespace can_internal
 
+/**
+ * The Odrive object handles all communication with the odrive and should be the
+ * only class that higher-level code interacts with.
+ * TODO(gerry): namespace guard other files in `communication`
+ * TODO(gerry): make a common interface, for unit testing and possible upgrades
+ * to native UART (fibre)
+ */
 class Odrive {
  public:
   Odrive(Robot& robot, ControllerInterface& controller)
@@ -119,3 +127,5 @@ void Odrive::parsePacket(const CAN_message_t& msg) {
       break;
   }
 }
+
+#endif

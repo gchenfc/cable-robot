@@ -7,7 +7,6 @@
 #pragma once
 
 #include <Metro.h>
-#include <Stream.h>
 
 #include "../robot.h"
 #include "odrive_can.h"
@@ -26,10 +25,12 @@ class Debug {
   void setup() {}
   void update() {
     if (print_timer_.check()) {
+      serial_.printf("%d\t|\t", controller_->getState());
       for (int i = 0; i < 4; ++i) {
         const Winch& winch = robot_.winches.at(i);
-        serial_.printf("%d %d %.2f %.2f\t|\t", winch.error(), winch.state(),
-                       winch.len(), winch.lenDot());
+        serial_.printf("%d %d %.2f %.2f\t|\t",  //
+                       winch.error(), winch.state(), winch.len(),
+                       winch.lenDot());
       }
       serial_.println();
     }
