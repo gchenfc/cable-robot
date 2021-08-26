@@ -75,8 +75,8 @@ bool parseFloat(char** buffer_start, char* buffer_end, char delim, T* value) {
   return true;
 }
 
-bool parseMsgController(ControllerInterface* controller, char* buffer, int size,
-                        Stream& serial) {
+bool parseMsgController(ControllerInterface* controller, Odrive& odrive,
+                        char* buffer, int size, Stream& serial) {
   if (size == 0) return false;
   char* parse_cur = buffer;
   char* parse_end = buffer + size;
@@ -86,6 +86,11 @@ bool parseMsgController(ControllerInterface* controller, char* buffer, int size,
   if (!parseInt(&parse_cur, parse_end, '\n', &cmd)) return false;
 
   switch (cmd) {
+    case 0:
+      serial.println("CLEAR ERRORS");
+      odrive.send(0, MSG_CLEAR_ERRORS);
+      odrive.send(3, MSG_CLEAR_ERRORS);
+      return true;
     case 1:
       serial.println("START TRAJECTORY");
       controller->startTraj();
@@ -203,8 +208,8 @@ void Debug::readSerial() {
     buffer[bufferi] = c;
     bufferi++;
     if (c == '\n') {
-      if ((!human_serial::parseMsgController(controller_, buffer, bufferi,
-                                             serial_)) &&
+      if ((!human_serial::parseMsgController(controller_, odrive_, buffer,
+                                             bufferi, serial_)) &&
           (!human_serial::parseMsgCanPassthrough(odrive_, buffer, bufferi,
                                                  serial_))) {
         serial_.println("Parse Error");

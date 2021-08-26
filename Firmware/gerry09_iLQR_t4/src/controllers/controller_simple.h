@@ -157,6 +157,7 @@ bool ControllerSimple::hold() {
   return true;
 }
 bool ControllerSimple::release() {
+  setupFor(IDLE);
   state_ = IDLE;
   return true;
 }
