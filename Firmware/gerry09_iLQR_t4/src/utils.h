@@ -14,11 +14,11 @@ inline void lpf(float *oldV, const float &newV, float alph = 0.1) {
 }
 
 /// Inverts a 2x2 matrix
-void inv2x2(const float A[2][2], float Ainv[2][2]);
+void inv2x2(const float (&A)[2][2], float (&Ainv)[2][2]);
 
 /// Matrix multiplication
 template <int M, int N, int P>
-void matmul(const float A[M][N], const float B[N][P], float C[M][P]);
+void matmul(const float (&A)[M][N], const float (&B)[N][P], float (&C)[M][P]);
 
 /** Returns a new point towards the target coordinates, traveling a maximum
  * distance of `maxD`.
@@ -36,21 +36,21 @@ float towards(const float maxD, const float x, const float y, const float tx,
 
 // Find the squared euclidian length of a vector
 template <int M>
-float norm2(const float vec[M]);
+float norm2(const float (&vec)[M]);
 // Find the euclidian length of a vector
 template <int M>
-float norm(const float vec[M]);
+float norm(const float (&vec)[M]);
 // Normalize a vector
 template <int M>
-void normalize(float vec[M]);
+void normalize(float (&vec)[M]);
 // Find the dot product of two vectors
 template <int M>
-float dot(const float v1[M], const float v2[M]);
+float dot(const float (&v1)[M], const float (&v2)[M]);
 
 /************************ Implementations ************************/
 
 /******************************************************************************/
-void inv2x2(const float A[2][2], float Ainv[2][2]) {
+void inv2x2(const float (&A)[2][2], float (&Ainv)[2][2]) {
   float det =
       A[0][0] * A[1][1] - A[1][0] * A[0][1];  // what to do when singular/det=0?
   Ainv[0][0] = A[1][1] / det;
@@ -61,7 +61,7 @@ void inv2x2(const float A[2][2], float Ainv[2][2]) {
 
 /******************************************************************************/
 template <int M, int N, int P>
-void matmul(const float A[M][N], const float B[N][P], float C[M][P]) {
+void matmul(const float (&A)[M][N], const float (&B)[N][P], float (&C)[M][P]) {
   memset(C, 0, M * P * sizeof(C[0][0]));
   for (int row = 0; row < M; ++row) {
     for (int col = 0; col < P; ++col) {
@@ -93,7 +93,7 @@ float towards(const float maxD, const float x, const float y, const float tx,
 
 /******************************************************************************/
 template <int M>
-float norm2(const float vec[M]) {
+float norm2(const float (&vec)[M]) {
   return std::accumulate(vec, vec + M, 0,
                          [](const float &running_sum, const float &value) {
                            return running_sum + value * value;
@@ -102,13 +102,13 @@ float norm2(const float vec[M]) {
 
 /******************************************************************************/
 template <int M>
-float norm(const float vec[M]) {
+float norm(const float (&vec)[M]) {
   return sqrt(norm2<M>(vec));
 }
 
 /******************************************************************************/
 template <int M>
-void normalize(float vec[M]) {
+void normalize(float (&vec)[M]) {
   float n = norm<M>(vec);
   if (n == 0) {
     return;
@@ -118,7 +118,7 @@ void normalize(float vec[M]) {
 
 /******************************************************************************/
 template <int M>
-float dot(const float v1[M], const float v2[M]) {
+float dot(const float (&v1)[M], const float (&v2)[M]) {
   float res = 0;
   for (int i = 0; i < M; ++i) {
     res += v1[i] * v2[i];
