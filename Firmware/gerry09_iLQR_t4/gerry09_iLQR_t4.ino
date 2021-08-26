@@ -29,7 +29,8 @@
 #include "src/constants.h"
 #include "src/robot.h"
 #include "src/state_estimators/state_estimator_first_order.h"
-#include "src/controllers/controller_simple.h"
+// #include "src/controllers/controller_simple.h"
+#include "src/controllers/controller_ilqr.h"
 #include "src/communication/odrive_can.h"
 #include "src/spray.h"
 #include "src/estop.h"
@@ -38,7 +39,7 @@
 
 Robot robot{};
 StateEstimatorFirstOrder state_estimator(robot);
-ControllerSimple controller(&state_estimator);
+ControllerIlqr controller(&state_estimator);
 Odrive odrive(robot, controller);
 Spray spray(btSerial);
 Estop<ESTOP> estop(odrive, &controller);

@@ -159,26 +159,30 @@ bool parseMsgController(ControllerInterface* controller, Odrive& odrive,
       odrive.send(3, MSG_CLEAR_ERRORS);
       return true;
     case 1:
+      serial.println("GO TO START TRAJECTORY");
+      controller->goToStartTraj();
+      return true;
+    case 2:
       serial.println("START TRAJECTORY");
       controller->startTraj();
       return true;
-    case 2:
+    case 3:
       serial.println("STOP TRAJECTORY");
       controller->stopTraj();
       return true;
-    case 3:
+    case 4:
       serial.println("RESET TRAJ");
       controller->resetTraj();
       return true;
-    case 4:
+    case 5:
       serial.println("SET TO TRAJ INDEX");
       controller->setToTrajIndex(0);  // TODO(gerry): parse another number
       return true;
-    case 5:
+    case 6:
       serial.println("HOLD");
       controller->hold();
       return true;
-    case 6:
+    case 7:
       serial.println("RELEASE");
       controller->release();
       return true;

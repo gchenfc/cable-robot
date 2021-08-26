@@ -13,6 +13,7 @@ class ControllerInterface {
   enum ControllerState {
     IDLE,
     SETUP,
+    HOLD_TRAJ_BEGIN,
     RUNNING_TRAJ,
     RUNNING_USER,  // TODO(gerry): this is not supported yet
     HOLDING_BAN_INPUT,
@@ -31,9 +32,10 @@ class ControllerInterface {
 
   // State transition requests
   virtual bool setupFor(ControllerState state) = 0;  // prep for next state
-  virtual bool startTraj() = 0;  // start (or resume) trajectory
-  virtual bool stopTraj() = 0;   // pause trajectory
-  virtual bool resetTraj() = 0;  // reset back to beginning of trajectory
+  virtual bool goToStartTraj() = 0;  // go and stay at the first setpoint
+  virtual bool startTraj() = 0;      // start (or resume) trajectory
+  virtual bool stopTraj() = 0;       // pause trajectory
+  virtual bool resetTraj() = 0;      // reset back to beginning of trajectory
   virtual bool setToTrajIndex(uint64_t) = 0;
   virtual bool hold() = 0;     // rigidly stay at a point
   virtual bool release() = 0;  // let go and go to IDLE state
