@@ -22,6 +22,7 @@ class ControllerSimple : public ControllerInterface {
 
   // State transition requests
   bool setupFor(ControllerState state) override;
+  bool goToStartTraj() override;
   bool startTraj() override;
   bool stopTraj() override;
   bool resetTraj() override;
@@ -35,7 +36,7 @@ class ControllerSimple : public ControllerInterface {
                                     : std::make_pair(0.0f, 0.0f);
   }
 
- private:
+ protected:
   using Vector2 = std::pair<float, float>;
 
   Metro updateTimer{50};
@@ -43,8 +44,7 @@ class ControllerSimple : public ControllerInterface {
   uint64_t tstart_us_;
 
   virtual Vector2 desPos(float t) const;
-  virtual float calcTorque(Vector2 pos, Vector2 vel, Vector2 des_pos,
-                           Vector2 des_vel, uint8_t winchnum) const;
+  virtual float calcTorque(float t, uint8_t winchnum) const;
 };
 
 /************* KEY FUNCTIONS **************/
@@ -52,10 +52,10 @@ ControllerSimple::Vector2 ControllerSimple::desPos(float t) const {
   return {1.5 + 0.5 * cosf(t * M_PI / 5),  //
           1.1 + 0.5 * sinf(t * M_PI / 5)};
 }
-float ControllerSimple::calcTorque(Vector2 pos, Vector2 vel, Vector2 des_pos,
-                                   Vector2 des_vel, uint8_t winchnum) const {
-  (void)(vel);
-  (void)(des_vel);
+float ControllerSimple::calcTorque(float t, uint8_t winchnum) const {
+  const Vector2& pos = state_estimator_->posEst();
+  const Vector2& des_pos = desPos(t);
+
   float error[2], bPa[2];
   error[0] = des_pos.first - pos.first;
   error[1] = des_pos.second - pos.second;
@@ -65,9 +65,11 @@ float ControllerSimple::calcTorque(Vector2 pos, Vector2 vel, Vector2 des_pos,
   // Serial.printf("%.2f %.2f %.2f %.2f %.2f %.2f\n",   //
   //               error[0], error[1], bPa[0], bPa[1],  //
   //               dot<2>(error, bPa), dot<2>(error, bPa) * 2.0f + 0.7f);
-  static constexpr float gain = 75.0f;
+  static constexpr float gain = 10.0f;
   static constexpr float middle = 0.5f;
-  return dot<2>(error, bPa) * gain + middle;
+  float torque = dot<2>(error, bPa) * gain + middle;
+  clamp(&torque, -0.1, 1.2);
+  return torque;
 }
 /************* END KEY FUNCTIONS **************/
 
@@ -82,6 +84,8 @@ void ControllerSimple::update() {
       break;
     case SETUP:
       next_state = IDLE;  // unused state
+      break;
+    case HOLD_TRAJ_BEGIN:
       break;
     case RUNNING_TRAJ:
       break;
@@ -107,13 +111,13 @@ bool ControllerSimple::encoderMsgCallback(Odrive* odrive,
     case HOLDING_BAN_INPUT:
     case HOLDING_ALLOW_INPUT:
       return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, 0.2f);
+    case HOLD_TRAJ_BEGIN: {
+      float torque = calcTorque(0.0f, winchnum);
+      return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, torque);
+    }
     case RUNNING_TRAJ: {
-      Vector2 des_pos = desPos(static_cast<float>(micros() - tstart_us_) / 1e6);
-      Vector2 des_vel = {0, 0};
       float torque =
-          calcTorque(state_estimator_->posEst(), state_estimator_->velEst(),  //
-                     des_pos, des_vel, winchnum);
-      clamp(&torque, -0.1, 1.2);
+          calcTorque(static_cast<float>(micros() - tstart_us_) / 1e6, winchnum);
       return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, torque);
     }
   }
@@ -127,6 +131,7 @@ bool ControllerSimple::setupFor(ControllerState state) {
       case HOLDING_ALLOW_INPUT:
         odrive.send(i, MSG_SET_INPUT_TORQUE, 0.2f);
         break;
+      case HOLD_TRAJ_BEGIN:
       case RUNNING_TRAJ:
         odrive.send(i, MSG_SET_INPUT_TORQUE, 0.0f);
         break;
@@ -138,9 +143,16 @@ bool ControllerSimple::setupFor(ControllerState state) {
   }
   return true;
 }
-bool ControllerSimple::startTraj() {
+bool ControllerSimple::goToStartTraj() {
   if ((state_ == IDLE) || (state_ == HOLDING_BAN_INPUT) ||
       (state_ == HOLDING_ALLOW_INPUT)) {
+    state_ = HOLD_TRAJ_BEGIN;
+    return true;
+  }
+  return false;
+}
+bool ControllerSimple::startTraj() {
+  if (state_ == HOLD_TRAJ_BEGIN) {
     tstart_us_ = micros();
     setupFor(RUNNING_TRAJ);
     state_ = RUNNING_TRAJ;
@@ -149,7 +161,7 @@ bool ControllerSimple::startTraj() {
   return false;
 }
 bool ControllerSimple::stopTraj() {
-  if (state_ == RUNNING_TRAJ) {
+  if ((state_ == RUNNING_TRAJ) || (state_ == HOLD_TRAJ_BEGIN)) {
     state_ = HOLDING_BAN_INPUT;
     return true;
   }

@@ -12,6 +12,7 @@
 #include "can_utils.h"
 
 CanUtils<CAN1> Can0;
+CanUtils<CAN2> Can1;
 
 Metro timer_print_info(200);
 
@@ -29,12 +30,17 @@ void setup(void) {
 
   Can0.begin();
   Can0.setBaudRate(1000000);
+  Can1.begin();
+  Can1.setBaudRate(1000000);
 }
 
 // -------------------------------------------------------------
 void loop(void) {
   static CAN_message_t inMsg;
   while (Can0.read(inMsg)) {
+    parsePacket(inMsg);
+  }
+  while (Can1.read(inMsg)) {
     parsePacket(inMsg);
   }
 
