@@ -110,6 +110,9 @@ float norm(const float vec[M]) {
 template <int M>
 void normalize(float vec[M]) {
   float n = norm<M>(vec);
+  if (n == 0) {
+    return;
+  }
   std::transform(vec, vec + M, vec, [n](float f) { return f / n; });
 }
 

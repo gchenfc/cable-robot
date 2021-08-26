@@ -29,6 +29,12 @@ class ControllerSimple : public ControllerInterface {
   bool hold() override;
   bool release() override;
 
+  // Datalogging
+  Vector2 setpointPos() const override {
+    return (state_ == RUNNING_TRAJ) ? desPos((micros() - tstart_us_) * 1e-6)
+                                    : std::make_pair(0.0f, 0.0f);
+  }
+
  private:
   using Vector2 = std::pair<float, float>;
 
@@ -36,13 +42,13 @@ class ControllerSimple : public ControllerInterface {
   const StateEstimatorInterface* state_estimator_;
   uint64_t tstart_us_;
 
-  Vector2 calcDesPos(float t) const;
-  float calcTorque(Vector2 pos, Vector2 vel, Vector2 des_pos, Vector2 des_vel,
-                   uint8_t winchnum) const;
+  virtual Vector2 desPos(float t) const;
+  virtual float calcTorque(Vector2 pos, Vector2 vel, Vector2 des_pos,
+                           Vector2 des_vel, uint8_t winchnum) const;
 };
 
 /************* KEY FUNCTIONS **************/
-ControllerSimple::Vector2 ControllerSimple::calcDesPos(float t) const {
+ControllerSimple::Vector2 ControllerSimple::desPos(float t) const {
   return {1.5 + 0.5 * cosf(t * M_PI / 5),  //
           1.1 + 0.5 * sinf(t * M_PI / 5)};
 }
@@ -56,7 +62,12 @@ float ControllerSimple::calcTorque(Vector2 pos, Vector2 vel, Vector2 des_pos,
   bPa[0] = kMountPoints[winchnum][0] - pos.first;
   bPa[1] = kMountPoints[winchnum][1] - pos.second;
   normalize<2>(bPa);
-  return dot<2>(error, bPa) * 2.0;
+  // Serial.printf("%.2f %.2f %.2f %.2f %.2f %.2f\n",   //
+  //               error[0], error[1], bPa[0], bPa[1],  //
+  //               dot<2>(error, bPa), dot<2>(error, bPa) * 2.0f + 0.7f);
+  static constexpr float gain = 75.0f;
+  static constexpr float middle = 0.5f;
+  return dot<2>(error, bPa) * gain + middle;
 }
 /************* END KEY FUNCTIONS **************/
 
@@ -97,13 +108,12 @@ bool ControllerSimple::encoderMsgCallback(Odrive* odrive,
     case HOLDING_ALLOW_INPUT:
       return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, 0.2f);
     case RUNNING_TRAJ: {
-      Vector2 des_pos =
-          calcDesPos(static_cast<float>(micros() - tstart_us_) / 1e6);
+      Vector2 des_pos = desPos(static_cast<float>(micros() - tstart_us_) / 1e6);
       Vector2 des_vel = {0, 0};
       float torque =
           calcTorque(state_estimator_->posEst(), state_estimator_->velEst(),  //
                      des_pos, des_vel, winchnum);
-      clamp(&torque, -1.0, 1.0);
+      clamp(&torque, -0.1, 1.2);
       return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, torque);
     }
   }

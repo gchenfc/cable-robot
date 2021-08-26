@@ -9,6 +9,7 @@
 #include <Metro.h>
 
 #include "../controllers/controller_interface.h"
+#include "../controllers/controller_simple.h"
 #include "../robot.h"
 #include "../state_estimators/state_estimator_interface.h"
 #include "odrive_can.h"
@@ -27,11 +28,14 @@ class Debug {
   void setup() {}
   void update() {
     if (print_timer_.check()) {
-      serial_.printf("%d %.2f %.2f\t|\t", controller_->getState(),
-                     estimator_->lastPos().first, estimator_->lastPos().second);
+      auto est_pos = estimator_->posEst();
+      auto des_pos = controller_->setpointPos();
+      serial_.printf("%d: %.4f %.4f - %.4f %.4f\t|\t", controller_->getState(),
+                     est_pos.first, est_pos.second,  //
+                     des_pos.first, des_pos.second);
       for (int i = 0; i < 4; ++i) {
         const Winch& winch = robot_.winches.at(i);
-        serial_.printf("%d %d %.2f %.2f\t|\t",  //
+        serial_.printf("%d %d %.4f %.4f\t|\t",  //
                        winch.error(), winch.state(), winch.len(),
                        winch.lenDot());
       }
@@ -46,7 +50,7 @@ class Debug {
   ControllerInterface* controller_;
   StateEstimatorInterface* estimator_;
   Odrive& odrive_;
-  Metro print_timer_ = Metro(100);
+  Metro print_timer_ = Metro(10);
 
   void readSerial();
 };
@@ -73,6 +77,69 @@ bool parseFloat(char** buffer_start, char* buffer_end, char delim, T* value) {
   if (!until(buffer_start, buffer_end, delim)) return false;
   *value = atof(original_start);
   return true;
+}
+
+bool parseMsgRobot(Robot& robot, Odrive& odrive, char* buffer, int size,
+                   Stream& serial) {
+  if (size == 0) return false;
+  char* parse_cur = buffer;
+  char* parse_end = buffer + size;
+  uint32_t cmd;
+  if (parse_cur[0] != 'c') return false;
+  ++parse_cur;
+  if (!parseInt(&parse_cur, parse_end, '\n', &cmd)) return false;
+
+  switch (cmd) {
+    case 0:
+    case 1:
+    case 2:
+    case 3: {
+      if (robot.winches.at(cmd).state() != 1) {
+        serial.printf(
+            "\n\nERROR: Winch %d is not in IDLE state - cannot calibrate\n\n");
+        return true;
+      }
+      serial.printf("Calibrating winch %d...\n", cmd);
+      odrive.send<int32_t>(cmd, MSG_SET_AXIS_REQUESTED_STATE, 3);
+      return true;
+    }
+    case 4: {
+      serial.println("Calibrating all winches...");
+      for (int i = 0; i < 4; ++i) {
+        if (robot.winches.at(i).state() != 1) {
+          serial.printf(
+              "\n\nERROR: Winch %d is not in IDLE state - cannot calibrate, "
+              "skipping\n\n");
+        } else {
+          odrive.send<int32_t>(i, MSG_SET_AXIS_REQUESTED_STATE, 3);
+          serial.printf("Calibrating winch %d...\n", i);
+        }
+      }
+      return true;
+    }
+    case 10:
+    case 11:
+    case 12:
+    case 13: {
+      serial.printf("Setting winch %d to zero!\n", cmd - 10);
+      robot.setZero(cmd - 10);
+      const auto& zeros = robot.zeros();
+      serial.printf("New zeros:\nfloat kZeros[4] = {%.3f, %.3f, %.3f, %.3f};\n",
+                    zeros.at(0), zeros.at(1), zeros.at(2), zeros.at(3));
+      return true;
+    }
+    case 14: {
+      serial.println("Setting all winches to zero!");
+      robot.setZeroAll();
+      const auto& zeros = robot.zeros();
+      serial.printf("New zeros:\nfloat kZeros[4] = {%.3f, %.3f, %.3f, %.3f};\n",
+                    zeros.at(0), zeros.at(1), zeros.at(2), zeros.at(3));
+      return true;
+    }
+    default:
+      serial.println("\n\nInvalid calibration command code\n\n");
+      return false;
+  }
 }
 
 bool parseMsgController(ControllerInterface* controller, Odrive& odrive,
@@ -115,8 +182,14 @@ bool parseMsgController(ControllerInterface* controller, Odrive& odrive,
       serial.println("RELEASE");
       controller->release();
       return true;
+    case 8:
+      serial.println("CLOSED LOOP CONTROL");
+      for (int i = 0; i < 4; ++i) {
+        odrive.send<int32_t>(i, MSG_SET_AXIS_REQUESTED_STATE, 8);
+      }
+      return true;
     default:
-      serial.println("Invalid controller command code");
+      serial.println("\n\nInvalid controller command code\n\n");
       return false;
   }
 }
@@ -208,7 +281,9 @@ void Debug::readSerial() {
     buffer[bufferi] = c;
     bufferi++;
     if (c == '\n') {
-      if ((!human_serial::parseMsgController(controller_, odrive_, buffer,
+      if ((!human_serial::parseMsgRobot(robot_, odrive_, buffer, bufferi,
+                                        serial_)) &&
+          (!human_serial::parseMsgController(controller_, odrive_, buffer,
                                              bufferi, serial_)) &&
           (!human_serial::parseMsgCanPassthrough(odrive_, buffer, bufferi,
                                                  serial_))) {

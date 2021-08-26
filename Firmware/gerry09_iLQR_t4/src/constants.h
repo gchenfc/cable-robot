@@ -8,17 +8,17 @@
 #ifndef DEBUG_CONSTANTS
 
 /******** Winch Parameters **********/
-float kZeros[4] = {40.24, 43.93, 33.59, 10.96};
+float kZeros[4] = {5.027, 6.096, 2.678, 5.733};
 static constexpr float kR = 0.0254 / 2;
 
 /******** Frame Geometry **********/
 // Klaus lab measurements:
 //     w        h    aspect ratio     diag
-// 0: 2.96  -  2.24  (1.3214 : 1)  -  3.77
-// 1: 2.91  -  2.19  (1.3288 : 1)  -  3.72
-// 2: 3.00  -  2.28  (1.3158 : 1)  -  3.82
-// 3: 2.89  -  2.17  (1.3318 : 1)  -  3.70
-// float kWidth = 2.94, kHeight = 2.22;
+// 0: 2.94  -  2.22  (1.3214 : 1)  -  3.75
+// 1: 2.99  -  2.27  (1.3288 : 1)  -  3.79
+// 2: 2.95  -  2.24  (1.3158 : 1)  -  3.76
+// 3: 2.91  -  2.20  (1.3318 : 1)  -  3.73
+static constexpr float kWidth = 2.9475, kHeight = 2.2325;
 
 // DFL Measurements
 // 0: 3.05  -  2.26
@@ -26,7 +26,7 @@ static constexpr float kR = 0.0254 / 2;
 // 2: 3.14  -  2.38
 // 3: 3.05  -  2.29
 // float kWidth = 3.09, kHeight = 2.32;
-static constexpr float kWidth = 3.05 - 0.17, kHeight = 2.32;
+// static constexpr float kWidth = 3.05 - 0.17, kHeight = 2.32;
 
 /******** Mathematical Constants **********/
 static constexpr float kTau = 2 * 3.1415926535897932384626433832795;

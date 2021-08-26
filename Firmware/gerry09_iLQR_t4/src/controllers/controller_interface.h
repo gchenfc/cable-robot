@@ -9,6 +9,7 @@ class Odrive;
  */
 class ControllerInterface {
  public:
+  using Vector2 = std::pair<float, float>;
   enum ControllerState {
     IDLE,
     SETUP,
@@ -36,6 +37,10 @@ class ControllerInterface {
   virtual bool setToTrajIndex(uint64_t) = 0;
   virtual bool hold() = 0;     // rigidly stay at a point
   virtual bool release() = 0;  // let go and go to IDLE state
+
+  /******************************* Data Logging *******************************/
+  virtual Vector2 setpointPos() const { return {-1, -1}; }
+  virtual Vector2 setpointVel() const { return {0, 0}; }
 
   /******* Implementations that you don't need to touch *******/
   ControllerState getState() const { return state_; }

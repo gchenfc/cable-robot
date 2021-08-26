@@ -30,6 +30,20 @@ struct Robot {
   void setup() {}
   void update() {}
 
+  // Calibration
+  void setZero(uint8_t node) { winches[node].setZero(); }
+  void setZeroAll() {
+    for (auto& winch : winches) winch.setZero();
+  }
+  float zero(uint8_t node) { return winches[node].zero(); }
+  std::array<float, 4> zeros() {
+    std::array<float, 4> ret;
+    for (int i = 0; i < 4; ++i) {
+      ret[i] = zero(i);
+    }
+    return ret;
+  }
+
   // Getter functions
   float len(uint8_t node) const { return winches[node].len(); }
   float lenDot(uint8_t node) const { return winches[node].lenDot(); }
