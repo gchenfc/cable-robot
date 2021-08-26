@@ -1,0 +1,10 @@
+2021-08-26/circle1_gain75_off5_low-01.txt filter=lfs diff=lfs merge=lfs -text
+2021-08-26/circle2_gain5_off2_low-01.txt filter=lfs diff=lfs merge=lfs -text
+2021-08-26/circle1_gain25_off5_low-01.txt filter=lfs diff=lfs merge=lfs -text
+2021-08-26/circle1_gain5_off2_low-01.txt filter=lfs diff=lfs merge=lfs -text
+2021-08-26/circle1_gain5_off3_low0.txt filter=lfs diff=lfs merge=lfs -text
+2021-08-26/circle1_gain5_off3_low02.txt filter=lfs diff=lfs merge=lfs -text
+2021-08-26/circle1_gain5_off7_low02.txt filter=lfs diff=lfs merge=lfs -text
+2021-08-26/circle1_gain5_off1_low-01.txt filter=lfs diff=lfs merge=lfs -text
+2021-08-26/circle1_gain5_off2_low-01_2.txt filter=lfs diff=lfs merge=lfs -text
+2021-08-26/circle1_gain5_off3_low-01.txt filter=lfs diff=lfs merge=lfs -text
