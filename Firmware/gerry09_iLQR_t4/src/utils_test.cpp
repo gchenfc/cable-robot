@@ -33,7 +33,7 @@ TEST(utils, lpf) {
   EXPECT_DOUBLES_EQUAL(1.6, x, 1e-6);
 }
 
-bool check_inv2x2(float A[2][2], double tol = 1e-12) {
+bool check_inv2x2(float (&A)[2][2], double tol = 1e-12) {
   float B[2][2], C[2][2];
   inv2x2(A, B);
   matmul<2, 2, 2>(A, B, C);
@@ -76,7 +76,7 @@ TEST(utils, towards) {
 }
 
 TEST(utils, vector_stuff) {
-  const float vec[4] = {1,2,3,4};
+  const float vec[4] = {1, 2, 3, 4};
   EXPECT_DOUBLES_EQUAL(30, norm2<4>(vec), 0.0);
   EXPECT_DOUBLES_EQUAL(5.4772255751, norm<4>(vec), 1e-5);
 
@@ -88,8 +88,8 @@ TEST(utils, vector_stuff) {
   EXPECT_DOUBLES_EQUAL(0.5477225575, unit_vec[2], 1e-5);
   EXPECT_DOUBLES_EQUAL(0.7302967433, unit_vec[3], 1e-5);
 
-  const float vec2[4] = {8,7,6,5};
-  EXPECT_DOUBLES_EQUAL(8+14+18+20, dot<4>(vec, vec2), 0.0);
+  const float vec2[4] = {8, 7, 6, 5};
+  EXPECT_DOUBLES_EQUAL(8 + 14 + 18 + 20, dot<4>(vec, vec2), 0.0);
 }
 
 TEST(utils, Timestamped) {
