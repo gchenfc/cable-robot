@@ -123,7 +123,7 @@ bool ControllerSimple::setupFor(ControllerState state) {
       default:
         odrive.send(i, MSG_SET_INPUT_TORQUE, 0.0f);
     }
-    odrive.send(i, MSG_SET_CONTROLLER_MODES, static_cast<int32_t>(3),
+    odrive.send(i, MSG_SET_CONTROLLER_MODES, static_cast<int32_t>(1),
                 static_cast<int32_t>(1));
   }
   return true;
