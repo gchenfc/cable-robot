@@ -42,7 +42,7 @@ ControllerSimple controller(&state_estimator);
 Odrive odrive(robot, controller);
 Spray spray(btSerial);
 Estop estop(ESTOP);
-Debug debug(SerialD, robot, &controller, odrive);
+Debug debug(SerialD, robot, &controller, &state_estimator, odrive);
 Slave slave(Serial);
 
 // -------------------------------------------------------------

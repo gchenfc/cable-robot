@@ -101,7 +101,7 @@ bool ControllerSimple::encoderMsgCallback(Odrive* odrive,
           calcDesPos(static_cast<float>(micros() - tstart_us_) / 1e6);
       Vector2 des_vel = {0, 0};
       float torque =
-          calcTorque(state_estimator_->pos(), state_estimator_->vel(),  //
+          calcTorque(state_estimator_->posEst(), state_estimator_->velEst(),  //
                      des_pos, des_vel, winchnum);
       clamp(&torque, -1.0, 1.0);
       return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, torque);

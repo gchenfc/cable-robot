@@ -1,6 +1,13 @@
 /**
  * The Winch class keeps track of the state of a single winch and handles e.g.
  * conversions between rotations and length.
+ *
+ * ATTENTION: By convention, in the code "longer" causes the length to be more
+ * negative.  e.g. the total range of the winch should be approx 0 to -3.8.
+ * This is because of two reasons:
+ *  1. Force and acceleration have the same sign according to the odrive and
+ * torque is pulling force so positive x direction must be pulling direction
+ *  2. I'm too scared to change the code now
  */
 
 #pragma once

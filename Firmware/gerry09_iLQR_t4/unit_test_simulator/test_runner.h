@@ -34,7 +34,7 @@ class CableRobotTester {
       : robot_(),
         estimator_(new StateEstimatorFirstOrder(robot_)),
         controller_(new ControllerSimple(estimator_)),
-        debug_(serial, robot_, controller_, odrive),
+        debug_(serial, robot_, controller_, estimator_, odrive),
         serial_out_(serial_out) {
     odrive.setCallback(callback);
   }
@@ -49,6 +49,7 @@ class CableRobotTester {
     debug_.update();
     controller_->update();
     serial_out_ << serial.getStream().str();
+    serial.getStream().str("");
   }
 
   void addMsgToQueue(const Message& msg) { msgs_.push_back(msg); }
@@ -58,7 +59,6 @@ class CableRobotTester {
 
  private:
   std::vector<Message> msgs_;
-
   Robot robot_;
   StateEstimatorInterface* estimator_;
   ControllerInterface* controller_;

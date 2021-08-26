@@ -36,16 +36,17 @@ void sendEncoderForXY(CableRobotTester& tester, float x, float y, float vx = 0,
   Kinematics::jacobian(x, y, wrench_matrix);
   matmul<4, 2, 1>(wrench_matrix, v, vels);
 
-  std::cout << "lengths are: ";
-  for (auto l : lengths) {
-    std::cout << l << ", ";
-  }
-  std::cout << std::endl;
+  // convert lengths to motor rotations
+  float thetas_rot[4], omegas_rps[4];
+  std::transform(lengths, lengths + 4, kZeros, thetas_rot,
+                 [](float l0, float z) { return l0 / (2 * M_PI * kR) + z; });
+  std::transform(*vels, *vels + 4, omegas_rps,
+                 [](float v) { return v / (2 * M_PI * kR); });
 
   for (int winchi = 0; winchi < 4; ++winchi) {
     static std::array<uint8_t, 8> data;
-    std::memcpy(data.begin(), &lengths[winchi], 4);
-    std::memcpy(data.begin() + 4, &vels[winchi][0], 4);
+    std::memcpy(data.begin(), &thetas_rot[winchi], 4);
+    std::memcpy(data.begin() + 4, &omegas_rps[winchi], 4);
     tester.addMsgToQueue({winchi, MSG_GET_ENCODER_ESTIMATES, data, false});
   }
 }
@@ -76,6 +77,8 @@ int main() {
 
   // Finally we put the controller in mode "RUNNING_TRAJ" and expect
   // "interesting" torque replies
+  // Specifically, the actual position is set as 0.1 units up and 0.1 units
+  // right of the setpoint position
   tester.enterComputerInput("g1\n");
   tester.update();
   for (; t_us < 300e3; t_us += 10e3) {

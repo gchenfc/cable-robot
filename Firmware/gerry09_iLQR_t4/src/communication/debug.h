@@ -8,24 +8,27 @@
 
 #include <Metro.h>
 
-#include "../robot.h"
-#include "odrive_can.h"
 #include "../controllers/controller_interface.h"
+#include "../robot.h"
+#include "../state_estimators/state_estimator_interface.h"
+#include "odrive_can.h"
 
 class Debug {
  public:
   Debug(Stream& serial, Robot& robot, ControllerInterface* controller,
-        Odrive& odrive)
+        StateEstimatorInterface* estimator, Odrive& odrive)
       : serial_(serial),
         robot_(robot),
         controller_(controller),
+        estimator_(estimator),
         odrive_(odrive) {}
 
   // Common API
   void setup() {}
   void update() {
     if (print_timer_.check()) {
-      serial_.printf("%d\t|\t", controller_->getState());
+      serial_.printf("%d %.2f %.2f\t|\t", controller_->getState(),
+                     estimator_->lastPos().first, estimator_->lastPos().second);
       for (int i = 0; i < 4; ++i) {
         const Winch& winch = robot_.winches.at(i);
         serial_.printf("%d %d %.2f %.2f\t|\t",  //
@@ -41,6 +44,7 @@ class Debug {
   Stream& serial_;
   Robot& robot_;
   ControllerInterface* controller_;
+  StateEstimatorInterface* estimator_;
   Odrive& odrive_;
   Metro print_timer_ = Metro(100);
 
@@ -73,12 +77,14 @@ bool parseFloat(char** buffer_start, char* buffer_end, char delim, T* value) {
 
 bool parseMsgController(ControllerInterface* controller, char* buffer, int size,
                         Stream& serial) {
+  if (size == 0) return false;
   char* parse_cur = buffer;
   char* parse_end = buffer + size;
   uint32_t cmd;
   if (parse_cur[0] != 'g') return false;
   ++parse_cur;
   if (!parseInt(&parse_cur, parse_end, '\n', &cmd)) return false;
+
   switch (cmd) {
     case 1:
       serial.println("START TRAJECTORY");
