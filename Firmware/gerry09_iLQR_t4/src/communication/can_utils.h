@@ -4,9 +4,9 @@
 #include <FlexCAN_T4.h>
 
 template <CAN_DEV_TABLE _bus>
-class CanUtils : public FlexCAN_T4<_bus, RX_SIZE_256, TX_SIZE_16> {
+class CanUtils : public FlexCAN_T4<_bus, RX_SIZE_256, TX_SIZE_256> {
  public:
-  using Base = FlexCAN_T4<_bus, RX_SIZE_256, TX_SIZE_16>;
+  using Base = FlexCAN_T4<_bus, RX_SIZE_256, TX_SIZE_256>;
 
   uint8_t requestInfo(uint16_t node, uint8_t cmdId, bool rtr = false);
 
