@@ -68,7 +68,7 @@ int main() {
   }
 
   // Now we put the controller in mode "hold" and expect torque = 0.2 replies
-  tester.enterComputerInput("g5\n");
+  tester.enterComputerInput("g6\n");
   tester.update();
   for (; t_us < 200e3; t_us += 10e3) {
     sendEncoderForXY(tester, actual_x(s(t_us)), actual_y(s(t_us)));
@@ -80,6 +80,8 @@ int main() {
   // Specifically, the actual position is set as 0.1 units up and 0.1 units
   // right of the setpoint position
   tester.enterComputerInput("g1\n");
+  tester.update();
+  tester.enterComputerInput("g2\n");
   tester.update();
   for (; t_us < 300e3; t_us += 10e3) {
     sendEncoderForXY(tester, actual_x(s(t_us)), actual_y(s(t_us)));

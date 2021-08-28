@@ -18,7 +18,7 @@
 #include "odrive_dummy.h"
 #include "src/robot.h"
 #include "src/state_estimators/state_estimator_first_order.h"
-#include "src/controllers/controller_simple.h"
+#include "src/controllers/controller_gouttefarde.h"
 #include "src/communication/byte_packing.h"
 #include "../src/communication/debug.h"
 
@@ -33,7 +33,7 @@ class CableRobotTester {
   CableRobotTester(SendCallback callback, std::ostream& serial_out = std::cout)
       : robot_(),
         estimator_(new StateEstimatorFirstOrder(robot_)),
-        controller_(new ControllerSimple(estimator_)),
+        controller_(new ControllerGouttefarde(estimator_, robot_)),
         debug_(serial, robot_, controller_, estimator_, odrive),
         serial_out_(serial_out) {
     odrive.setCallback(callback);

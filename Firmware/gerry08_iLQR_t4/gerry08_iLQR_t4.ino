@@ -489,24 +489,24 @@ void update_control_4_traj() {
 
 
   // // feedforward
-  // FFx += 0.1 * ax4des, FFy += 0.1 * ay4des;
-  // float FFxAction = FFx, FFyAction = FFy;
-  // clamp(FFxAction, -100, 100); clamp(FFyAction, -100, 100);
-  // FFx -= FFxAction; FFy -= FFyAction;
-  // FFx = 0; FFy = 0;
-  // // float fx = 1000 * errx + 500 * err4I[0] + 250 * derrx;
-  // // float fy = 1000 * erry + 500 * err4I[1] + 250 * derry;
-  // float fx = 400.0 * errx + 200.0 * err4I[0] + 100.0 * derrx + FFxAction;
-  // float fy = 400.0 * erry + 200.0 * err4I[1] + 100.0 * derry + FFyAction;
-  // // float fx = 200.0 * errx + 100.0 * err4I[0] + 10.0 * derrx;
-  // // float fy = 200.0 * erry + 100.0 * err4I[1] + 10.0 * derry;
-  // clamp(fx, -100, 100); clamp(fy, -100, 100);
+  FFx += 0.1 * ax4des, FFy += 0.1 * ay4des;
+  float FFxAction = FFx, FFyAction = FFy;
+  clamp(FFxAction, -100, 100); clamp(FFyAction, -100, 100);
+  FFx -= FFxAction; FFy -= FFyAction;
+  FFx = 0; FFy = 0;
+  // float fx = 1000 * errx + 500 * err4I[0] + 250 * derrx;
+  // float fy = 1000 * erry + 500 * err4I[1] + 250 * derry;
+  float fx = 400.0 * errx + 200.0 * err4I[0] + 100.0 * derrx + FFxAction;
+  float fy = 400.0 * erry + 200.0 * err4I[1] + 100.0 * derry + FFyAction;
+  // float fx = 200.0 * errx + 100.0 * err4I[0] + 10.0 * derrx;
+  // float fy = 200.0 * erry + 100.0 * err4I[1] + 10.0 * derry;
+  clamp(fx, -100, 100); clamp(fy, -100, 100);
 
   // // TD
-  // float tensions[4];
-  // forceSolver(tensions, fx, fy);
-  // for (uint8_t i = 0; i < 4; ++i)
-  //   sendFloat(i, 0x0E, tensions[i] * r);
+  float tensions[4];
+  forceSolver(tensions, fx, fy);
+  for (uint8_t i = 0; i < 4; ++i)
+    sendFloat(i, 0x0E, tensions[i] * r);
 
   // torques = uff + K*state
   float torques[4];
