@@ -72,12 +72,12 @@ void Kinematics::IK(float x, float y, float lengths[4]) {
 }
 void Kinematics::FK(const float lengths[4], float *x, float *y) {
   float a = kWidth;
-  float b = -lengths[3];
-  float c = -lengths[0];
+  float b = -lengths[2];
+  float c = -lengths[1];
   float cosC = (a * a + b * b - c * c) / (2 * a * b);
   if ((cosC <= 1) && (cosC >= -1)) {
     *x = b * cosC;
-    *y = b * sqrt(1 - cosC * cosC);
+    *y = kHeight - b * sqrt(1 - cosC * cosC);
   } else {
     // kinematically infeasible
     *x = 0;

@@ -18,7 +18,9 @@ static constexpr float kR = 0.0254 / 2;
 // 1: 2.99  -  2.27  (1.3288 : 1)  -  3.79
 // 2: 2.95  -  2.24  (1.3158 : 1)  -  3.76
 // 3: 2.91  -  2.20  (1.3318 : 1)  -  3.73
-static constexpr float kWidth = 2.9475, kHeight = 2.2325;
+static constexpr float kCarriageWidth = 0.135, kCarriageHeight = 0.17;
+// static constexpr float kWidth = 2.9475 - kCarriageWidth,
+//                        kHeight = 2.2325 - kCarriageHeight / 2;
 
 // DFL Measurements
 // 0: 3.05  -  2.26
@@ -26,7 +28,7 @@ static constexpr float kWidth = 2.9475, kHeight = 2.2325;
 // 2: 3.14  -  2.38
 // 3: 3.05  -  2.29
 // float kWidth = 3.09, kHeight = 2.32;
-// static constexpr float kWidth = 3.05 - 0.17, kHeight = 2.32;
+static constexpr float kWidth = 3.05 - kCarriageWidth, kHeight = 2.32 - kCarriageHeight / 2;
 
 /******** Mathematical Constants **********/
 static constexpr float kTau = 2 * 3.1415926535897932384626433832795;
