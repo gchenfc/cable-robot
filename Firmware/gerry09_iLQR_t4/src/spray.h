@@ -7,12 +7,23 @@
 #pragma once
 
 #include <Stream.h>
-
 class Spray {
  public:
-  Spray(Stream& serial) {}
+  Spray(HardwareSerial& serial) : serial_(serial), on_(false) {}
 
   // Common API
-  void setup() {}
-  void update() {}
+  void setup() { serial_.begin(9600); }
+  void update() {
+    if (send_timer_.check()) {
+      serial_.write(on_ ? '1' : '0');
+    }
+  }
+
+  void setSpray(bool on) { on_ = on; }
+  bool spray() const { return on_; }
+
+ private:
+  HardwareSerial& serial_;
+  bool on_;
+  Metro send_timer_{50};
 };

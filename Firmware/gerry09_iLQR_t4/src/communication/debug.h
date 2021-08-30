@@ -17,12 +17,13 @@
 class Debug {
  public:
   Debug(Stream& serial, Robot& robot, ControllerInterface* controller,
-        StateEstimatorInterface* estimator, Odrive& odrive)
+        StateEstimatorInterface* estimator, Odrive& odrive, Spray& spray)
       : serial_(serial),
         robot_(robot),
         controller_(controller),
         estimator_(estimator),
-        odrive_(odrive) {}
+        odrive_(odrive),
+        spray_(spray) {}
 
   // Common API
   void setup() {}
@@ -39,7 +40,7 @@ class Debug {
                        winch.error(), winch.state(), winch.len(),
                        winch.lenDot());
       }
-      serial_.println();
+      serial_.println(spray_.spray());
     }
     readSerial();
   }
@@ -50,6 +51,7 @@ class Debug {
   ControllerInterface* controller_;
   StateEstimatorInterface* estimator_;
   Odrive& odrive_;
+  Spray& spray_;
   Metro print_timer_ = Metro(10);
 
   void readSerial();
@@ -198,6 +200,30 @@ bool parseMsgController(ControllerInterface* controller, Odrive& odrive,
   }
 }
 
+bool parseMsgSpray(Spray& spray, char* buffer, int size, Stream& serial) {
+  if (size == 0) return false;
+  char* parse_cur = buffer;
+  char* parse_end = buffer + size;
+  uint32_t cmd;
+  if (parse_cur[0] != 's') return false;
+  ++parse_cur;
+  if (!parseInt(&parse_cur, parse_end, '\n', &cmd)) return false;
+
+  switch (cmd) {
+    case 0:
+      serial.println("Spray off");
+      spray.setSpray(false);
+      return true;
+    case 1:
+      serial.println("Spray on");
+      spray.setSpray(true);
+      return true;
+    default:
+      serial.println("\n\nInvalid controller command code\n\n");
+      return false;
+  }
+}
+
 bool parseMsgCanPassthrough(Odrive& odrive, char* buffer, int size,
                             Stream& serial) {
   char* parse_cur = buffer;
@@ -289,6 +315,7 @@ void Debug::readSerial() {
                                         serial_)) &&
           (!human_serial::parseMsgController(controller_, odrive_, buffer,
                                              bufferi, serial_)) &&
+          (!human_serial::parseMsgSpray(spray_, buffer, bufferi, serial_)) &&
           (!human_serial::parseMsgCanPassthrough(odrive_, buffer, bufferi,
                                                  serial_))) {
         serial_.println("Parse Error");

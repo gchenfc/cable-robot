@@ -37,13 +37,13 @@
 #include "src/communication/debug.h"
 #include "src/communication/slave.h"
 
+Spray spray(btSerial);
 Robot robot{};
 StateEstimatorFirstOrder state_estimator(robot);
-ControllerIlqr controller(&state_estimator);
+ControllerIlqr controller(&state_estimator, spray);
 Odrive odrive(robot, controller);
-Spray spray(btSerial);
 Estop<ESTOP> estop(odrive, &controller);
-Debug debug(SerialD, robot, &controller, &state_estimator, odrive);
+Debug debug(SerialD, robot, &controller, &state_estimator, odrive, spray);
 Slave slave(Serial);
 
 // -------------------------------------------------------------

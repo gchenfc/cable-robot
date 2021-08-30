@@ -3,12 +3,19 @@
 #include <Metro.h>
 
 #include "controller_simple.h"
-#include "../../trajectories/ATL_controller_1e2_1mps.h"
+#include "../spray.h"
+#include "../../trajectories/ATL_controller_1e4.h"
+#include "../../trajectories/ATL.h"
+// #include "../../trajectories/ATL_filled.h"
+// #include "../../trajectories/concentric_rects_controller_1e4.h"
+static_assert((sizeof(painton) / sizeof(painton[0]) - 1) ==
+                  (sizeof(xffs) / sizeof(xffs[0])),
+              "Trajectories are not the same length");
 
 class ControllerIlqr : public ControllerSimple {
  public:
-  ControllerIlqr(const StateEstimatorInterface* state_estimator)
-      : ControllerSimple(state_estimator) {}
+  ControllerIlqr(const StateEstimatorInterface* state_estimator, Spray& spray)
+      : ControllerSimple(state_estimator), spray_(spray) {}
 
   // Datalogging
   std::pair<float, float> setpointVel() const override {
@@ -17,10 +24,25 @@ class ControllerIlqr : public ControllerSimple {
   }
 
  protected:
+  static constexpr float dt = 0.01;
+  Spray& spray_;
+
   std::pair<size_t, float> index_Remainder(float t) const;
   virtual Vector2 desPos(float t) const override;
   virtual Vector2 desVel(float t) const;
   virtual float calcTorque(float t, uint8_t winchnum) const override;
+  void updatePaint(float t) override {
+    if (t < 0) {
+      spray_.setSpray(false);
+      return;
+    }
+    size_t index = static_cast<int>(t / dt);
+    if (index >= (sizeof(painton) / sizeof(painton[0]))) {
+      spray_.setSpray(false);
+    } else {
+      spray_.setSpray(painton[index]);
+    }
+  }
 
   static constexpr size_t TRAJ_LEN = sizeof(xffs) / sizeof(xffs[0]);
   static_assert(TRAJ_LEN == (sizeof(vffs) / sizeof(vffs[0])),
@@ -32,14 +54,25 @@ class ControllerIlqr : public ControllerSimple {
 };
 
 /************* KEY FUNCTIONS **************/
+// TODO(gerry): index_remainder is doing too much stuff - split this up
 std::pair<size_t, float> ControllerIlqr::index_Remainder(float t) const {
-  static constexpr float dt = 0.01;
+  static int prev_color_ind = 0;
   size_t index = static_cast<int>(t / dt);
+  // switch to "HOLD" if reached end of trajectory
   if (index >= (sizeof(xffs) / sizeof(xffs[0]))) {
-    stopTraj(); // TODO(gerry): make this not violate constness
+    hold();  // TODO(gerry): make this not violate constness
     return {TRAJ_LEN - 1, dt};
   }
   float remainder = t - index * dt;
+  // Pause trajectory if point color changes
+  if (painton[index]) {
+    if (prev_color_ind != colorinds[index]) {
+      stopTraj();  // TODO(gerry): don't violate const-ness
+      prev_color_ind = colorinds[index];
+      return {index, remainder};
+    }
+    prev_color_ind = colorinds[index];
+  }
   return {index, remainder};
 }
 ControllerIlqr::Vector2 ControllerIlqr::desPos(float t) const {
