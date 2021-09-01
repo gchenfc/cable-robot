@@ -27,7 +27,7 @@ struct Robot {
   Robot& operator=(const Robot&) = delete;
 
   // Common API
-  void setup() {}
+  void setup() { restoreZeros(); }
   void update() {}
 
   // Calibration
@@ -42,6 +42,14 @@ struct Robot {
       ret[i] = zero(i);
     }
     return ret;
+  }
+  void saveZero(uint8_t node) const { winches[node].saveZero(node << 5); }
+  void restoreZero(uint8_t node) { winches[node].restoreZero(node << 5); }
+  void saveZeros() const {
+    for (int i = 0; i < 4; ++i) saveZero(i);
+  }
+  void restoreZeros() {
+    for (int i = 0; i < 4; ++i) restoreZero(i);
   }
 
   // Getter functions

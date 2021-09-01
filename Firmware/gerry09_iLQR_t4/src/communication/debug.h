@@ -123,19 +123,43 @@ bool parseMsgRobot(Robot& robot, Odrive& odrive, char* buffer, int size,
     case 11:
     case 12:
     case 13: {
-      serial.printf("Setting winch %d to zero!\n", cmd - 10);
-      robot.setZero(cmd - 10);
-      const auto& zeros = robot.zeros();
-      serial.printf("New zeros:\nfloat kZeros[4] = {%.3f, %.3f, %.3f, %.3f};\n",
-                    zeros.at(0), zeros.at(1), zeros.at(2), zeros.at(3));
+      uint8_t winchi = cmd - 10;
+      serial.printf("Setting winch %d to zero and saving to EEPROM!\n", winchi);
+      robot.setZero(winchi);
+      robot.saveZero(winchi);
+      serial.printf("Zeros:\nfloat kZeros[4] = {%.3f, %.3f, %.3f, %.3f};\n",
+                    robot.zero(0), robot.zero(1), robot.zero(2), robot.zero(3));
       return true;
     }
     case 14: {
-      serial.println("Setting all winches to zero!");
+      serial.println("Setting all winches to zero and saving to EEPROM!");
       robot.setZeroAll();
-      const auto& zeros = robot.zeros();
+      robot.saveZeros();
+      serial.printf("Zeros:\nfloat kZeros[4] = {%.3f, %.3f, %.3f, %.3f};\n",
+                    robot.zero(0), robot.zero(1), robot.zero(2), robot.zero(3));
+      return true;
+    }
+    case 15: {
+      serial.printf("Zeros:\nfloat kZeros[4] = {%.3f, %.3f, %.3f, %.3f};\n",
+                    robot.zero(0), robot.zero(1), robot.zero(2), robot.zero(3));
+      return true;
+    }
+    case 20:
+    case 21:
+    case 22:
+    case 23: {
+      uint8_t winchi = cmd - 20;
+      serial.printf("Restoring winch %d zero from EEPROM!\n", winchi);
+      robot.restoreZero(winchi);
       serial.printf("New zeros:\nfloat kZeros[4] = {%.3f, %.3f, %.3f, %.3f};\n",
-                    zeros.at(0), zeros.at(1), zeros.at(2), zeros.at(3));
+                    robot.zero(0), robot.zero(1), robot.zero(2), robot.zero(3));
+      return true;
+    }
+    case 24: {
+      serial.println("Restoring all winch zeros from EEPROM!");
+      robot.restoreZeros();
+      serial.printf("New zeros:\nfloat kZeros[4] = {%.3f, %.3f, %.3f, %.3f};\n",
+                    robot.zero(0), robot.zero(1), robot.zero(2), robot.zero(3));
       return true;
     }
     default:

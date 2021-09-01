@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <EEPROM.h>  // save zeros
+
 #include "../unit_test_simulator/arduino_test_utils.h"
 #include "constants.h"
 #include "utils.h"
@@ -35,6 +37,8 @@ class Winch {
   void setZero() { zero_ = theta_; }
   void setZero(float zero) { zero_ = zero; }
   float zero() const { return zero_; }
+  void saveZero(uint8_t addr) const { EEPROM.put(addr, zero_); }
+  void restoreZero(uint8_t addr) { EEPROM.get(addr, zero_); }
 
   // Getter functions
   float len() const {
