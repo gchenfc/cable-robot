@@ -100,6 +100,14 @@ float ControllerIlqr::calcTorque(float t, uint8_t winchnum) const {
   const Vector2& xhat = state_estimator_->posEst();
   const Vector2& xdothat = state_estimator_->velEst();
 
+  // Safety
+  // Note: this doesn't work for some reason, just be careful!
+  const float xerr[2] = {xhat.first - xdes[0], xhat.second - xdes[1]};
+  if (norm(xerr) > 0.4) {
+    hold(); // TODO(gerry): don't violate const-ness
+    return 0;
+  }
+
   // Control calculation
   float error[4] = {xdothat.first - vdes[0], xdothat.second - vdes[1],
                     xhat.first - xdes[0], xhat.second - xdes[1]};

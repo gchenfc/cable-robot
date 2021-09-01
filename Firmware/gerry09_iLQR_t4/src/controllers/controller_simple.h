@@ -39,7 +39,7 @@ class ControllerSimple : public ControllerInterface {
  protected:
   using Vector2 = std::pair<float, float>;
 
-  Metro updateTimer{50};
+  Metro updateTimer{10};
   const StateEstimatorInterface* state_estimator_;
   uint64_t tstart_us_, tpause_us_;
 
