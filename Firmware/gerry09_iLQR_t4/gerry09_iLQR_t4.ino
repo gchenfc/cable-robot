@@ -42,7 +42,7 @@ Robot robot{};
 StateEstimatorFirstOrder state_estimator(robot);
 ControllerIlqr controller(&state_estimator, spray);
 Odrive odrive(robot, controller);
-Estop<ESTOP> estop(odrive, &controller);
+Estop<ESTOP> estop(odrive, &controller, spray);
 Debug debug(SerialD, robot, &controller, &state_estimator, odrive, spray);
 Slave slave(Serial);
 

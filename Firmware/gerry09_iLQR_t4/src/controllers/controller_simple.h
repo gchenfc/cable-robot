@@ -90,17 +90,15 @@ void ControllerSimple::update() {
     case HOLD_TRAJ_BEGIN:
       break;
     case RUNNING_TRAJ:
-      updatePaint(time);
+      updatePaint(time + kSprayDelay_s);
       break;
     case RUNNING_USER:
       next_state = IDLE;
       break;
     case HOLDING_BAN_INPUT:
-      updatePaint(-1);
       next_state = HOLDING_ALLOW_INPUT;
       break;
     case HOLDING_ALLOW_INPUT:
-      updatePaint(-1);
       break;
   }
   state_ = next_state;
@@ -144,6 +142,7 @@ bool ControllerSimple::setupFor(ControllerState state) {
         odrive.send(i, MSG_SET_INPUT_TORQUE, 0.0f);
         break;
       default:
+        updatePaint(-1);
         odrive.send(i, MSG_SET_INPUT_TORQUE, 0.0f);
     }
     odrive.send(i, MSG_SET_CONTROLLER_MODES, static_cast<int32_t>(1),
@@ -171,6 +170,7 @@ bool ControllerSimple::startTraj() {
 bool ControllerSimple::stopTraj() {
   if ((state_ == RUNNING_TRAJ) || (state_ == HOLD_TRAJ_BEGIN)) {
     tpause_us_ = micros() - tstart_us_;
+    updatePaint(-1);
     state_ = HOLD_TRAJ_BEGIN;
     return true;
   }
