@@ -119,7 +119,8 @@ bool ControllerSimple::encoderMsgCallback(Odrive* odrive,
       return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, torque);
     }
     case RUNNING_TRAJ: {
-      const float time = static_cast<float>(micros() - tstart_us_) / 1e6;
+      const float time =
+          std::max(0, static_cast<float>(micros() - tstart_us_) / 1e6);
       float torque = calcTorque(time, winchnum);
       return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, torque);
     }
@@ -160,7 +161,7 @@ bool ControllerSimple::goToStartTraj() {
 }
 bool ControllerSimple::startTraj() {
   if (state_ == HOLD_TRAJ_BEGIN) {
-    tstart_us_ = micros() - tpause_us_;
+    tstart_us_ = micros() - tpause_us_ + (kSprayDelay_s * 1e6);
     setupFor(RUNNING_TRAJ);
     state_ = RUNNING_TRAJ;
     return true;
