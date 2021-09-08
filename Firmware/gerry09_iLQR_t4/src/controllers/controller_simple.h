@@ -13,7 +13,10 @@ extern Odrive odrive;
 class ControllerSimple : public ControllerInterface {
  public:
   ControllerSimple(const StateEstimatorInterface* state_estimator)
-      : state_estimator_(state_estimator), tstart_us_(0), tpause_us_(0) {}
+      : state_estimator_(state_estimator),
+        tstart_us_(0),
+        tpause_us_(0),
+        tmin_us_(0) {}
 
   void setup() override;
   void update() override;
@@ -32,7 +35,7 @@ class ControllerSimple : public ControllerInterface {
 
   // Datalogging
   Vector2 setpointPos() const override {
-    return (state_ == RUNNING_TRAJ) ? desPos((micros() - tstart_us_) * 1e-6)
+    return (state_ == RUNNING_TRAJ) ? desPos(trajTime_s())
                                     : std::make_pair(0.0f, 0.0f);
   }
 
@@ -41,11 +44,18 @@ class ControllerSimple : public ControllerInterface {
 
   Metro updateTimer{10};
   const StateEstimatorInterface* state_estimator_;
-  uint64_t tstart_us_, tpause_us_;
+  uint64_t tstart_us_, tpause_us_, tmin_us_;
 
   virtual Vector2 desPos(float t) const;
   virtual float calcTorque(float t, uint8_t winchnum) const;
   virtual void updatePaint(float t) {}
+  float trajTime_s() const {
+    if (tstart_us_ + tmin_us_ > micros()) {
+      return static_cast<float>(tmin_us_) / 1e6;
+    } else {
+      return static_cast<float>(micros() - tstart_us_) / 1e6;
+    }
+  }
 };
 
 /************* KEY FUNCTIONS **************/
@@ -79,7 +89,6 @@ void ControllerSimple::update() {
   if (!updateTimer.check()) {
     return;
   }
-  const float time = static_cast<float>(micros() - tstart_us_) / 1e6;
   ControllerState next_state = state_;
   switch (state_) {
     case IDLE:
@@ -90,7 +99,7 @@ void ControllerSimple::update() {
     case HOLD_TRAJ_BEGIN:
       break;
     case RUNNING_TRAJ:
-      updatePaint(time + kSprayDelay_s);
+      updatePaint(trajTime_s() + kSprayDelay_s);
       break;
     case RUNNING_USER:
       next_state = IDLE;
@@ -119,9 +128,7 @@ bool ControllerSimple::encoderMsgCallback(Odrive* odrive,
       return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, torque);
     }
     case RUNNING_TRAJ: {
-      const float time =
-          std::max(0, static_cast<float>(micros() - tstart_us_) / 1e6);
-      float torque = calcTorque(time, winchnum);
+      float torque = calcTorque(trajTime_s(), winchnum);
       return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, torque);
     }
   }
@@ -170,7 +177,8 @@ bool ControllerSimple::startTraj() {
 }
 bool ControllerSimple::stopTraj() {
   if ((state_ == RUNNING_TRAJ) || (state_ == HOLD_TRAJ_BEGIN)) {
-    tpause_us_ = micros() - tstart_us_;
+    tpause_us_ = trajTime_s() * 1e6;
+    tmin_us_ = tpause_us_;
     updatePaint(-1);
     state_ = HOLD_TRAJ_BEGIN;
     return true;
@@ -179,6 +187,7 @@ bool ControllerSimple::stopTraj() {
 }
 bool ControllerSimple::resetTraj() {
   tpause_us_ = 0;
+  tmin_us_ = 0;
   return true;
 }
 bool ControllerSimple::setToTrajIndex(uint64_t index) {

@@ -19,7 +19,7 @@ class ControllerIlqr : public ControllerSimple {
 
   // Datalogging
   std::pair<float, float> setpointVel() const override {
-    return (state_ == RUNNING_TRAJ) ? desVel((micros() - tstart_us_) * 1e-6)
+    return (state_ == RUNNING_TRAJ) ? desVel(trajTime_s())
                                     : std::make_pair(0.0f, 0.0f);
   }
 
