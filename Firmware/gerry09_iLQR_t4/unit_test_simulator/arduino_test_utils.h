@@ -25,7 +25,7 @@ inline T max(const T& t1, const T& t2) {
 }
 
 template <class T>
-inline T sqrt(const T& t) {
+inline constexpr T sqrt(const T& t) {
   return std::sqrt(t);
 }
 
@@ -112,5 +112,18 @@ class StringStreamer : public Stream, public StringPrinter {
 };
 
 class HardwareSerial : public Print {};
+
+class Eeprom {
+ public:
+  template <typename T>
+  void put(int addr, T data) {
+    std::cout << "Saved to EEPROM address " << addr << data << std::endl;
+  }
+  template <typename T>
+  void get(int addr, T& data) {
+    std::cout << "Got from EEPROM address " << addr << data << std::endl;
+  }
+};
+extern Eeprom EEPROM;
 
 #endif

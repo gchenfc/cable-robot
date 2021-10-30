@@ -94,7 +94,7 @@ float towards(const float maxD, const float x, const float y, const float tx,
 /******************************************************************************/
 template <int M>
 float norm2(const float (&vec)[M]) {
-  return std::accumulate(vec, vec + M, 0,
+  return std::accumulate(vec, vec + M, 0.0,
                          [](const float &running_sum, const float &value) {
                            return running_sum + value * value;
                          });

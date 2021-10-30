@@ -71,19 +71,30 @@ void Kinematics::IK(float x, float y, float lengths[4]) {
   }
 }
 void Kinematics::FK(const float lengths[4], float *x, float *y) {
-  float a = kWidth;
-  float b = -lengths[2];
-  float c = -lengths[1];
+  static constexpr float tl[2] = {kMountPoints[2][0], kMountPoints[2][1]},
+                         tr[2] = {kMountPoints[1][0], kMountPoints[1][1]};
+  static constexpr float top_vec[2] = {tr[0] - tl[0],  //
+                                       tr[1] - tl[1]};
+  static const float top_vec_norm = norm<2>(top_vec);  // TODO: constexpr
+  static const float cos_th = top_vec[0] / top_vec_norm,
+                     sin_th = top_vec[1] / top_vec_norm;
+  static const float a = top_vec_norm;
+  const float b = lengthCorrection(2, -lengths[2]);
+  const float c = lengthCorrection(1, -lengths[1]);
   float cosC = (a * a + b * b - c * c) / (2 * a * b);
   if ((cosC <= 1) && (cosC >= -1)) {
-    *x = b * cosC;
-    *y = kHeight - b * sqrt(1 - cosC * cosC);
+    float x_ = b * cosC;
+    float y_ = b * sqrt(1 - cosC * cosC);
+    // rotate & flip
+    *x = tl[0] + x_ * cos_th + y_ * sin_th;
+    *y = tl[1] + x_ * sin_th - y_ * cos_th;
   } else {
     // kinematically infeasible
     *x = 0;
     *y = 0;
   }
 }
+
 void Kinematics::FKv(const float lDots[4], const float W[4][2], float *vx,
                      float *vy) {
   // least squares: v = (W'.W)^(-1).W'.qdot

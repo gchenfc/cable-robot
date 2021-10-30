@@ -12,7 +12,9 @@
 
 #pragma once
 
+#ifdef Arduino_h
 #include <EEPROM.h>  // save zeros
+#endif
 
 #include "../unit_test_simulator/arduino_test_utils.h"
 #include "constants.h"
