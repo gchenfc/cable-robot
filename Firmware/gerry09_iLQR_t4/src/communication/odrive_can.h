@@ -98,7 +98,7 @@ void Odrive::parsePacket(const CAN_message_t& msg) {
       robot_.winches.at(nodei).setError(
           can_internal::Can0.parse<uint32_t>(data));
       robot_.winches.at(nodei).setState(
-          can_internal::Can0.parse<uint32_t>(data + 4));
+          can_internal::Can0.parse<uint8_t>(data + 4));
       break;
     case MSG_GET_ENCODER_ESTIMATES: {
       static float pos, vel;
