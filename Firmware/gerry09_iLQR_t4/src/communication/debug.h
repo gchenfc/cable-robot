@@ -10,6 +10,7 @@
 
 #include "../controllers/controller_interface.h"
 #include "../controllers/controller_simple.h"
+#include "../controllers/controller_tracking.h"
 #include "../robot.h"
 #include "../state_estimators/state_estimator_interface.h"
 #include "odrive_can.h"
@@ -17,13 +18,15 @@
 class Debug {
  public:
   Debug(Stream& serial, Robot& robot, ControllerInterface* controller,
-        StateEstimatorInterface* estimator, Odrive& odrive, Spray& spray)
+        StateEstimatorInterface* estimator, Odrive& odrive, Spray& spray,
+        bool (*custom_callback)(char* buffer, int size))
       : serial_(serial),
         robot_(robot),
         controller_(controller),
         estimator_(estimator),
         odrive_(odrive),
-        spray_(spray) {}
+        spray_(spray),
+        custom_callback_(custom_callback) {}
 
   // Common API
   void setup() {}
@@ -52,6 +55,7 @@ class Debug {
   StateEstimatorInterface* estimator_;
   Odrive& odrive_;
   Spray& spray_;
+  bool (*custom_callback_)(char* buffer, int size);
   Metro print_timer_ = Metro(10);
 
   void readSerial();
@@ -223,6 +227,46 @@ bool parseMsgController(ControllerInterface* controller, Odrive& odrive,
       return false;
   }
 }
+bool parseMsgTracking(ControllerTracking& controller, char* buffer, int size) {
+  if (size == 0) return false;
+  char* parse_cur = buffer;
+  char* parse_end = buffer + size;
+  if (parse_cur[0] != 't') return false;
+  ++parse_cur;
+  char cmd = *parse_cur;
+  ++parse_cur;
+
+  std::pair<float, float> setpoint = controller.getSetpoint();
+  float amt;
+  switch (cmd) {
+    case 'a':
+      if (!parseFloat(&parse_cur, parse_end, ',', &setpoint.first))
+        return false;
+      if (!parseFloat(&parse_cur, parse_end, '\n', &setpoint.second))
+        return false;
+      break;
+    case 'r':
+      if (!parseFloat(&parse_cur, parse_end, '\n', &amt)) return false;
+      setpoint.first += amt;
+      break;
+    case 'l':
+      if (!parseFloat(&parse_cur, parse_end, '\n', &amt)) return false;
+      setpoint.first -= amt;
+      break;
+    case 'u':
+      if (!parseFloat(&parse_cur, parse_end, '\n', &amt)) return false;
+      setpoint.second += amt;
+      break;
+    case 'd':
+      if (!parseFloat(&parse_cur, parse_end, '\n', &amt)) return false;
+      setpoint.second -= amt;
+      break;
+    default:
+      return false;
+  }
+  controller.setSetpoint(setpoint);
+  return true;
+}
 
 bool parseMsgSpray(Spray& spray, char* buffer, int size, Stream& serial) {
   if (size == 0) return false;
@@ -341,7 +385,8 @@ void Debug::readSerial() {
                                              bufferi, serial_)) &&
           (!human_serial::parseMsgSpray(spray_, buffer, bufferi, serial_)) &&
           (!human_serial::parseMsgCanPassthrough(odrive_, buffer, bufferi,
-                                                 serial_))) {
+                                                 serial_)) &&
+          (!custom_callback_(buffer, bufferi))) {
         serial_.println("Parse Error");
       };
       bufferi = 0;

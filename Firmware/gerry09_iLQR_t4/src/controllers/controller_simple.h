@@ -46,8 +46,10 @@ class ControllerSimple : public ControllerInterface {
   const StateEstimatorInterface* state_estimator_;
   uint64_t tstart_us_, tpause_us_, tmin_us_;
 
+  // To override
   virtual Vector2 desPos(float t) const;
   virtual float calcTorque(float t, uint8_t winchnum) const;
+  // End to override
   virtual void updatePaint(float t) {}
   float trajTime_s() const {
     if (tstart_us_ + tmin_us_ > micros()) {
@@ -56,12 +58,13 @@ class ControllerSimple : public ControllerInterface {
       return static_cast<float>(micros() - tstart_us_) / 1e6;
     }
   }
+  virtual void myUpdate() {};
 };
 
 /************* KEY FUNCTIONS **************/
 ControllerSimple::Vector2 ControllerSimple::desPos(float t) const {
-  return {1.5 + 0.5 * cosf(t * M_PI / 5),  //
-          1.1 + 0.5 * sinf(t * M_PI / 5)};
+  return {1.0 + 0.35 * cosf(t * M_PI / 5),  //
+          0.9 + 0.35 * sinf(t * M_PI / 5)};
 }
 float ControllerSimple::calcTorque(float t, uint8_t winchnum) const {
   const Vector2& pos = state_estimator_->posEst();
@@ -76,7 +79,7 @@ float ControllerSimple::calcTorque(float t, uint8_t winchnum) const {
   // Serial.printf("%.2f %.2f %.2f %.2f %.2f %.2f\n",   //
   //               error[0], error[1], bPa[0], bPa[1],  //
   //               dot<2>(error, bPa), dot<2>(error, bPa) * 2.0f + 0.7f);
-  static constexpr float gain = 10.0f;
+  static constexpr float gain = 50.0f;
   static constexpr float middle = 0.5f;
   float torque = dot<2>(error, bPa) * gain + middle;
   clamp(&torque, -0.1, 1.2);
@@ -86,6 +89,7 @@ float ControllerSimple::calcTorque(float t, uint8_t winchnum) const {
 
 void ControllerSimple::setup() { state_ = IDLE; }
 void ControllerSimple::update() {
+  myUpdate();
   if (!updateTimer.check()) {
     return;
   }
