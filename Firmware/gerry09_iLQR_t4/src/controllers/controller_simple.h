@@ -80,9 +80,9 @@ float ControllerSimple::calcTorque(float t, uint8_t winchnum) const {
   //               error[0], error[1], bPa[0], bPa[1],  //
   //               dot<2>(error, bPa), dot<2>(error, bPa) * 2.0f + 0.7f);
   static constexpr float gain = 50.0f;
-  static constexpr float middle = 0.5f;
+  static constexpr float middle = 0.7f;
   float torque = dot<2>(error, bPa) * gain + middle;
-  clamp(&torque, -0.1, 1.2);
+  clamp(&torque, 0.0, 1.4);
   return torque;
 }
 /************* END KEY FUNCTIONS **************/
@@ -122,7 +122,8 @@ bool ControllerSimple::encoderMsgCallback(Odrive* odrive,
   switch (state_) {
     case IDLE:
     case RUNNING_USER:
-      return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, 0.0f);
+      // return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, 0.0f);
+      return odrive->send(winchnum, MSG_CO_HEARTBEAT_CMD);
     case SETUP:
     case HOLDING_BAN_INPUT:
     case HOLDING_ALLOW_INPUT:

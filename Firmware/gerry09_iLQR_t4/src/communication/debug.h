@@ -56,7 +56,7 @@ class Debug {
   Odrive& odrive_;
   Spray& spray_;
   bool (*custom_callback_)(char* buffer, int size);
-  Metro print_timer_ = Metro(10);
+  Metro print_timer_ = Metro(250);
 
   void readSerial();
 };

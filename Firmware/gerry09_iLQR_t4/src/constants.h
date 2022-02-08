@@ -22,7 +22,7 @@ static constexpr float kSprayDelay_s = 0.40;
 static constexpr float kFrameWidth = 2.0684, kFrameHeight = 1.7986;
 
 // Constants including carriage
-static constexpr float kCarriageWidth = 0.187, kCarriageHeight = 0.122;
+static constexpr float kCarriageWidth = 0.22377, kCarriageHeight = 0.22377;
 static constexpr float kWidth = kFrameWidth - kCarriageWidth,
                        kHeight = kFrameHeight - kCarriageHeight / 2;
 
