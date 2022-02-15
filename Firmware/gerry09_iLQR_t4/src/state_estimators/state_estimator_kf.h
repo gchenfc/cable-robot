@@ -76,7 +76,7 @@ float StateEstimatorKf::stateUpdate(float traj_time_s) {
     state_.k = -1;
   }
 
-  if ((k != state_.k) && (k != (state_.k + 1))) {
+  if ((k != state_.k) && (k != static_cast<int64_t>(state_.k + 1))) {
     // ERROR
     SerialD.printf("Estimator Error:  k = %d, state_.k = %d\n", k, state_.k);
     std::fill(std::begin(state_.xHat), std::end(state_.xHat), 0);
