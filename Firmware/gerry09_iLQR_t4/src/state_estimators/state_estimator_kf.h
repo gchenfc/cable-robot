@@ -72,7 +72,7 @@ float StateEstimatorKf::stateUpdate(float traj_time_s) {
   float tRemainder_s = index_remainder.second;
   const LqgGains &gains = LQG_GAINS[(k == 0) ? 1 : k];
 
-  if ((state_.k == 0) && update_timer_.check()) {
+  if ((k == 0) && (state_.k == 0) && update_timer_.check()) {
     state_.k = -1;
   }
 
