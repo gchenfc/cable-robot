@@ -4,8 +4,6 @@
 
 #include "controller_simple.h"
 #include "../state_estimators/state_estimator_kf.h"
-#include "../../trajectories/ATL_test_lqg.h"
-// #include "../../trajectories/ATL.h"
 
 // static_assert((sizeof(painton) / sizeof(painton[0]) - 1) ==
 //                   (sizeof(LQG_GAINS) / sizeof(LQG_GAINS[0])),
@@ -45,6 +43,7 @@ class ControllerLqg : public ControllerSimple {
 std::pair<size_t, float> ControllerLqg::index_Remainder(float t) const {
   size_t index = static_cast<int>(t / CONTROLLER_DT);
   if (index >= (TRAJ_LEN)) {
+    SerialD.println("END OF TRAJECTORY");
     hold();  // TODO: don't violate constness
     return {TRAJ_LEN - 1, CONTROLLER_DT};
   }
@@ -66,13 +65,16 @@ float ControllerLqg::calcTorque(float t, uint8_t winchnum) const {
   // state update
   static float deltaXHat[6];
   if (!state_estimator_kf_->stateEst(t, deltaXHat)) {
+    SerialD.println("STOP DUE TO ESTIMATOR FAULT");
     hold();
     return 0.0f;
   }
 
   // Safety
   // Note: this safety measure doesn't work for some reason, just be careful!
-  if (norm(deltaXHat) > 0.4) {
+  float deltaPosition[2] = {deltaXHat[1], deltaXHat[2]};
+  if (norm(deltaPosition) > 0.4) {
+    SerialD.println("STOP DUE TO LARGE DEVIATION FROM DESIRED TRAJECTORY");
     hold();  // TODO(gerry): don't violate const-ness
     return 0;
   }

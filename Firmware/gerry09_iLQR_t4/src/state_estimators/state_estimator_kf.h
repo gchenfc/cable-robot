@@ -5,7 +5,8 @@
 #include "state_estimator_interface.h"
 #include "../robot.h"
 
-#include "../../trajectories/ATL_test_lqg.h"
+// #include "../../trajectories/ATL_lqg_1e4-1e4-1e4.h"
+#include "../../trajectories/ATL_lqg_1e0-1e2-1e2_0.1-0.1-0.05.h"
 
 static_assert(static_cast<uint64_t>(1000 * ESTIMATOR_DT) == 10,
               "expected dt to be 10ms");
@@ -25,7 +26,7 @@ class StateEstimatorKf : public StateEstimatorInterface {
   }
   std::pair<float, float> posEst(uint64_t time_us = micros()) const override;
   std::pair<float, float> velEst(uint64_t time_us = micros()) const override;
-  bool stateEst(uint64_t traj_time_s, float (&deltaXHat)[6]) const;
+  bool stateEst(float traj_time_s, float (&deltaXHat)[6]) const;
 
  protected:
   std::pair<size_t, float> index_Remainder(float t) const;
@@ -34,7 +35,9 @@ class StateEstimatorKf : public StateEstimatorInterface {
   struct State {
     size_t k;
     float tRemainder_s;
-    float xHat[6];  // [deltax, deltav] at last discrete update
+    float xHat[6];          // [deltax, deltav] at last discrete update
+    float xHatWithoutZ[6];  // xHat - Kz * deltaz, for interpolation
+    float xHatNow[6];       // interpolated
   } state_;
 
  private:
@@ -51,6 +54,7 @@ std::pair<size_t, float> StateEstimatorKf::index_Remainder(float t) const {
     return {TRAJ_LEN - 1, ESTIMATOR_DT};
   }
   float remainder = t - index * ESTIMATOR_DT;
+  if ((remainder < 0) && (remainder > -1e-3)) remainder = 0;
   return {index, remainder};
 }
 
@@ -59,76 +63,79 @@ float StateEstimatorKf::stateUpdate(float traj_time_s) {
   auto index_remainder = index_Remainder(traj_time_s);
   uint64_t k = index_remainder.first;
   float tRemainder_s = index_remainder.second;
-  if (k == state_.k)
-    return tRemainder_s;  // Don't need to update the state estimate
+  const LqgGains &gains = LQG_GAINS[(k == 0) ? 1 : k];
 
-  // Need to update state estimate
-  if (k != (state_.k + 1)) {
+  if ((k != state_.k) && (k != (state_.k + 1))) {
     // ERROR
+    SerialD.printf("Estimator Error:  k = %d, state_.k = %d\n", k, state_.k);
     std::fill(std::begin(state_.xHat), std::end(state_.xHat), 0);
     return -1;
   }
-  //
-  const LqgGains &gains = LQG_GAINS[k];
-  static float delta_u[4], delta_z[8];
-  for (int i = 0; i < 4; ++i) {
-    delta_z[i] = robot_.len(i) - gains.lff[i];
-    delta_z[i + 4] = robot_.lenDot(i) - gains.ldotff[i];
-    delta_u[i] = most_recent_torques_[i] - gains.uff[i];
+
+  if (k == (state_.k + 1)) {  // Kalman Filter "predict"
+    // Calculate du
+    static float delta_u[4];
+    for (int i = 0; i < 4; ++i) {
+      delta_u[i] = most_recent_torques_[i] - gains.uff[i];
+    }
+
+    // xHat = gains.Kx * xHat + gains.Ku * delta_u + gains.Kz * delta_z + k
+    // xHatWithoutZ = gains.Kx * xHat + gains.Ku * delta_u + k
+    static float tmpX[6], tmpU[6];
+    matmul(gains.Kx, state_.xHat, tmpX);
+    matmul(gains.Ku, delta_u, tmpU);
+    matadd(tmpX, tmpU, state_.xHatWithoutZ);
+    matadd(state_.xHatWithoutZ, gains.k, state_.xHatWithoutZ);
   }
 
-  // xHat = gains.Kx * xHat + gains.Ku * delta_u + gains.Kz * delta_z + k
-  static float tmpX[6], tmpU[6], tmpZ[6], tmpSum[6];
-  matmul(gains.Kx, state_.xHat, tmpX);
-  matmul(gains.Ku, delta_u, tmpU);
-  matmul(gains.Kz, delta_z, tmpZ);
-  matadd(tmpX, tmpU, tmpSum);
-  matadd(tmpSum, tmpZ, tmpSum);
-  matadd(tmpSum, gains.k, tmpSum);
+  // Kalman Filter "update"
+  {
+    static float delta_z[8];
+    for (int i = 0; i < 4; ++i) {
+      delta_z[i] = -robot_.len(i) - gains.lff[i];
+      delta_z[i + 4] = -robot_.lenDot(i) - gains.ldotff[i];
+    }
+    static float tmpZ[6];
+    matmul(gains.Kz, delta_z, tmpZ);
+    matadd(state_.xHatWithoutZ, tmpZ, state_.xHatNow);
+    // safety
+    clamp(&state_.xHatNow[0], -0.57, 0.57);
+    clamp(&state_.xHatNow[3], -1.0, 1.0);
+    state_.xHatNow[0] = 0;
+    state_.xHatNow[3] = 0;
+    state_.tRemainder_s = tRemainder_s;
+  }
 
-  // update state
-  state_.k = k;
-  state_.tRemainder_s = tRemainder_s;
-  std::copy(std::begin(tmpSum), std::end(tmpSum), std::begin(state_.xHat));
+  // Save xHat if we did "predict"
+  if (k == (state_.k + 1)) {
+    state_.k = k;
+    std::copy(std::begin(state_.xHatNow), std::end(state_.xHatNow),
+              std::begin(state_.xHat));
+    SerialD.printf("xHat: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f\n", state_.xHat[0],
+                  state_.xHat[1], state_.xHat[2], state_.xHat[3], state_.xHat[4],
+                  state_.xHat[5]);
+  }
 
   return tRemainder_s;
 }
 
 std::pair<float, float> StateEstimatorKf::posEst(uint64_t time_us) const {
-  float tRemainder_s =
-      stateUpdate(static_cast<float>(time_us - tstart_us_) / 1e6);
-
-  // extrapolate
-  std::pair<float, float> pos_now;
-  pos_now.first = state_.xHat[1] + state_.xHat[4] * tRemainder_s;
-  pos_now.second = state_.xHat[2] + state_.xHat[5] * tRemainder_s;
-
-  // retract
-  pos_now.first += LQG_GAINS[state_.k].xff[1];
-  pos_now.second += LQG_GAINS[state_.k].xff[2];
-  return pos_now;
+  return {state_.xHat[1] + LQG_GAINS[state_.k].xff[1],
+          state_.xHat[2] + LQG_GAINS[state_.k].xff[2]};
 };
 std::pair<float, float> StateEstimatorKf::velEst(uint64_t time_us) const {
-  float tRemainder_s =
-      stateUpdate(static_cast<float>(time_us - tstart_us_) / 1e6);
-
-  // extrapolate
-  std::pair<float, float> vel_now;
-  vel_now.first = state_.xHat[4];
-  vel_now.second = state_.xHat[5];
-
-  // retract
-  vel_now.first += LQG_GAINS[state_.k].vff[1];
-  vel_now.second += LQG_GAINS[state_.k].vff[2];
-  return vel_now;
+  return {state_.xHat[4] + LQG_GAINS[state_.k].vff[1],
+          state_.xHat[5] + LQG_GAINS[state_.k].vff[2]};
 };
-bool StateEstimatorKf::stateEst(uint64_t traj_time_s,
+bool StateEstimatorKf::stateEst(float traj_time_s,
                                 float (&deltaXHat)[6]) const {
   float tRemainder_s = stateUpdate(traj_time_s);
-  if (tRemainder_s < 0) return false;
-  for (int i = 0; i < 3; ++i) {
-    deltaXHat[i] = state_.xHat[i] + state_.xHat[3 + i] * tRemainder_s;
-    deltaXHat[3 + i] = state_.xHat[3 + i];
+  if (tRemainder_s < 0) {
+    SerialD.printf("state estimation fault: %.4f\n", tRemainder_s);
+    return false;
   }
+
+  std::copy(std::begin(state_.xHatNow), std::end(state_.xHatNow),
+            std::begin(deltaXHat));
   return true;
 }
