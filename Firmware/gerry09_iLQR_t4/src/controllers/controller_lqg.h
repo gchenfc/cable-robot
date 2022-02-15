@@ -28,7 +28,9 @@ class ControllerLqg : public ControllerSimple {
 
   std::pair<size_t, float> index_Remainder(float t) const;
   virtual Vector2 desPos(float t) const override;
+  virtual float desTheta(float t) const override;
   virtual Vector2 desVel(float t) const;
+  virtual float desThetaDot(float t) const;
   virtual float calcTorque(float t, uint8_t winchnum) const override;
   void updatePaint(float t) override {}
 
@@ -48,17 +50,25 @@ std::pair<size_t, float> ControllerLqg::index_Remainder(float t) const {
     return {TRAJ_LEN - 1, CONTROLLER_DT};
   }
   float remainder = t - index * CONTROLLER_DT;
-  return {index, remainder};
+  return {index == 0 ? 1 : index, remainder};
 }
 ControllerLqg::Vector2 ControllerLqg::desPos(float t) const {
   const auto& index_remainder = index_Remainder(t);
   return {LQG_GAINS[index_remainder.first].xff[1],
           LQG_GAINS[index_remainder.first].xff[2]};
 }
+float ControllerLqg::desTheta(float t) const {
+  const auto& index_remainder = index_Remainder(t);
+  return LQG_GAINS[index_remainder.first].xff[0];
+}
 ControllerLqg::Vector2 ControllerLqg::desVel(float t) const {
   const auto& index_remainder = index_Remainder(t);
   return {LQG_GAINS[index_remainder.first].vff[1],
           LQG_GAINS[index_remainder.first].vff[2]};
+}
+float ControllerLqg::desThetaDot(float t) const {
+  const auto& index_remainder = index_Remainder(t);
+  return LQG_GAINS[index_remainder.first].vff[0];
 }
 float ControllerLqg::calcTorque(float t, uint8_t winchnum) const {
   if (winchnum >= 4) return 0.0f;
@@ -87,11 +97,22 @@ float ControllerLqg::calcTorque(float t, uint8_t winchnum) const {
   const float(&K)[6] = LQG_GAINS[k].K[winchnum];
   const float& uff = LQG_GAINS[k].uff[winchnum];
 
+  // Debug message
+  // if (winchnum == 0) {
+  //   const auto &tau = state_estimator_kf_->most_recent_torques_;
+  //   SerialD.printf(
+  //       "\t\t\txHat_: %d, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f,\t\t%.4f, %.4f, "
+  //       "%.4f, %.4f,\t\t%.4f\n",
+  //       k, t, deltaXHat[0], deltaXHat[1], deltaXHat[2], deltaXHat[3], deltaXHat[4],
+  //       deltaXHat[5], tau[0], tau[1], tau[2], tau[3], dot(K, deltaXHat));
+  // }
+
   // Control calculation
   float torque = dot(K, deltaXHat) + uff;
 
   // Safety
-  clamp(&torque, -0.1, 1.2);
+  // clamp(&torque, -0.1, 1.2);
+  clamp(&torque, 0.1, 1.2);
 
   // Return torque
   state_estimator_kf_->save_torque(winchnum, torque);

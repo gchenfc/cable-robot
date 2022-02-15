@@ -6,7 +6,9 @@
 #include "../robot.h"
 
 // #include "../../trajectories/ATL_lqg_1e4-1e4-1e4.h"
-#include "../../trajectories/ATL_lqg_1e0-1e2-1e2_0.1-0.1-0.05.h"
+// #include "../../trajectories/ATL_lqg_1e0-1e2-1e2_0.1-0.1-0.05.h"
+// #include "../../trajectories/ATL_lqg_1e2-1e4-1e4_0.1-0.0-0.05-0.05.h"
+#include "../../trajectories/ATLinf_lqg_1e2-1e4-1e4_0.1-0.0-0.05-0.05.h"
 
 static_assert(static_cast<uint64_t>(1000 * ESTIMATOR_DT) == 10,
               "expected dt to be 10ms");
@@ -17,7 +19,11 @@ class StateEstimatorKf : public StateEstimatorInterface {
 
   void reset(uint64_t t_start) {
     tstart_us_ = t_start;
-    state_ = {0, 0.0, {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
+    state_ = {0,
+              0.0,
+              {0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+              {0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+              {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
     std::fill(std::begin(most_recent_torques_), std::end(most_recent_torques_),
               0);
   }
@@ -43,6 +49,7 @@ class StateEstimatorKf : public StateEstimatorInterface {
  private:
   Robot &robot_;
   uint64_t tstart_us_ = 0;
+  Metro update_timer_{10};
   float most_recent_torques_[4];
 
   static constexpr size_t TRAJ_LEN = sizeof(LQG_GAINS) / sizeof(LQG_GAINS[0]);
@@ -64,6 +71,10 @@ float StateEstimatorKf::stateUpdate(float traj_time_s) {
   uint64_t k = index_remainder.first;
   float tRemainder_s = index_remainder.second;
   const LqgGains &gains = LQG_GAINS[(k == 0) ? 1 : k];
+
+  if ((state_.k == 0) && update_timer_.check()) {
+    state_.k = -1;
+  }
 
   if ((k != state_.k) && (k != (state_.k + 1))) {
     // ERROR
@@ -101,8 +112,8 @@ float StateEstimatorKf::stateUpdate(float traj_time_s) {
     // safety
     clamp(&state_.xHatNow[0], -0.57, 0.57);
     clamp(&state_.xHatNow[3], -1.0, 1.0);
-    state_.xHatNow[0] = 0;
-    state_.xHatNow[3] = 0;
+    // state_.xHatNow[0] = 0;
+    // state_.xHatNow[3] = 0;
     state_.tRemainder_s = tRemainder_s;
   }
 
@@ -111,21 +122,21 @@ float StateEstimatorKf::stateUpdate(float traj_time_s) {
     state_.k = k;
     std::copy(std::begin(state_.xHatNow), std::end(state_.xHatNow),
               std::begin(state_.xHat));
-    SerialD.printf("xHat: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f\n", state_.xHat[0],
-                  state_.xHat[1], state_.xHat[2], state_.xHat[3], state_.xHat[4],
-                  state_.xHat[5]);
+    SerialD.printf("\t\t\txHat: %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f\n",
+                   traj_time_s, state_.xHat[0], state_.xHat[1], state_.xHat[2],
+                   state_.xHat[3], state_.xHat[4], state_.xHat[5]);
   }
 
   return tRemainder_s;
 }
 
 std::pair<float, float> StateEstimatorKf::posEst(uint64_t time_us) const {
-  return {state_.xHat[1] + LQG_GAINS[state_.k].xff[1],
-          state_.xHat[2] + LQG_GAINS[state_.k].xff[2]};
+  return {state_.xHatNow[1] + LQG_GAINS[state_.k].xff[1],
+          state_.xHatNow[2] + LQG_GAINS[state_.k].xff[2]};
 };
 std::pair<float, float> StateEstimatorKf::velEst(uint64_t time_us) const {
-  return {state_.xHat[4] + LQG_GAINS[state_.k].vff[1],
-          state_.xHat[5] + LQG_GAINS[state_.k].vff[2]};
+  return {state_.xHatNow[4] + LQG_GAINS[state_.k].vff[1],
+          state_.xHatNow[5] + LQG_GAINS[state_.k].vff[2]};
 };
 bool StateEstimatorKf::stateEst(float traj_time_s,
                                 float (&deltaXHat)[6]) const {

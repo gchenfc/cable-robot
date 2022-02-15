@@ -10,7 +10,8 @@
 /******** Winch Parameters **********/
 float kZeros[4] = {4.868, 4.672, 6.490, 7.980};
 static constexpr float kR = 0.0254 / 2;
-static constexpr float kSprayDelay_s = 0.40;
+// static constexpr float kSprayDelay_s = 0.40;
+static constexpr float kSprayDelay_s = 0.0;
 
 /******** Frame Geometry **********/
 // Klaus lab measurements:

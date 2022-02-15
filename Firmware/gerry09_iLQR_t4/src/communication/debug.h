@@ -31,9 +31,12 @@ class Debug {
     if (print_timer_.check() && (serial_.availableForWrite() > 200)) {
       auto est_pos = estimator_->posEst();
       auto des_pos = controller_->setpointPos();
-      serial_.printf("%d: %.4f %.4f - %.4f %.4f\t|\t", controller_->getState(),
-                     est_pos.first, est_pos.second,  //
-                     des_pos.first, des_pos.second);
+      serial_.printf("%7u - %d: %.4f %.4f %.4f - %.4f %.4f %.4f\t|\t",        //
+                     micros() % 10000000,                                    //
+                     controller_->getState(),                                //
+                     estimator_->thetaEst(), est_pos.first, est_pos.second,  //
+                     controller_->setpointTheta(), des_pos.first,
+                     des_pos.second);
       for (int i = 0; i < 4; ++i) {
         const Winch& winch = robot_.winches.at(i);
         serial_.printf("%d %d %.4f %.4f\t|\t",  //

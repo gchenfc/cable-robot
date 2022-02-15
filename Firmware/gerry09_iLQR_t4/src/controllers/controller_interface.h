@@ -42,7 +42,9 @@ class ControllerInterface {
 
   /******************************* Data Logging *******************************/
   virtual Vector2 setpointPos() const { return {-1, -1}; }
+  virtual float setpointTheta() const { return 0; }
   virtual Vector2 setpointVel() const { return {0, 0}; }
+  virtual float setpointThetaDot() const { return 0; }
 
   /******* Implementations that you don't need to touch *******/
   ControllerState getState() const { return state_; }

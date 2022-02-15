@@ -35,8 +35,24 @@ class ControllerSimple : public ControllerInterface {
 
   // Datalogging
   Vector2 setpointPos() const override {
-    return (state_ == RUNNING_TRAJ) ? desPos(trajTime_s())
-                                    : std::make_pair(0.0f, 0.0f);
+    return ((state_ == RUNNING_TRAJ) || (state_ == HOLD_TRAJ_BEGIN))
+               ? desPos(trajTime_s())
+               : std::make_pair(0.0f, 0.0f);
+  }
+  float setpointTheta() const override {
+    return ((state_ == RUNNING_TRAJ) || (state_ == HOLD_TRAJ_BEGIN))
+               ? desTheta(trajTime_s())
+               : 0.0f;
+  }
+  Vector2 setpointVel() const override {
+    return ((state_ == RUNNING_TRAJ) || (state_ == HOLD_TRAJ_BEGIN))
+               ? desVel(trajTime_s())
+               : std::make_pair(0.0f, 0.0f);
+  }
+  float setpointThetaDot() const override {
+    return ((state_ == RUNNING_TRAJ) || (state_ == HOLD_TRAJ_BEGIN))
+               ? desThetaDot(trajTime_s())
+               : 0.0f;
   }
 
  protected:
@@ -47,13 +63,27 @@ class ControllerSimple : public ControllerInterface {
   uint64_t tstart_us_, tpause_us_, tmin_us_;
 
   virtual Vector2 desPos(float t) const;
+  virtual float desTheta(float t) const { return 0.0; }
+  virtual Vector2 desVel(float t) const { return std::make_pair(0.0f, 0.0f); }
+  virtual float desThetaDot(float t) const { return 0.0; }
   virtual float calcTorque(float t, uint8_t winchnum) const;
   virtual void updatePaint(float t) {}
   float trajTime_s() const {
-    if (tstart_us_ + tmin_us_ > micros()) {
-      return static_cast<float>(tmin_us_) / 1e6;
-    } else {
-      return static_cast<float>(micros() - tstart_us_) / 1e6;
+    switch (state_) {
+      case IDLE:
+      case RUNNING_USER:
+      case SETUP:
+        return 0.0;
+      case HOLDING_BAN_INPUT:
+      case HOLDING_ALLOW_INPUT:
+      case HOLD_TRAJ_BEGIN:
+        return static_cast<float>(tpause_us_) / 1e6f;
+      case RUNNING_TRAJ: {
+        // note: be careful with kSprayDelay_s
+        uint64_t t_us =
+            std::max<uint64_t>(micros(), tmin_us_ + tstart_us_) - tstart_us_;
+        return static_cast<float>(t_us) / 1e6;
+      }
     }
   }
 };
@@ -168,6 +198,7 @@ bool ControllerSimple::goToStartTraj() {
 }
 bool ControllerSimple::startTraj() {
   if (state_ == HOLD_TRAJ_BEGIN) {
+    tpause_us_ = 0; // TODO(gerry): remove this later
     tstart_us_ = micros() - tpause_us_ + (kSprayDelay_s * 1e6);
     setupFor(RUNNING_TRAJ);
     state_ = RUNNING_TRAJ;
