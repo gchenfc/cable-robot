@@ -28,7 +28,7 @@ class Debug {
   // Common API
   void setup() {}
   void update() {
-    if (print_timer_.check()) {
+    if (print_timer_.check() && (serial_.availableForWrite() > 200)) {
       auto est_pos = estimator_->posEst();
       auto des_pos = controller_->setpointPos();
       serial_.printf("%d: %.4f %.4f - %.4f %.4f\t|\t", controller_->getState(),
