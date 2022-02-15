@@ -92,7 +92,7 @@ template <int M, int N>
 void matadd(const float (&A)[M][N], const float (&B)[M][N], float (&C)[M][N]) {
   for (int row = 0; row < M; ++row) {
     for (int col = 0; col < N; ++col) {
-      C[row][col] = A[row][col] * B[row][col];
+      C[row][col] = A[row][col] + B[row][col];
     }
   }
 }
@@ -101,7 +101,7 @@ void matadd(const float (&A)[M][N], const float (&B)[M][N], float (&C)[M][N]) {
 template <int M>
 void matadd(const float (&A)[M], const float (&B)[M], float (&C)[M]) {
   for (int row = 0; row < M; ++row) {
-    C[row] = A[row] * B[row];
+    C[row] = A[row] + B[row];
   }
 }
 
