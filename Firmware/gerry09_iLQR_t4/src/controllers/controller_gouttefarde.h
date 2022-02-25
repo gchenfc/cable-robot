@@ -59,6 +59,8 @@ class ControllerGouttefarde : public ControllerSimple {
   }
   void writeSerial(Stream& serialOut) override {
     if (print_timer_.check() && (millis() - last_save_ms < 100)) {
+      while (print_timer_.check())
+        ;
       serialOut.printf("\t\t\t\t\t\t\t\t\t\t");
       serialOut.printf(":gains: %.1f %.1f %.1f %.2f %.2f %.2f\t", kp_, ki_, kd_,
                        fs_, fv_, mu_);
@@ -112,18 +114,21 @@ class ControllerGouttefarde : public ControllerSimple {
   Pid pid_[4]{Pid(kp_, ki_, kd_), Pid(kp_, ki_, kd_), Pid(kp_, ki_, kd_),
               Pid(kp_, ki_, kd_)};
   void setKp(float kp) {
+    kp_ = kp;
     for (Pid& pid : pid_) {
       pid.setKp(kp);
     }
   }
-  void setKi(float kp) {
+  void setKi(float ki) {
+    ki_ = ki;
     for (Pid& pid : pid_) {
-      pid.setKp(kp);
+      pid.setKi(ki);
     }
   }
-  void setKd(float kp) {
+  void setKd(float kd) {
+    kd_ = kd;
     for (Pid& pid : pid_) {
-      pid.setKp(kp);
+      pid.setKd(kd);
     }
   }
 };
