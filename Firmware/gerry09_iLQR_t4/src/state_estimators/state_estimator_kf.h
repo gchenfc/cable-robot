@@ -8,7 +8,15 @@
 // #include "../../trajectories/ATL_lqg_1e4-1e4-1e4.h"
 // #include "../../trajectories/ATL_lqg_1e0-1e2-1e2_0.1-0.1-0.05.h"
 // #include "../../trajectories/ATL_lqg_1e2-1e4-1e4_0.1-0.0-0.05-0.05.h"
-#include "../../trajectories/ATLinf_lqg_1e2-1e4-1e4_0.1-0.0-0.05-0.05.h"
+// #include "../../trajectories/ATLinf_lqg_1e2-1e4-1e4_0.1-0.0-0.05-0.05.h"
+// #include "../../trajectories/concentric_rects_inf_lqg_1e2-1e4-1e4_0.1-0.0-0.05-0.05.h"
+// #include "../../trajectories/concentric_rects_inf_cal_lqg_1e2-1e4-1e4_0.1-0.0-0.002-0.06.h"
+// #include "../../trajectories/concentric_rects_inf_cal_lqg_1e1-1e2-1e2_0.1-0.0-0.002-0.06.h"
+// #include "../../trajectories/concentric_diamonds2_output_lqg_1e2-1e4-1e4_0.1-0.0-0.0085-0.05.h"
+// #include "../../trajectories/concentric_diamonds2_output_lqg_1e2-1e4-1e4_0.1-0.0-0.0018-0.04.h"
+// #include "../../trajectories/concentric_diamonds2_output_5mps2_lqg_1e2-1e4-1e4_0.1-0.0-0.0018-0.04.h"
+#include "../../trajectories/concentric_diamonds2_output_3mps2_lqg_1e2-1e4-1e4_0.1-0.0-0.0018-0.04.h"
+// #include "../../trajectories/concentric_diamonds_output_1mps_inf_lqg_1e2-1e4-1e4_0.1-0.0-0.05-0.05.h"
 
 static_assert(static_cast<uint64_t>(1000 * ESTIMATOR_DT) == 10,
               "expected dt to be 10ms");
@@ -78,7 +86,16 @@ float StateEstimatorKf::stateUpdate(float traj_time_s) {
 
   if ((k != state_.k) && (k != static_cast<int64_t>(state_.k + 1))) {
     // ERROR
-    SerialD.printf("Estimator Error:  k = %d, state_.k = %d\n", k, state_.k);
+    SerialD.println((int)(k));
+    SerialD.println((int)(state_.k));
+    SerialD.println((int)(state_.k + static_cast<uint64_t>(1)));
+    SerialD.println((int)(state_.k + 1));
+    SerialD.println(k != state_.k);
+    SerialD.println(k != (static_cast<int64_t>(state_.k) + 1));
+    SerialD.println(k != static_cast<int64_t>(state_.k + 1));
+    SerialD.println(k != (state_.k + static_cast<uint64_t>(1)));
+    SerialD.printf("Estimator Error:  k = %d, state_.k = %d\n", k & 0xFFFFFFFF,
+                   state_.k & 0xFFFFFFFF);
     std::fill(std::begin(state_.xHat), std::end(state_.xHat), 0);
     return -1;
   }
@@ -103,14 +120,21 @@ float StateEstimatorKf::stateUpdate(float traj_time_s) {
   {
     static float delta_z[8];
     for (int i = 0; i < 4; ++i) {
-      delta_z[i] = -robot_.len(i) - gains.lff[i];
-      delta_z[i + 4] = -robot_.lenDot(i) - gains.ldotff[i];
+      float l = -robot_.len(i);
+      float ldot = -robot_.lenDot(i);
+      delta_z[i] = lengthCorrectionLqg(i, l) - gains.lff[i];
+      delta_z[i + 4] = lengthDotCorrectionLqg(i, l, ldot) - gains.ldotff[i];
+      // SerialD.printf("winch %d: %.4f, %.4f\n", i, lengthCorrectionLqg(i, l),
+      //                lengthDotCorrectionLqg(i, l, ldot));
+      if (k == 0) delta_z[i + 4] = 0;  // get oscillations otherwise
     }
     static float tmpZ[6];
     matmul(gains.Kz, delta_z, tmpZ);
     matadd(state_.xHatWithoutZ, tmpZ, state_.xHatNow);
     // safety
-    clamp(&state_.xHatNow[0], -0.57, 0.57);
+    if (traj_time_s < 5) {
+      clamp(&state_.xHatNow[0], -1.57, 1.57);
+    }
     clamp(&state_.xHatNow[3], -1.0, 1.0);
     // state_.xHatNow[0] = 0;
     // state_.xHatNow[3] = 0;
@@ -122,9 +146,13 @@ float StateEstimatorKf::stateUpdate(float traj_time_s) {
     state_.k = k;
     std::copy(std::begin(state_.xHatNow), std::end(state_.xHatNow),
               std::begin(state_.xHat));
-    SerialD.printf("\t\t\txHat: %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f\n",
-                   traj_time_s, state_.xHat[0], state_.xHat[1], state_.xHat[2],
-                   state_.xHat[3], state_.xHat[4], state_.xHat[5]);
+    SerialD.printf(
+        "\t\t\txHat: %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f,  %.4f, %.4f, "
+        "%.4f, %.4f\n",
+        traj_time_s, state_.xHat[0], state_.xHat[1], state_.xHat[2],
+        state_.xHat[3], state_.xHat[4], state_.xHat[5], most_recent_torques_[0],
+        most_recent_torques_[1], most_recent_torques_[2],
+        most_recent_torques_[3]);
   }
 
   return tRemainder_s;

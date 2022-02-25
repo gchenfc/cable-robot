@@ -13,6 +13,7 @@
 #include "../robot.h"
 #include "../state_estimators/state_estimator_interface.h"
 #include "odrive_can.h"
+#include "../spray.h"
 
 class Debug {
  public:

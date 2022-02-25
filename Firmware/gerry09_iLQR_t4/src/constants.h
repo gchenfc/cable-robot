@@ -40,7 +40,7 @@ static constexpr float kTau = 2 * 3.1415926535897932384626433832795;
 
 #endif
 
-#define CALIBRATIONx
+#define CALIBRATION
 #ifdef CALIBRATION
 static constexpr float kMountPoints[4][2] = {
     {kWidth, 0}, {kWidth, kHeight}, {0, kHeight}, {0, 0}};
@@ -72,5 +72,34 @@ static constexpr float kMountPoints[4][2] = {
 float lengthCorrection(uint8_t winch_num, float len) {
     const auto& params = kLenCorrectionParams[winch_num];
     return params[0] * len * len + params[1] * len + params[2];
+}
+#endif
+
+#define LQG_CALIBx
+#ifdef LQG_CALIB
+float lengthCorrectionLqg(uint8_t winch_num, float len) { return len; }
+float lengthDotCorrectionLqg(uint8_t winch_num, float len, float ldot) {
+  return ldot;
+}
+#else
+static constexpr float kLengthCorrectionParamsLqg[4][4] = {
+{1.2389479472868004, 1.0764637689435752, 0.9410871759325514, 0.0642813422522884},
+{1.5177999608069015, 0.9241012838837206, 0.9372150814095981, 0.04959901641198605},
+{1.4241000189055877, 0.9496752574553159, 0.9406414253611549, 0.04669591943490133},
+{1.7253999656488601, 0.9247991600263843, 0.9300630987103626, 0.015522319773123102},
+};
+// length params are of the form:
+// f(length - a, b, c) + a + d
+//  where f(x, m1, m2) := (x < 0) ? m1*x : m2*x
+float lengthCorrectionLqg(uint8_t winch_num, float len) {
+  const float(&params)[4] = kLengthCorrectionParamsLqg[winch_num];
+  float l0 = len - params[0];
+  return ((l0 < 0) ? (params[1] * l0) : (params[2] * l0)) + params[0] +
+         params[3];
+}
+float lengthDotCorrectionLqg(uint8_t winch_num, float len, float lendot) {
+  const float(&params)[4] = kLengthCorrectionParamsLqg[winch_num];
+  float l0 = len - params[0];
+  return ((l0 < 0) ? params[1] : params[2]) * lendot;
 }
 #endif

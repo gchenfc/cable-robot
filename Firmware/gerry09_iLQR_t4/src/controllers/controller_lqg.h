@@ -108,6 +108,8 @@ float ControllerLqg::calcTorque(float t, uint8_t winchnum) const {
   // }
 
   // Control calculation
+  // deltaXHat[0] = 0;
+  // deltaXHat[3] = 0;
   float torque = dot(K, deltaXHat) + uff;
 
   // Safety

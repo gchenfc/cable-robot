@@ -12,6 +12,7 @@ class Kinematics {
   // current configuration.
   // f = W'.t, where f is x/y force and t is 4-d cable tension vector
   static void jacobian(const float x, const float y, float W[4][2]);
+  static void wrenchMatrix(const float x, const float y, float W[2][4]);
 
   // Inverse and forward kinematics
   static void IK(const float x, const float y, float lengths[4]);
@@ -26,6 +27,11 @@ class Kinematics {
     float x, y;
     FK(&x, &y);
     jacobian(x, y, W);
+  }
+  void wrenchMatrix(float W[2][4]) const {
+    float x, y;
+    FK(&x, &y);
+    wrenchMatrix(x, y, W);
   }
   void FK(float *x, float *y) const {
     float lengths[4];
@@ -61,6 +67,15 @@ void Kinematics::jacobian(const float x, const float y, float W[4][2]) {
     float norm = sqrt(dx * dx + dy * dy);
     W[i][0] = dx / norm;
     W[i][1] = dy / norm;
+  }
+}
+void Kinematics::wrenchMatrix(const float x, const float y, float W[2][4]) {
+  for (uint8_t i = 0; i < 4; ++i) {
+    float dx = kMountPoints[i][0] - x;
+    float dy = kMountPoints[i][1] - y;
+    float norm = sqrt(dx * dx + dy * dy);
+    W[0][i] = dx / norm;
+    W[1][i] = dy / norm;
   }
 }
 void Kinematics::IK(float x, float y, float lengths[4]) {
