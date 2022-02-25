@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../communication/ascii_parser.h"
+
 class Odrive;
 
 /**
@@ -23,6 +25,11 @@ class ControllerInterface {
   // Common API
   virtual void setup() = 0;
   virtual void update() = 0;
+
+  virtual bool readSerial(AsciiParser parser, Stream& serialOut) {
+    return false;
+  }
+  virtual void writeSerial(Stream& serialOut) {}
 
   /****************************** Controller API ******************************/
 

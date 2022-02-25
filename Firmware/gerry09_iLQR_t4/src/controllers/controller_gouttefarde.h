@@ -29,14 +29,46 @@ class ControllerGouttefarde : public ControllerSimple {
 
   void update() override {
     ControllerSimple::update();
+  }
+
+  bool readSerial(AsciiParser parser, Stream& serialOut) override {
+    UNWRAP_PARSE_CHECK(,parser.checkChar('K'));
+    UNWRAP_PARSE_CHECK(char c, parser.getChar(&c));
+    UNWRAP_PARSE_CHECK(float a, parser.parseFloat('\n', &a));
+    switch (c) {
+      case 'p':
+        setKp(a);
+        break;
+      case 'i':
+        setKi(a);
+        break;
+      case 'd':
+        setKd(a);
+        break;
+      case 's':
+        fs_ = a;
+        break;
+      case 'v':
+        fv_ = a;
+        break;
+      case 'u':
+        mu_ = a;
+        break;
+    }
+    return true;
+  }
+  void writeSerial(Stream& serialOut) override {
     if (print_timer_.check() && (millis() - last_save_ms < 100)) {
-      SerialD.printf("PID output: %.3f %.3f %.3f %.3f\n", pid_output_[0],
-                     pid_output_[1], pid_output_[2], pid_output_[3]);
-      SerialD.printf("Feedback force: %.3f %.3f\n", feedback_force_[0],
-                     feedback_force_[1]);
-      SerialD.printf("Total force: %.3f %.3f\n", total_force_[0],
-                     total_force_[1]);
-      SerialD.printf("torque: %.3f %.3f %.3f %.3f\n", torque_[0], torque_[1],
+      serialOut.printf("\t\t\t\t\t\t\t\t\t\t");
+      serialOut.printf(":gains: %.1f %.1f %.1f %.2f %.2f %.2f\t", kp_, ki_, kd_,
+                       fs_, fv_, mu_);
+      // serialOut.printf(":PID output: %.3f %.3f %.3f %.3f\t", pid_output_[0],
+      //                pid_output_[1], pid_output_[2], pid_output_[3]);
+      // serialOut.printf(":Feedback force: %.3f %.3f\t", feedback_force_[0],
+      //                feedback_force_[1]);
+      // serialOut.printf(":Total force: %.3f %.3f\t", total_force_[0],
+      //                total_force_[1]);
+      serialOut.printf(":Torque: %.3f %.3f %.3f %.3f\n", torque_[0], torque_[1],
                      torque_[2], torque_[3]);
     }
   }
