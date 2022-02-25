@@ -18,13 +18,16 @@
 #include "odrive_dummy.h"
 #include "src/robot.h"
 #include "src/state_estimators/state_estimator_first_order.h"
-#include "src/controllers/controller_simple.h"
+// #include "src/controllers/controller_simple.h"
+#include "src/controllers/controller_gouttefarde.h"
 #include "src/communication/byte_packing.h"
 #include "../src/communication/debug.h"
 
 Odrive odrive;  // this is needed because controller expects a global extern
                 // odrive :(
 StringStreamer serial;
+HardwareSerial serial1;
+Spray spray(serial1);
 
 class CableRobotTester {
  public:
@@ -33,8 +36,8 @@ class CableRobotTester {
   CableRobotTester(SendCallback callback, std::ostream& serial_out = std::cout)
       : robot_(),
         estimator_(new StateEstimatorFirstOrder(robot_)),
-        controller_(new ControllerSimple(estimator_)),
-        debug_(serial, robot_, controller_, estimator_, odrive),
+        controller_(new ControllerGouttefarde(estimator_, robot_)),
+        debug_(serial, robot_, controller_, estimator_, odrive, spray),
         serial_out_(serial_out) {
     odrive.setCallback(callback);
   }

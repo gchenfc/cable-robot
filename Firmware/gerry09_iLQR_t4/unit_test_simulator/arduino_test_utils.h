@@ -89,6 +89,8 @@ class Stream : public virtual Print {
   virtual int available() = 0;
   virtual int read() = 0;
   virtual int peek() = 0;
+  void begin(int baud) { (void)(baud); };
+  int availableForWrite() { return std::numeric_limits<int>::max(); }
 };
 
 // diamond inheritance pattern... hopefully it's fine...
@@ -111,7 +113,7 @@ class StringStreamer : public Stream, public StringPrinter {
   std::ostringstream os;
 };
 
-class HardwareSerial : public Print {};
+class HardwareSerial : public StringStreamer {};
 
 class Eeprom {
  public:

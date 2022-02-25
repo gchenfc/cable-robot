@@ -45,8 +45,8 @@ class Kinematics {
   }
 
   // Force distribution solvers
-  // static void forceSolverPott(float tensions[4], float Fx, float Fy, float x,
-  //                             float y);
+  static void forceSolverPott(float Fx, float Fy, float x, float y,
+                              const float (&W)[2][4], float (&tensions)[4]);
   // static void forceSolver(float tensions[4], float Fx, float Fy, float x,
   //                         float y);
   // void forceSolver(float tensions[4], float Fx, float Fy) const {
@@ -134,37 +134,37 @@ void Kinematics::FKv(const float lDots[4], const float W[4][2], float *vx,
   if (isnan(*vy)) *vy = 0;
 }
 
-// void Kinematics::forceSolverPott(float tensions[4], float Fx, float Fy, float
-// x,
-//                                  float y) {
-//   // t = tm - pinv(W)*(f + W' * tm) = tm - W.inv(W'.W).(f + W'.tm)
-//   float tm[4] = {0.6 / kR, 0.6 / kR, 0.6 / kR, 0.6 / kR};
-//   // f - W'.tm
-//   for (int i = 0; i < 4; ++i) {
-//     Fx -= W[i][0] * tm[i];
-//     Fy -= W[i][1] * tm[i];
-//   }
+void Kinematics::forceSolverPott(float Fx, float Fy, float x, float y,
+                                 const float (&W)[2][4], float (&tensions)[4]) {
+  float WT[4][2];
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 2; ++j) {
+      WT[i][j] = W[j][i];
+    }
+  }
 
-//   // inv(W'.W)'
-//   float WTW[2][2] = {};
-//   for (uint8_t i = 0; i < 4; ++i) {
-//     WTW[0][0] += W[i][0] * W[i][0];
-//     WTW[1][0] += W[i][1] * W[i][0];
-//     WTW[1][1] += W[i][1] * W[i][1];
-//   }
-//   WTW[0][1] = WTW[1][0];
-//   float WTWinv[2][2];
-//   inv2x2(WTW, WTWinv);
-//   // inv(W'.W) * (f + W' * tm)
-//   float intermediate[2];
-//   intermediate[0] = WTWinv[0][0] * Fx + WTWinv[0][1] * Fy;
-//   intermediate[1] = WTWinv[1][0] * Fx + WTWinv[1][1] * Fy;
-//   // tm - W.inv(W'.W).(f + W'.tm)
-//   for (int i = 0; i < 4; ++i) {
-//     tensions[i] = tm[i] + W[i][0] * intermediate[0] + W[i][1] *
-//     intermediate[1];
-//   }
-// }
+  // t = tm + pinv(W)*(f - W * tm) = tm + W'.inv(W.W').(f - W.tm)
+  float tm[4] = {0.6 / kR, 0.6 / kR, 0.6 / kR, 0.6 / kR};
+  // f - W.tm
+  float Wtm[2];
+  matmul(W, tm, Wtm);
+  Fx -= Wtm[0];
+  Fy -= Wtm[1];
+
+  // inv(W.W')
+  float WWT[2][2];  // 0-initialize
+  matmul(W, WT, WWT);
+  float WWTinv[2][2];
+  inv2x2(WWT, WWTinv);
+  // inv(W.W') * (f - W * tm)
+  float intermediate[2];
+  float fWtm[2] = {Fx, Fy};
+  matmul(WWTinv, fWtm, intermediate);
+  // tm + W'.inv(W'.W).(f - W'.tm)
+  float intermediate2[4];
+  matmul(WT, intermediate, intermediate2);
+  matadd(tm, intermediate2, tensions);
+}
 // void Kinematics::forceSolver(float tensions[4], float Fx, float Fy, float x,
 //                              float y) {
 //   float kMountPoints[4][2] = {
