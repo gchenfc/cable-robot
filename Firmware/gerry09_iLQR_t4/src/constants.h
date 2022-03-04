@@ -40,22 +40,42 @@ static constexpr float kTau = 2 * 3.1415926535897932384626433832795;
 
 #endif
 
-#define CALIBRATION
+#define CALIBRATIONx
 #ifdef CALIBRATION
 static constexpr float kMountPoints[4][2] = {
-    {kWidth, 0}, {kWidth, kHeight}, {0, kHeight}, {0, 0}};
-float lengthCorrection(uint8_t winch_num, float len) {
-    return len;
-}
-#else
-static constexpr float kLenCorrectionParams[4][3] = {
-    {0.00000000000000, 1.00000000000000, 0.00000000000000},
-    {-0.01188844089481, 0.92855624871954, 0.08171694405092},
-    {-0.01133362762128, 0.95572779537438, -0.04781298818415},
-    {0.00000000000000, 1.00000000000000, 0.00000000000000},
+    {kFrameWidth, 0},
+    {kFrameWidth, kFrameHeight},
+    {0, kFrameHeight},
+    {0, 0},
 };
+static constexpr float kEEMountPoints[4][2] = {
+    {kCarriageWidth, 0},
+    {kCarriageWidth, kCarriageHeight},
+    {0, kCarriageHeight},
+    {0, 0},
+};
+float lengthCorrection(uint8_t winch_num, float len) { return len; }
+#else
 static constexpr float kMountPoints[4][2] = {
-    {kWidth, 0}, {2.87172620453055, 2.33246622786011}, {0.16871802351569, 2.28522716180476}, {0, 0}};
+  {2.8569092469594004, 0.0697609080167824},
+  {2.886881456698374, 2.2426676210652823},
+  {0.07477860789397986, 2.2276860603677737},
+  {0.04247446571291975, 0.0025415302633857136},
+};
+static constexpr float kLenCorrectionParams[4][3] = {
+  {0, 0.9408428639497599, 0.07326092516560527},
+  {0, 0.935451075050366, 0.15083435413733556},
+  {0, 0.9394487770575536, 0.10466303224837221},
+  {0, 0.9292022987799741, 0.18893707730145656},
+};
+// static constexpr float kLenCorrectionParams[4][3] = {
+//     {0.00000000000000, 1.00000000000000, 0.00000000000000},
+//     {-0.01188844089481, 0.92855624871954, 0.08171694405092},
+//     {-0.01133362762128, 0.95572779537438, -0.04781298818415},
+//     {0.00000000000000, 1.00000000000000, 0.00000000000000},
+// };
+// static constexpr float kMountPoints[4][2] = {
+//     {kWidth, 0}, {2.87172620453055, 2.33246622786011}, {0.16871802351569, 2.28522716180476}, {0, 0}};
 // static constexpr float kMountPoints[4][2] = {
 //     {kWidth, 0},
 //     {2.84039031486005, 2.28342877752207},

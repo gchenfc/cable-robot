@@ -91,6 +91,7 @@ class ControllerGouttefarde : public ControllerSimple {
  public:
   float pid_output_[4], feedback_force_[2], total_force_[2], torque_[4];
   uint64_t last_save_ms = 0;
+  bool need_to_reset_pid_ = true;
   void save_pid_output(const float (&in)[4]) {
     std::copy(std::begin(in), std::end(in), std::begin(pid_output_));
     last_save_ms = millis();
@@ -181,15 +182,22 @@ float ControllerGouttefarde::calcTorque(float t, uint8_t winchnum) const {
   //                lff[3]);
 
   // PID
+  bool *tmp = &need_to_reset_pid_;
   if (t < 0.01) {
-    for (int i = 0; i < 4; ++i) {
-      pid_[i].reset();
+    if (need_to_reset_pid_) {
+      for (int i = 0; i < 4; ++i) {
+        pid_[i].reset();
+      }
+      *tmp = false;
     }
+  } else {
+    *tmp = true;
   }
+
   // float feedback_torque_Nm[4];
   float feedback_tension_N[4];
   for (int i = 0; i < 4; ++i) {
-    float lerr = -ldes[i] - (-robot_.len(i));
+    float lerr = -ldes[i] - lengthCorrection(i, -robot_.len(i));
     feedback_tension_N[i] = pid_[i].update(lerr);
   }
 
