@@ -59,7 +59,7 @@ std::pair<size_t, float> ControllerIlqr::index_Remainder(float t) const {
   static int prev_color_ind = 0;
   size_t index = static_cast<int>(t / dt);
   // switch to "HOLD" if reached end of trajectory
-  if (index >= (sizeof(xffs) / sizeof(xffs[0]))) {
+  if (index >= TRAJ_LEN) {
     hold();  // TODO(gerry): make this not violate constness
     return {TRAJ_LEN - 1, dt};
   }

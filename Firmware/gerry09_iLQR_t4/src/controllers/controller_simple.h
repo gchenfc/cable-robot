@@ -183,6 +183,8 @@ bool ControllerSimple::setupFor(ControllerState state) {
         updatePaint(-1);
         odrive.send(i, MSG_SET_INPUT_TORQUE, 0.0f);
     }
+  }
+  for (int i = 0; i < 4; ++i) {
     odrive.send(i, MSG_SET_CONTROLLER_MODES, static_cast<int32_t>(1),
                 static_cast<int32_t>(1));
   }
