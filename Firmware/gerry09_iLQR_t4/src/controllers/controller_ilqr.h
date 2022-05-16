@@ -4,10 +4,22 @@
 
 #include "controller_simple.h"
 #include "../spray.h"
-#include "../../trajectories/ATL_controller_1e4.h"
-#include "../../trajectories/ATL.h"
+// #include "../../trajectories/ATL_controller_1e4.h"
+// #include "../../trajectories/ATL.h"
+// #include "../../trajectories/ATL_filled_output_controller_1e4.h"
+// #include "../../trajectories/ATL_filled_output.h"
+// #include "../../trajectories/2022-05-12_catherine/ATL_output.h"
+// #include "../../trajectories/2022-05-12_catherine/ATL_output_controller.h"
+#include "../../trajectories/2022-05-12_catherine/buzz_output.h"
+#include "../../trajectories/2022-05-12_catherine/buzz_output_controller.h"
+// #include "../../trajectories/concentric_diamonds_output_1mps_controller_1e4.h"
+// #include "../../trajectories/concentric_diamonds_output_1mps.h"
+// #include "../../trajectories/concentric_diamonds2_output_2mps_20mps2_controller_1e4.h"
+// #include "../../trajectories/concentric_diamonds2_output_2mps_20mps2.h"
 // #include "../../trajectories/ATL_filled.h"
 // #include "../../trajectories/concentric_rects_controller_1e4.h"
+// #include "/Users/gerry/Downloads/104494979_svg_output_3mps2_controller_full.h"
+// #include "/Users/gerry/Downloads/104494979_svg_output_3mps2.h"
 static_assert((sizeof(painton) / sizeof(painton[0]) - 1) ==
                   (sizeof(xffs) / sizeof(xffs[0])),
               "Trajectories are not the same length");
