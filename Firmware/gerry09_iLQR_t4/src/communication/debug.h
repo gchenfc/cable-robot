@@ -19,14 +19,15 @@ class Debug {
  public:
   Debug(Stream& serial, Robot& robot, ControllerInterface* controller,
         StateEstimatorInterface* estimator, Odrive& odrive, Spray& spray,
-        bool (*custom_callback)(char* buffer, int size))
+        bool (*custom_callback)(char* buffer, int size), int delay = 250)
       : serial_(serial),
         robot_(robot),
         controller_(controller),
         estimator_(estimator),
         odrive_(odrive),
         spray_(spray),
-        custom_callback_(custom_callback) {}
+        custom_callback_(custom_callback),
+        print_timer_(delay) {}
 
   // Common API
   void setup() {}
@@ -57,7 +58,7 @@ class Debug {
   Odrive& odrive_;
   Spray& spray_;
   bool (*custom_callback_)(char* buffer, int size);
-  Metro print_timer_ = Metro(250);
+  Metro print_timer_;
   bool print_raw_ = false;
 
   void readSerial();
@@ -521,6 +522,17 @@ bool Debug::parseMsgDebug(char* buffer, int size, Stream& serial) {
     case 1:
       print_raw_ = cmd;
       return true;
+    case 10: {  // print interval
+      parse_cur = buffer + 1;
+      if (!human_serial::parseInt(&parse_cur, parse_end, ',', &cmd))
+        return false;
+      if (cmd != 10) return false;
+      int delay;
+      if (!human_serial::parseInt(&parse_cur, parse_end, '\n', &delay))
+        return false;
+      print_timer_.interval(delay);
+      return true;
+    }
   }
   return false;
 }
