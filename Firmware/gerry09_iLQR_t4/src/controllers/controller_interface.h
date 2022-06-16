@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../communication/ascii_parser.h"
+
 class Odrive;
 
 /**
@@ -24,6 +26,11 @@ class ControllerInterface {
   virtual void setup() = 0;
   virtual void update() = 0;
 
+  virtual bool readSerial(AsciiParser parser, Stream& serialOut) {
+    return false;
+  }
+  virtual void writeSerial(Stream& serialOut) {}
+
   /****************************** Controller API ******************************/
 
   // Returns true if a CAN message was sent, false otherwise (to know whether or
@@ -42,7 +49,9 @@ class ControllerInterface {
 
   /******************************* Data Logging *******************************/
   virtual Vector2 setpointPos() const { return {-1, -1}; }
+  virtual float setpointTheta() const { return 0; }
   virtual Vector2 setpointVel() const { return {0, 0}; }
+  virtual float setpointThetaDot() const { return 0; }
 
   /******* Implementations that you don't need to touch *******/
   ControllerState getState() const { return state_; }

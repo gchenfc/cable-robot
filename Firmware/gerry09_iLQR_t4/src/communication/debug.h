@@ -14,6 +14,8 @@
 #include "../robot.h"
 #include "../state_estimators/state_estimator_interface.h"
 #include "odrive_can.h"
+#include "../spray.h"
+#include "ascii_parser.h"
 
 class Debug {
  public:
@@ -35,9 +37,12 @@ class Debug {
     if (print_timer_.check() && (serial_.availableForWrite() > 200)) {
       auto est_pos = estimator_->posEst();
       auto des_pos = controller_->setpointPos();
-      serial_.printf("%d: %.4f %.4f - %.4f %.4f\t|\t", controller_->getState(),
-                     est_pos.first, est_pos.second,  //
-                     des_pos.first, des_pos.second);
+      serial_.printf("%7u - %d: %.4f %.4f %.4f - %.4f %.4f %.4f\t|\t",        //
+                     micros() % 10000000,                                    //
+                     controller_->getState(),                                //
+                     estimator_->thetaEst(), est_pos.first, est_pos.second,  //
+                     controller_->setpointTheta(), des_pos.first,
+                     des_pos.second);
       for (int i = 0; i < 4; ++i) {
         const Winch& winch = robot_.winches.at(i);
         serial_.printf("%d %d %.4f %.4f\t|\t",  //
@@ -46,6 +51,9 @@ class Debug {
                        print_raw_ ? winch.lenDotRaw() : winch.lenDot());
       }
       serial_.println(spray_.spray());
+    }
+    if (serial_.availableForWrite() > 500) {
+      controller_->writeSerial(serial_);
     }
     readSerial();
   }
@@ -66,30 +74,7 @@ class Debug {
 };
 
 namespace human_serial {
-
-bool until(char** buffer_start, char* buffer_end, char delim) {
-  *buffer_start = std::find(*buffer_start, buffer_end, delim);
-  if (*buffer_start == buffer_end) return false;
-  *((*buffer_start)++) =
-      0;  // null terminate the number and advance to next one
-  return true;
-}
-template <typename T>
-bool parseInt(char** buffer_start, char* buffer_end, char delim, T* value) {
-  char* original_start = *buffer_start;
-  if (!until(buffer_start, buffer_end, delim)) return false;
-  *value = atoi(original_start);
-  *(*buffer_start - 1) = delim;
-  return true;
-}
-template <typename T>
-bool parseFloat(char** buffer_start, char* buffer_end, char delim, T* value) {
-  char* original_start = *buffer_start;
-  if (!until(buffer_start, buffer_end, delim)) return false;
-  *value = atof(original_start);
-  *(*buffer_start - 1) = delim;
-  return true;
-}
+// TODO(gerry): move these functions into their respective classes
 
 bool parseMsgRobot(Robot& robot, Odrive& odrive, char* buffer, int size,
                    Stream& serial) {
@@ -478,7 +463,6 @@ bool parseMsgCanPassthrough(Odrive& odrive, char* buffer, int size,
   serial.println(COMMANDS[cmd]);
   return true;
 }
-
 }  // namespace human_serial
 
 void Debug::readSerial() {
@@ -500,7 +484,8 @@ void Debug::readSerial() {
           (!human_serial::parseMsgSpray(spray_, buffer, bufferi, serial_)) &&
           (!human_serial::parseMsgCanPassthrough(odrive_, buffer, bufferi,
                                                  serial_)) &&
-          (!custom_callback_(buffer, bufferi))) {
+          (!custom_callback_(buffer, bufferi)) &&
+          (!controller_->readSerial(AsciiParser(buffer, bufferi), serial_))) {
         serial_.println("Parse Error");
       };
       bufferi = 0;

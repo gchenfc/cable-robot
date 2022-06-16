@@ -62,6 +62,33 @@ TEST(utils, matmul) {
   EXPECT_DOUBLES_EQUAL(12, C[1][0], 1e-12);
 }
 
+TEST(utils, matadd) {
+  float A[2][3] = {{1, 2, 3},  //
+                   {4, 5, 6}};
+  float B[2][3] = {{7, 8, 9},  //
+                   {10, 11, 12}};
+  float C[2][3];
+  matadd<2, 3>(A, B, C);
+  float C_expected[2][3] = {{8, 10, 12},  //
+                            {14, 16, 18}};
+  for (int ri = 0; ri < 2; ++ri) {
+    for (int ci = 0; ci < 3; ++ci) {
+      EXPECT_DOUBLES_EQUAL(C_expected[ri][ci], C[ri][ci], 1e-12);
+    }
+  }
+}
+
+TEST(utils, vecadd) {
+  float A[3] = {1, 2, 3};
+  float B[3] = {7, 8, 9};
+  float C[3];
+  matadd<3>(A, B, C);
+  float C_expected[3] = {8, 10, 12};
+  for (int ri = 0; ri < 3; ++ri) {
+    EXPECT_DOUBLES_EQUAL(C_expected[ri], C[ri], 1e-12);
+  }
+}
+
 TEST(utils, towards) {
   float nx, ny;
   towards(1, 0, 0, 1, 1, &nx, &ny);

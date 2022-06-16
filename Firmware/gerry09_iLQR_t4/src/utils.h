@@ -20,6 +20,10 @@ void inv2x2(const float (&A)[2][2], float (&Ainv)[2][2]);
 template <int M, int N, int P>
 void matmul(const float (&A)[M][N], const float (&B)[N][P], float (&C)[M][P]);
 
+/// Matrix addition
+template <int M, int N>
+void matadd(const float (&A)[M][N], const float (&B)[M][N], float (&C)[M][N]);
+
 /** Returns a new point towards the target coordinates, traveling a maximum
  * distance of `maxD`.
  * @param maxD the maximum distance we're willing to travel from the starting
@@ -69,6 +73,35 @@ void matmul(const float (&A)[M][N], const float (&B)[N][P], float (&C)[M][P]) {
         C[row][col] += A[row][inner] * B[inner][col];
       }
     }
+  }
+}
+
+/******************************************************************************/
+template <int M, int N>
+void matmul(const float (&A)[M][N], const float (&B)[N], float (&C)[M]) {
+  memset(C, 0, M * sizeof(C[0]));
+  for (int row = 0; row < M; ++row) {
+    for (int col = 0; col < N; ++col) {
+      C[row] += A[row][col] * B[col];
+    }
+  }
+}
+
+/******************************************************************************/
+template <int M, int N>
+void matadd(const float (&A)[M][N], const float (&B)[M][N], float (&C)[M][N]) {
+  for (int row = 0; row < M; ++row) {
+    for (int col = 0; col < N; ++col) {
+      C[row][col] = A[row][col] + B[row][col];
+    }
+  }
+}
+
+/******************************************************************************/
+template <int M>
+void matadd(const float (&A)[M], const float (&B)[M], float (&C)[M]) {
+  for (int row = 0; row < M; ++row) {
+    C[row] = A[row] + B[row];
   }
 }
 
