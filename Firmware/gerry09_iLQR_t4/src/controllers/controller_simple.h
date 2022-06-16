@@ -73,8 +73,8 @@ float ControllerSimple::calcTorque(float t, uint8_t winchnum) const {
   float error[2], bPa[2];
   error[0] = des_pos.first - pos.first;
   error[1] = des_pos.second - pos.second;
-  bPa[0] = kMountPoints[winchnum][0] - pos.first;
-  bPa[1] = kMountPoints[winchnum][1] - pos.second;
+  bPa[0] = mountPoints[winchnum][0] - pos.first;
+  bPa[1] = mountPoints[winchnum][1] - pos.second;
   normalize<2>(bPa);
   // Serial.printf("%.2f %.2f %.2f %.2f %.2f %.2f\n",   //
   //               error[0], error[1], bPa[0], bPa[1],  //

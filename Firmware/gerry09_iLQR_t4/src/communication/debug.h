@@ -40,8 +40,9 @@ class Debug {
       for (int i = 0; i < 4; ++i) {
         const Winch& winch = robot_.winches.at(i);
         serial_.printf("%d %d %.4f %.4f\t|\t",  //
-                       winch.error(), winch.state(), winch.len(),
-                       winch.lenDot());
+                       winch.error(), winch.state(),
+                       print_raw_ ? winch.lenRaw() : winch.len(),
+                       print_raw_ ? winch.lenDotRaw() : winch.lenDot());
       }
       serial_.println(spray_.spray());
     }
@@ -57,8 +58,10 @@ class Debug {
   Spray& spray_;
   bool (*custom_callback_)(char* buffer, int size);
   Metro print_timer_ = Metro(250);
+  bool print_raw_ = false;
 
   void readSerial();
+  bool parseMsgDebug(char* buffer, int size, Stream& serial);
 };
 
 namespace human_serial {
@@ -75,6 +78,7 @@ bool parseInt(char** buffer_start, char* buffer_end, char delim, T* value) {
   char* original_start = *buffer_start;
   if (!until(buffer_start, buffer_end, delim)) return false;
   *value = atoi(original_start);
+  *(*buffer_start - 1) = delim;
   return true;
 }
 template <typename T>
@@ -82,6 +86,7 @@ bool parseFloat(char** buffer_start, char* buffer_end, char delim, T* value) {
   char* original_start = *buffer_start;
   if (!until(buffer_start, buffer_end, delim)) return false;
   *value = atof(original_start);
+  *(*buffer_start - 1) = delim;
   return true;
 }
 
@@ -164,6 +169,111 @@ bool parseMsgRobot(Robot& robot, Odrive& odrive, char* buffer, int size,
       robot.restoreZeros();
       serial.printf("New zeros:\nfloat kZeros[4] = {%.3f, %.3f, %.3f, %.3f};\n",
                     robot.zero(0), robot.zero(1), robot.zero(2), robot.zero(3));
+      return true;
+    }
+    default:
+      serial.println("\n\nInvalid calibration command code\n\n");
+      return false;
+  }
+}
+
+bool parseWinchZeroFromCurrentLength(Robot& robot, uint8_t winchi,
+                                     char** parse_cur, char* parse_end,
+                                     char delimiter, Stream& serial) {
+  float cur_length;
+  if (!parseFloat(parse_cur, parse_end, delimiter, &cur_length)) return false;
+  serial.printf("Setting winch %d zero such that the current length is %.3f\n",
+                winchi, cur_length);
+  Winch& winch = robot.winches[winchi];
+  winch.setZeroFromCurrentLength(cur_length);
+  robot.saveZero(winchi);
+  return true;
+}
+
+bool parseLengthCorrectionParams(const Robot& robot, uint8_t winchi,
+                                 char** parse_cur, char* parse_end,
+                                 char delimiter, Stream& serial) {
+  float a, b, c;
+  if (!parseFloat(parse_cur, parse_end, ',', &a)) return false;
+  if (!parseFloat(parse_cur, parse_end, ',', &b)) return false;
+  if (!parseFloat(parse_cur, parse_end, delimiter, &c)) return false;
+  serial.printf(
+      "Setting winch %d length correction parameters to {%.3f, %.3f, %.3f}\n",
+      winchi, a, b, c);
+  lenCorrectionParamsAll[winchi][0] = a;
+  lenCorrectionParamsAll[winchi][1] = b;
+  lenCorrectionParamsAll[winchi][2] = c;
+  robot.saveLenCorrectionParams(winchi);
+  return true;
+}
+
+bool parseMountPoints(const Robot& robot, uint8_t winchi, char** parse_cur,
+                      char* parse_end, char delimiter, Stream& serial) {
+  float x, y;
+  if (!parseFloat(parse_cur, parse_end, ',', &x)) return false;
+  if (!parseFloat(parse_cur, parse_end, delimiter, &y)) return false;
+  serial.printf("Setting winch %d mount point to {%.3f, %.3f}\n", winchi, x, y);
+  mountPoints[winchi][0] = x;
+  mountPoints[winchi][1] = y;
+  robot.saveMountPoint(winchi);
+  return true;
+}
+
+bool parseMsgCalibration2(Robot& robot, char* buffer, int size,
+                          Stream& serial) {
+  if (size == 0) return false;
+  char* parse_cur = buffer;
+  char* parse_end = buffer + size;
+  uint32_t cmd;
+  if (parse_cur[0] != 'c') return false;
+  ++parse_cur;
+  if (!parseInt(&parse_cur, parse_end, ',', &cmd)) return false;
+
+  switch (cmd) {
+    case 30: // Set zero to current location
+    case 31:
+    case 32:
+    case 33: {
+      return parseWinchZeroFromCurrentLength(robot, cmd - 30, &parse_cur,
+                                             parse_end, '\n', serial);
+    }
+    case 34: {
+      for (int winchi = 0; winchi < 4; ++winchi) {
+        if (!parseWinchZeroFromCurrentLength(robot, winchi, &parse_cur,
+                                             parse_end, winchi < 3 ? ',' : '\n',
+                                             serial))
+          return false;
+      }
+      return true;
+    }
+    case 40:  // Set length correction parameters
+    case 41:
+    case 42:
+    case 43: {
+      return parseLengthCorrectionParams(robot, cmd - 40, &parse_cur, parse_end,
+                                         '\n', serial);
+    }
+    case 44: {
+      for (int winchi = 0; winchi < 4; ++winchi) {
+        if (!parseLengthCorrectionParams(robot, winchi, &parse_cur, parse_end,
+                                         winchi < 3 ? ',' : '\n', serial))
+          return false;
+      }
+      return true;
+    }
+    case 50:  // Set mount points
+    case 51:
+    case 52:
+    case 53: {
+      return parseMountPoints(robot, cmd - 50, &parse_cur, parse_end, '\n',
+                              serial);
+    }
+    case 54: {
+      for (int winchi = 0; winchi < 4; ++winchi) {
+        if (!parseMountPoints(robot, winchi, &parse_cur, parse_end,
+                              winchi < 3 ? ',' : '\n', serial))
+          return false;
+      }
       return true;
     }
     default:
@@ -379,8 +489,11 @@ void Debug::readSerial() {
     buffer[bufferi] = c;
     bufferi++;
     if (c == '\n') {
-      if ((!human_serial::parseMsgRobot(robot_, odrive_, buffer, bufferi,
+      if ((!parseMsgDebug(buffer, bufferi, serial_)) &&
+          (!human_serial::parseMsgRobot(robot_, odrive_, buffer, bufferi,
                                         serial_)) &&
+          (!human_serial::parseMsgCalibration2(robot_, buffer, bufferi,
+                                               serial_)) &&
           (!human_serial::parseMsgController(controller_, odrive_, buffer,
                                              bufferi, serial_)) &&
           (!human_serial::parseMsgSpray(spray_, buffer, bufferi, serial_)) &&
@@ -392,4 +505,22 @@ void Debug::readSerial() {
       bufferi = 0;
     }
   }
+}
+
+bool Debug::parseMsgDebug(char* buffer, int size, Stream& serial) {
+  if (size == 0) return false;
+  char* parse_cur = buffer;
+  char* parse_end = buffer + size;
+  uint32_t cmd;
+  if (parse_cur[0] != 'd') return false;
+  ++parse_cur;
+  if (!human_serial::parseInt(&parse_cur, parse_end, '\n', &cmd)) return false;
+
+  switch (cmd) {
+    case 0:
+    case 1:
+      print_raw_ = cmd;
+      return true;
+  }
+  return false;
 }

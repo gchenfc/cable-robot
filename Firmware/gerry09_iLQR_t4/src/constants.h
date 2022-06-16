@@ -24,44 +24,50 @@ static constexpr float kFrameWidth = 2.0684, kFrameHeight = 1.7986;
 // Constants including carriage
 static constexpr float kCarriageWidth = 0.22377, kCarriageHeight = 0.22377;
 static constexpr float kWidth = kFrameWidth - kCarriageWidth,
-                       kHeight = kFrameHeight - kCarriageHeight / 2;
+                       kHeight = kFrameHeight - kCarriageHeight;
 
 /******** Mathematical Constants **********/
 static constexpr float kTau = 2 * 3.1415926535897932384626433832795;
 
 #endif
 
-#define CALIBRATION
+#define CALIBRATIONx
 #ifdef CALIBRATION
-static constexpr float kMountPoints[4][2] = {
-    {kWidth, 0}, {kWidth, kHeight}, {0, kHeight}, {0, 0}};
-float lengthCorrection(uint8_t winch_num, float len) {
-    return len;
-}
+static constexpr bool kUseLenCorrectionParamsFromEeprom = false;
+static constexpr bool kUseMountPointsFromEeprom = false;
+static constexpr bool kOverwriteLenCorrectionParamsToEeprom = true;
+static constexpr bool kOverwriteMountPointsToEeprom = true;
 #else
-static constexpr float kLenCorrectionParams[4][3] = {
-    {0.00000000000000, 1.00000000000000, 0.00000000000000},
-    {-0.01188844089481, 0.92855624871954, 0.08171694405092},
-    {-0.01133362762128, 0.95572779537438, -0.04781298818415},
-    {0.00000000000000, 1.00000000000000, 0.00000000000000},
-};
-static constexpr float kMountPoints[4][2] = {
-    {kWidth, 0}, {2.87172620453055, 2.33246622786011}, {0.16871802351569, 2.28522716180476}, {0, 0}};
-// static constexpr float kMountPoints[4][2] = {
-//     {kWidth, 0},
-//     {2.84039031486005, 2.28342877752207},
-//     {0.04935230028695, 2.28413482012064},
-//     {0, 0}};
-
-// static constexpr float kLenCorrectionParams[4][3] = {
-//     {0.00000000000000, 1.00000000000000, 0.00000000000000},
-//     {-0.00684466128647, 0.96611076832519, 0.09590875245054},
-//     {-0.02711839240663, 1.04651099781021, 0.09091361100963},
-//     {0.00000000000000, 1.00000000000000, 0.00000000000000},
-// };
-
-float lengthCorrection(uint8_t winch_num, float len) {
-    const auto& params = kLenCorrectionParams[winch_num];
-    return params[0] * len * len + params[1] * len + params[2];
-}
+static constexpr bool kUseLenCorrectionParamsFromEeprom = true;
+static constexpr bool kUseMountPointsFromEeprom = true;
+static constexpr bool kOverwriteLenCorrectionParamsToEeprom = false;
+static constexpr bool kOverwriteMountPointsToEeprom = false;
 #endif
+
+static float lenCorrectionParamsAll[4][3] = {
+    {0., 1., 0.},
+    {0., 1., 0.},
+    {0., 1., 0.},
+    {0., 1., 0.},
+};
+static float mountPoints[4][2] = {
+    {kWidth, 0}, {kWidth, kHeight}, {0, kHeight}, {0, 0}};
+
+float lenCorrection(float len, const float (&params)[3]) {
+  return params[0] * len * len + params[1] * len + params[2];
+}
+float lenDotCorrection(float len, float lenDot, const float (&params)[3]) {
+  return 2 * params[0] * len * lenDot + params[1] * lenDot;
+}
+float lenCorrectionInv(float calibratedLen, const float (&params)[3]) {
+  const float &a = params[0], &b = params[1], c = params[2] - calibratedLen;
+  if (a * a < 1e-8) {  // use a^2 as shorthand instead of abs
+    return -c / b;
+  }
+  return (-b + sqrt(b * b - 4 * a * c)) / (2 * a);
+}
+float lenDotCorrectionInv(float calibratedLen, float calibratedLenDot,
+                          const float (&params)[3]) {
+  float uncalibratedLen = lenCorrectionInv(calibratedLen, params);
+  return calibratedLenDot / (2 * params[0] * uncalibratedLen + params[1]);
+}

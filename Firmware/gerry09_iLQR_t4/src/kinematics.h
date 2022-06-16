@@ -56,8 +56,8 @@ class Kinematics {
 // impl
 void Kinematics::jacobian(const float x, const float y, float W[4][2]) {
   for (uint8_t i = 0; i < 4; ++i) {
-    float dx = kMountPoints[i][0] - x;
-    float dy = kMountPoints[i][1] - y;
+    float dx = mountPoints[i][0] - x;
+    float dy = mountPoints[i][1] - y;
     float norm = sqrt(dx * dx + dy * dy);
     W[i][0] = dx / norm;
     W[i][1] = dy / norm;
@@ -65,29 +65,29 @@ void Kinematics::jacobian(const float x, const float y, float W[4][2]) {
 }
 void Kinematics::IK(float x, float y, float lengths[4]) {
   for (int i = 0; i < 4; i++) {
-    float dx = x - kMountPoints[i][0];
-    float dy = y - kMountPoints[i][1];
+    float dx = x - mountPoints[i][0];
+    float dy = y - mountPoints[i][1];
     lengths[i] = -sqrt(dx * dx + dy * dy);
   }
 }
 void Kinematics::FK(const float lengths[4], float *x, float *y) {
-  static constexpr float tl[2] = {kMountPoints[2][0], kMountPoints[2][1]},
-                         tr[2] = {kMountPoints[1][0], kMountPoints[1][1]};
-  static constexpr float top_vec[2] = {tr[0] - tl[0],  //
-                                       tr[1] - tl[1]};
-  static const float top_vec_norm = norm<2>(top_vec);  // TODO: constexpr
-  static const float cos_th = top_vec[0] / top_vec_norm,
-                     sin_th = top_vec[1] / top_vec_norm;
-  static const float a = top_vec_norm;
-  const float b = lengthCorrection(2, -lengths[2]);
-  const float c = lengthCorrection(1, -lengths[1]);
+  const float(&tl)[2] = mountPoints[2], (&tr)[2] = mountPoints[1];
+  const float top_vec[2] = {tr[0] - tl[0],  //
+                            tr[1] - tl[1]};
+  const float top_vec_norm = norm<2>(top_vec);  // TODO: constexpr
+  const float cos_th = top_vec[0] / top_vec_norm,
+              sin_th = top_vec[1] / top_vec_norm;
+
+  const float a = top_vec_norm;
+  const float b = lengths[2];
+  const float c = lengths[1];
   float cosC = (a * a + b * b - c * c) / (2 * a * b);
   if ((cosC <= 1) && (cosC >= -1)) {
     float x_ = b * cosC;
     float y_ = b * sqrt(1 - cosC * cosC);
     // rotate & flip
-    *x = tl[0] + x_ * cos_th + y_ * sin_th;
-    *y = tl[1] + x_ * sin_th - y_ * cos_th;
+    *x = tl[0] + x_ * cos_th + y_ * sin_th + kCarriageWidth / 2;
+    *y = tl[1] + x_ * sin_th - y_ * cos_th + kCarriageHeight / 2;
   } else {
     // kinematically infeasible
     *x = 0;
@@ -152,14 +152,14 @@ void Kinematics::FKv(const float lDots[4], const float W[4][2], float *vx,
 // }
 // void Kinematics::forceSolver(float tensions[4], float Fx, float Fy, float x,
 //                              float y) {
-//   float kMountPoints[4][2] = {
+//   float mountPoints[4][2] = {
 //       {kWidth, 0}, {kWidth, kHeight}, {0, kHeight}, {0, 0}};
 //   uint8_t i;  // cable index
 //   // norms will be useful later
 //   float norms[4];
 //   for (i = 0; i < 4; ++i) {
-//     float dx = kMountPoints[i][0] - x;
-//     float dy = kMountPoints[i][1] - y;
+//     float dx = mountPoints[i][0] - x;
+//     float dy = mountPoints[i][1] - y;
 //     norms[i] = sqrt(dx * dx + dy * dy);
 //   }
 //   // first assume every cable will pull with at least 0.2Nm and figure out
@@ -181,21 +181,21 @@ void Kinematics::FKv(const float lDots[4], const float W[4][2], float *vx,
 //     float Tmotor = 1.0 * qddot4des[i];
 //     // sum
 //     float Ti = tensions[i] + fs - Tmotor;
-//     Fx -= Ti * (kMountPoints[i][0] - x) / norms[i];
-//     Fy -= Ti * (kMountPoints[i][1] - y) / norms[i];
+//     Fx -= Ti * (mountPoints[i][0] - x) / norms[i];
+//     Fy -= Ti * (mountPoints[i][1] - y) / norms[i];
 //   }
 
 //   // identify which cables to use.
 //   // The desired force will lie between 2 cables (unless F is 0 in which case
 //   it
 //   // doesn't matter)
-//   float dx = kMountPoints[3][0] - x;
-//   float dy = kMountPoints[3][1] - y;
+//   float dx = mountPoints[3][0] - x;
+//   float dy = mountPoints[3][1] - y;
 //   float cross1 = dx * Fy - dy * Fx;
 //   int cablei;
 //   for (cablei = 0; cablei < 4; cablei++) {
-//     dx = kMountPoints[cablei][0] - x;
-//     dy = kMountPoints[cablei][1] - y;
+//     dx = mountPoints[cablei][0] - x;
+//     dy = mountPoints[cablei][1] - y;
 //     float cross2 = dx * Fy - dy * Fx;
 //     if ((cross1 > 0) && (cross2 <= 0))  // cross product switches from + to -
 //       break;
@@ -213,10 +213,10 @@ void Kinematics::FKv(const float lDots[4], const float W[4][2], float *vx,
 //   //    are cable tensions
 //   // [(m1x-x)/n1  (m2x-x)/n2].[f1] = [Fx]
 //   // [(m1y-y)/n1  (m2y-y)/n2] [f2]   [Fy]
-//   float DX[2][2] = {{(kMountPoints[cable1][0] - x) / norms[cable1],
-//                      (kMountPoints[cable2][0] - x) / norms[cable2]},
-//                     {(kMountPoints[cable1][1] - y) / norms[cable1],
-//                      (kMountPoints[cable2][1] - y) / norms[cable2]}};
+//   float DX[2][2] = {{(mountPoints[cable1][0] - x) / norms[cable1],
+//                      (mountPoints[cable2][0] - x) / norms[cable2]},
+//                     {(mountPoints[cable1][1] - y) / norms[cable1],
+//                      (mountPoints[cable2][1] - y) / norms[cable2]}};
 //   float DXinv[2][2];
 //   inv2x2(DX, DXinv);
 //   // solve

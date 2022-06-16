@@ -13,21 +13,19 @@ struct Robot {
   std::array<Winch, 4> winches;
 
   // Constructors
-  Robot()
-      : winches{Winch(kZeros[0]), Winch(kZeros[1]), Winch(kZeros[2]),
-                Winch(kZeros[3])} {}
-  explicit Robot(const float zeros[4])
-      : winches{Winch(zeros[0]), Winch(zeros[1]), Winch(zeros[2]),
-                Winch(zeros[3])} {}
-  Robot(const float zeros[4], const float radii[4])
-      : winches{Winch(zeros[0], radii[0]), Winch(zeros[1], radii[1]),
-                Winch(zeros[2], radii[2]), Winch(zeros[3], radii[3])} {}
+  Robot() : winches{Winch(0), Winch(1), Winch(2), Winch(3)} {}
   // Delete copy/assign constructors
   Robot(const Robot&) = delete;
   Robot& operator=(const Robot&) = delete;
 
   // Common API
-  void setup() { restoreZeros(); }
+  void setup() {
+    restoreZeros();
+    if (kOverwriteLenCorrectionParamsToEeprom) saveLenCorrectionParams();
+    if (kOverwriteMountPointsToEeprom) saveMountPoints();
+    if (kUseLenCorrectionParamsFromEeprom) restoreLenCorrectionParams();
+    if (kUseMountPointsFromEeprom) restoreMountPoints();
+  }
   void update() {}
 
   // Calibration
@@ -42,14 +40,6 @@ struct Robot {
       ret[i] = zero(i);
     }
     return ret;
-  }
-  void saveZero(uint8_t node) const { winches[node].saveZero(node << 5); }
-  void restoreZero(uint8_t node) { winches[node].restoreZero(node << 5); }
-  void saveZeros() const {
-    for (int i = 0; i < 4; ++i) saveZero(i);
-  }
-  void restoreZeros() {
-    for (int i = 0; i < 4; ++i) restoreZero(i);
   }
 
   // Getter functions
@@ -74,5 +64,50 @@ struct Robot {
     for (int i = 0; i < 4; i++) {
       ret[i] = theta(i);
     }
+  }
+
+  // Saving/Restoring parameters
+  static_assert((1 << 5) > Winch::STORAGE_SIZE,
+                "EEPROM storage size too large for indexing "
+                "scheme");
+  void saveZero(uint8_t node) const { winches[node].saveZero(node << 5); }
+  void restoreZero(uint8_t node) { winches[node].restoreZero(node << 5); }
+  void saveLenCorrectionParams(uint8_t node) const {
+    winches[node].saveLenCorrectionParams(node << 5);
+  }
+  void restoreLenCorrectionParams(uint8_t node) {
+    winches[node].restoreLenCorrectionParams(node << 5);
+  }
+  void saveMountPoint(uint8_t node) const {
+    winches[node].saveMountPoint(node << 5);
+  }
+  void restoreMountPoint(uint8_t node) {
+    winches[node].restoreMountPoint(node << 5);
+  }
+  void saveAll(uint8_t node) const { winches[node].saveAll(node << 5); }
+  void restoreAll(uint8_t node) { winches[node].restoreAll(node << 5); }
+  void saveZeros() const {
+    for (int i = 0; i < 4; ++i) saveZero(i);
+  }
+  void restoreZeros() {
+    for (int i = 0; i < 4; ++i) restoreZero(i);
+  }
+  void saveLenCorrectionParams() const {
+    for (int i = 0; i < 4; ++i) saveLenCorrectionParams(i);
+  }
+  void restoreLenCorrectionParams() {
+    for (int i = 0; i < 4; ++i) restoreLenCorrectionParams(i);
+  }
+  void saveMountPoints() const {
+    for (int i = 0; i < 4; ++i) saveMountPoint(i);
+  }
+  void restoreMountPoints() {
+    for (int i = 0; i < 4; ++i) restoreMountPoint(i);
+  }
+  void saveAlls() const {
+    for (int i = 0; i < 4; ++i) saveAll(i);
+  }
+  void restoreAlls() {
+    for (int i = 0; i < 4; ++i) restoreAll(i);
   }
 };
