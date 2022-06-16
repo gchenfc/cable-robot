@@ -197,7 +197,7 @@ float ControllerGouttefarde::calcTorque(float t, uint8_t winchnum) const {
   // float feedback_torque_Nm[4];
   float feedback_tension_N[4];
   for (int i = 0; i < 4; ++i) {
-    float lerr = -ldes[i] - lenCorrection(i, -robot_.len(i));
+    float lerr = -ldes[i] - robot_.len(i);
     feedback_tension_N[i] = pid_[i].update(lerr);
   }
 

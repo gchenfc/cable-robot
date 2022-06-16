@@ -8,13 +8,16 @@ import copy
 
 @dataclasses.dataclass
 class ControllerState:
+    time_us: int
     state: int
     cur_x: float
     cur_y: float
+    cur_th: float
     set_x: float
     set_y: float
+    set_th: float
     def __repr__(self):
-        return f'({self.state} ({self.cur_x}, {self.cur_y}) ({self.set_x}, {self.set_y}))'
+        return f'({self.time_us / 1e6} {self.state} ({self.cur_x}, {self.cur_y}) ({self.set_x}, {self.set_y}))'
 
 @dataclasses.dataclass
 class MotorState:
@@ -62,7 +65,7 @@ class CableRobot:
         self.vel_xy = np.array([0, 0])
         self.ser_buf = ''
         self.SERIAL_FMT = {
-            'controller': parse.compile('{state:d}: {cur_x:f} {cur_y:f} - {set_x:f} {set_y:f}'),
+            'controller': parse.compile('{time_us:d} - {state:d}: {cur_th:f} {cur_x:f} {cur_y:f} - {set_th:f} {set_x:f} {set_y:f}'),
             'motor': parse.compile('{error:d} {state:d} {length:f} {lengthdot:f}'),
             'spray': parse.compile('{spray:d}')
         }

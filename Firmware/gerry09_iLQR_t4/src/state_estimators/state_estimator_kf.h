@@ -154,8 +154,8 @@ float StateEstimatorKf::stateUpdate(float traj_time_s) {
   {
     static float delta_z[8];
     for (int i = 0; i < 4; ++i) {
-      float l = -robot_.len(i);
-      float ldot = -robot_.lenDot(i);
+      float l = robot_.winches[i].lenRaw();
+      float ldot = robot_.winches[i].lenDotRaw();
       delta_z[i] = lengthCorrectionLqg(i, l) - gains.lff[i];
       delta_z[i + 4] = lengthDotCorrectionLqg(i, l, ldot) - gains.ldotff[i];
       // SerialD.printf("winch %d: %.4f, %.4f\n", i, lengthCorrectionLqg(i, l),
