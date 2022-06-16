@@ -79,9 +79,14 @@ void Kinematics::wrenchMatrix(const float x, const float y, float W[2][4]) {
   }
 }
 void Kinematics::IK(float x, float y, float lengths[4]) {
+  static constexpr float CARRIAGE_MOUNT_POINTS[4][2] = {
+      {kCarriageWidth, 0},
+      {kCarriageWidth, kCarriageHeight},
+      {0, kCarriageHeight},
+      {0, 0}};
   for (int i = 0; i < 4; i++) {
-    float dx = x - mountPoints[i][0];
-    float dy = y - mountPoints[i][1];
+    float dx = x + CARRIAGE_MOUNT_POINTS[i][0] - mountPoints[i][0];
+    float dy = y + CARRIAGE_MOUNT_POINTS[i][1] - mountPoints[i][1];
     lengths[i] = -sqrt(dx * dx + dy * dy);
   }
 }

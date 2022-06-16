@@ -22,7 +22,7 @@ class ControllerTracking : public ControllerSimple {
   }
 
  protected:
-  static constexpr float SPEED = 0.2;
+  static constexpr float SPEED = 0.5;
   Vector2 cur_, setpoint_;
   Metro setpointUpdateTimer_{1};
 
