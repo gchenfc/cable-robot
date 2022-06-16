@@ -20,7 +20,7 @@ static constexpr float kSprayDelay_s = 0.40;
 // 1: 2.1146  -  1.8300
 // 2: 2.0470  -  1.7721
 // 3: 2.1305  -  1.8637
-static constexpr float kFrameWidth = 2.0684, kFrameHeight = 1.7986;
+static constexpr float kFrameWidth = 3.05, kFrameHeight = 2.44;
 
 // Constants including carriage
 static constexpr float kCarriageWidth = 0.22377, kCarriageHeight = 0.22377;

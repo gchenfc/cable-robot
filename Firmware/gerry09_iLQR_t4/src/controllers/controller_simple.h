@@ -79,7 +79,7 @@ float ControllerSimple::calcTorque(float t, uint8_t winchnum) const {
   // Serial.printf("%.2f %.2f %.2f %.2f %.2f %.2f\n",   //
   //               error[0], error[1], bPa[0], bPa[1],  //
   //               dot<2>(error, bPa), dot<2>(error, bPa) * 2.0f + 0.7f);
-  static constexpr float gain = 50.0f;
+  static constexpr float gain = 20.0f;
   static constexpr float middle = 0.7f;
   float torque = dot<2>(error, bPa) * gain + middle;
   clamp(&torque, 0.0, 1.4);
