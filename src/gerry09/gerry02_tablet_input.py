@@ -22,17 +22,27 @@ def get_controls(tablet):
     controls = tablet.get_controls()
     return controls
 
-def callback(controls):
+def callback(controls, debug=False):
+    """Returns (x, y, ispressed)"""
+    # 0: Pen touching tablet (bool - ispressed)
+    # 1: Pen button 1
+    # 2: Pen button 2
+    # 3-6: ???
+    # 7: x
+    # 8: y (top is 0)
+    # 9: pen pressure
     c_x, c_y = controls[-3], controls[-2]
     x = (c_x.value - c_x.min) / (c_x.max - c_x.min)
     y = 1 - (c_y.value - c_y.min) / (c_y.max - c_y.min)
-    print(x, y)
-    return x, y
-    # for control in controls:
-    #     if isinstance(control, pyglet.input.base.Button):
-    #         print(control.value)
-    #     else:
-    #         print(control.value) # control.min, control.max
+    if debug:
+        print(x, y)
+        for control in controls:
+            if isinstance(control, pyglet.input.base.Button):
+                print(control.value, end='\t')
+            else:
+                print(control.value, end='\t') # control.min, control.max
+        print()
+    return x, y, controls[0].value
 
 def update_cablerobot(robot, x, y):
     robot.send('ta{:},{:}'.format(1.5 + (x-0.5), 1.2 + (y-0.5)))
@@ -40,26 +50,38 @@ def update_cablerobot(robot, x, y):
 def main():
     tablet = get_tablet()
     controls = get_controls(tablet)
-    robot = CableRobot(print_raw=False, write_timeout=None, initial_msg='d10,100')
 
     # Set up gui
-    window = pyglet.window.Window(1020, 576)
+    window = pyglet.window.Window(1020, 576, visible=True)
 
     try:
         canvas = tablet.open(window)
     except pyglet.input.DeviceException:
         print('Failed to open tablet on window')
+        return
+    else:
+        print('Opened tablet on window')
 
-    print('Opened window')
+    @window.event
+    def on_key_press(symbol, modifiers):
+        if symbol == ord('w') and (modifiers & pyglet.window.key.MOD_ACCEL):  # cmd-W
+            window.close()
 
-    @controls[-2].event
-    def on_change(_):
-        x, y = callback(controls)
-        update_cablerobot(robot, x, y)
+        if symbol == ord('q'):
+            window.close()
 
-    pyglet.app.run()
+    with CableRobot(print_raw=False, write_timeout=None, initial_msg='d10,100') as robot:
+        @controls[-2].event
+        @controls[-3].event
+        @controls[-1].event
+        def on_change(_):
+            x, y, is_pressed = callback(controls)
+            print(x, y)
+            if is_pressed:
+                update_cablerobot(robot, x, y)
+                print(x, y)
 
-    robot.ser.close()
+        pyglet.app.run()
 
 if __name__ == '__main__':
     main()

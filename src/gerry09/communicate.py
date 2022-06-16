@@ -71,6 +71,12 @@ class CableRobot:
         }
         self.log_data = {'controller': None, 'motors': [None, None, None, None], 'spray': None}
         self.all_data = []
+    
+    def __enter__(self):
+        return self
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.ser.close()
+        return False
 
     def update(self):
         t = time.time()
