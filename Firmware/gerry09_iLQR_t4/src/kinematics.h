@@ -71,28 +71,60 @@ void Kinematics::IK(float x, float y, float lengths[4]) {
   }
 }
 void Kinematics::FK(const float lengths[4], float *x, float *y) {
-  const float(&tl)[2] = mountPoints[2], (&tr)[2] = mountPoints[1];
-  const float top_vec[2] = {tr[0] - tl[0],  //
-                            tr[1] - tl[1]};
-  const float top_vec_norm = norm<2>(top_vec);  // TODO: constexpr
-  const float cos_th = top_vec[0] / top_vec_norm,
-              sin_th = top_vec[1] / top_vec_norm;
+  float x1, y1;
+  {
+    const float(&tl)[2] = mountPoints[2], (&tr)[2] = mountPoints[1];
+    const float top_vec[2] = {tr[0] - tl[0],  //
+                              tr[1] - tl[1]};
+    const float top_vec_norm = norm<2>(top_vec);  // TODO: constexpr
+    const float cos_th = top_vec[0] / top_vec_norm,
+                sin_th = top_vec[1] / top_vec_norm;
 
-  const float a = top_vec_norm;
-  const float b = lengths[2];
-  const float c = lengths[1];
-  float cosC = (a * a + b * b - c * c) / (2 * a * b);
-  if ((cosC <= 1) && (cosC >= -1)) {
-    float x_ = b * cosC;
-    float y_ = b * sqrt(1 - cosC * cosC);
-    // rotate & flip
-    *x = tl[0] + x_ * cos_th + y_ * sin_th + kCarriageWidth / 2;
-    *y = tl[1] + x_ * sin_th - y_ * cos_th + kCarriageHeight / 2;
-  } else {
-    // kinematically infeasible
-    *x = 0;
-    *y = 0;
+    const float a = top_vec_norm;
+    const float b = lengths[2];
+    const float c = lengths[1];
+    float cosC = (a * a + b * b - c * c) / (2 * a * b);
+    if ((cosC <= 1) && (cosC >= -1)) {
+      float x_ = b * cosC;
+      float y_ = b * sqrt(1 - cosC * cosC);
+      // rotate & flip
+      x1 = tl[0] + x_ * cos_th + y_ * sin_th + kCarriageWidth / 2;
+      y1 = tl[1] + x_ * sin_th - y_ * cos_th + kCarriageHeight / 2;
+    } else {
+      // kinematically infeasible
+      x1 = 0;
+      y1 = 0;
+    }
   }
+  
+  float x2, y2;
+  {
+    const float(&bl)[2] = mountPoints[3], (&br)[2] = mountPoints[0];
+    const float bot_vec[2] = {br[0] - bl[0],  //
+                              br[1] - bl[1]};
+    const float bot_vec_norm = norm<2>(bot_vec);  // TODO: constexpr
+    const float cos_th = bot_vec[0] / bot_vec_norm,
+                sin_th = bot_vec[1] / bot_vec_norm;
+
+    const float a = bot_vec_norm;
+    const float b = lengths[3];
+    const float c = lengths[0];
+    float cosC = (a * a + b * b - c * c) / (2 * a * b);
+    if ((cosC <= 1) && (cosC >= -1)) {
+      float x_ = b * cosC;
+      float y_ = b * sqrt(1 - cosC * cosC);
+      // rotate & flip
+      x2 = bl[0] + x_ * cos_th - y_ * sin_th + kCarriageWidth / 2;
+      y2 = bl[1] + x_ * sin_th + y_ * cos_th + kCarriageHeight / 2;
+    } else {
+      // kinematically infeasible
+      x2 = 0;
+      y2 = 0;
+    }
+  }
+
+  *x = (x1 + x2) / 2;
+  *y = (y1 + y2) / 2;
 }
 
 void Kinematics::FKv(const float lDots[4], const float W[4][2], float *vx,
