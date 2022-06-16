@@ -50,6 +50,11 @@ Debug debug(SerialD, robot, &controller, &state_estimator, odrive, spray,
             [](char *buffer, int size) {
               return human_serial::parseMsgTracking(controller, buffer, size);
             });
+Debug computer(SerialComputer, robot, &controller, &state_estimator, odrive,
+               spray, [](char *buffer, int size) {
+                 return human_serial::parseMsgTracking(controller, buffer,
+                                                       size);
+               }, 100);
 Slave slave(Serial);
 
 // -------------------------------------------------------------
@@ -61,6 +66,7 @@ void setup(void) {
   spray.setup();
   estop.setup();
   debug.setup();
+  computer.setup();
   slave.setup();
 }
 
@@ -74,4 +80,5 @@ void loop(void) {
   spray.update();
   slave.update();
   debug.update();
+  computer.update();
 }

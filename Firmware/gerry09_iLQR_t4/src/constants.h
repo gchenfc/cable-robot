@@ -3,6 +3,7 @@
 #define ESTOP 11
 #define ESTOP_HIGHx
 #define SerialD Serial
+#define SerialComputer SerialUSB1
 #define btSerial Serial5
 
 #ifndef DEBUG_CONSTANTS
