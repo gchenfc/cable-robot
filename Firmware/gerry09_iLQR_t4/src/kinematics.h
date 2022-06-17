@@ -78,73 +78,31 @@ void Kinematics::wrenchMatrix(const float x, const float y, float W[2][4]) {
     W[1][i] = dy / norm;
   }
 }
-void Kinematics::IK(float x, float y, float lengths[4]) {
-  static constexpr float CARRIAGE_MOUNT_POINTS[4][2] = {
-      {kCarriageWidth, 0},
-      {kCarriageWidth, kCarriageHeight},
-      {0, kCarriageHeight},
-      {0, 0}};
+void Kinematics::IK(const float x, const float y, float lengths[4]) {
+  float xc = x - kCarriageWidth / 2;
+  float yc = y - kCarriageHeight / 2;
   for (int i = 0; i < 4; i++) {
-    float dx = x + CARRIAGE_MOUNT_POINTS[i][0] - mountPoints[i][0];
-    float dy = y + CARRIAGE_MOUNT_POINTS[i][1] - mountPoints[i][1];
-    lengths[i] = -sqrt(dx * dx + dy * dy);
+    float dx = xc - mountPoints[i][0];
+    float dy = yc - mountPoints[i][1];
+    lengths[i] = sqrt(dx * dx + dy * dy);
   }
 }
 void Kinematics::FK(const float lengths[4], float *x, float *y) {
-  float x1, y1;
-  {
-    const float(&tl)[2] = mountPoints[2], (&tr)[2] = mountPoints[1];
-    const float top_vec[2] = {tr[0] - tl[0],  //
-                              tr[1] - tl[1]};
-    const float top_vec_norm = norm<2>(top_vec);  // TODO: constexpr
-    const float cos_th = top_vec[0] / top_vec_norm,
-                sin_th = top_vec[1] / top_vec_norm;
+  // Gauss-Newton Iteration
+  // Even this naive guess is easily good enough
+  *x = 1.5;
+  *y = 1.5;
 
-    const float a = top_vec_norm;
-    const float b = lengths[2];
-    const float c = lengths[1];
-    float cosC = (a * a + b * b - c * c) / (2 * a * b);
-    if ((cosC <= 1) && (cosC >= -1)) {
-      float x_ = b * cosC;
-      float y_ = b * sqrt(1 - cosC * cosC);
-      // rotate & flip
-      x1 = tl[0] + x_ * cos_th + y_ * sin_th + kCarriageWidth / 2;
-      y1 = tl[1] + x_ * sin_th - y_ * cos_th + kCarriageHeight / 2;
-    } else {
-      // kinematically infeasible
-      x1 = 0;
-      y1 = 0;
-    }
+  float ls[4], err[4], W[4][2], dx, dy;
+
+  for (int i = 0; i < 10; ++i) {  // By iter 7 it has almost certainly converged
+    Kinematics::IK(*x, *y, ls);
+    for (int i = 0; i < 4; ++i) err[i] = ls[i] - lengths[i];
+    Kinematics::jacobian(*x, *y, W);
+    Kinematics::FKv(err, W, &dx, &dy); // FK on vel -> ldot is LLS sol
+    *x += dx;
+    *y += dy;
   }
-  
-  float x2, y2;
-  {
-    const float(&bl)[2] = mountPoints[3], (&br)[2] = mountPoints[0];
-    const float bot_vec[2] = {br[0] - bl[0],  //
-                              br[1] - bl[1]};
-    const float bot_vec_norm = norm<2>(bot_vec);  // TODO: constexpr
-    const float cos_th = bot_vec[0] / bot_vec_norm,
-                sin_th = bot_vec[1] / bot_vec_norm;
-
-    const float a = bot_vec_norm;
-    const float b = lengths[3];
-    const float c = lengths[0];
-    float cosC = (a * a + b * b - c * c) / (2 * a * b);
-    if ((cosC <= 1) && (cosC >= -1)) {
-      float x_ = b * cosC;
-      float y_ = b * sqrt(1 - cosC * cosC);
-      // rotate & flip
-      x2 = bl[0] + x_ * cos_th - y_ * sin_th + kCarriageWidth / 2;
-      y2 = bl[1] + x_ * sin_th + y_ * cos_th + kCarriageHeight / 2;
-    } else {
-      // kinematically infeasible
-      x2 = 0;
-      y2 = 0;
-    }
-  }
-
-  *x = (x1 + x2) / 2;
-  *y = (y1 + y2) / 2;
 }
 
 void Kinematics::FKv(const float lDots[4], const float W[4][2], float *vx,
