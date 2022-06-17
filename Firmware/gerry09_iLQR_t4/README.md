@@ -84,6 +84,10 @@ command | description
 `tu#`   | go to up by # meters
 `td#`   | go to down by # meters
 `ts#`   | set movement speed to # m/s
+`tLu#`  | set upper limit to frame height - #
+`tLd#`  | set lower limit to #
+`tLl#`  | set left limit to #
+`tLr#`  | set right limit to frame width - #
 
 ## Parameter adjustment (`K` commands)
 

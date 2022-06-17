@@ -21,6 +21,8 @@ class ControllerTracking : public ControllerSimple {
  protected:
   float speed = 0.5;
   Vector2 cur_, setpoint_;
+  float limit_left_ = 0.2, limit_right_ = 0.2, limit_up_ = 0.2,
+        limit_down_ = 0.2;
   Metro setpointUpdateTimer_{1};
 
   void myUpdate() override {
@@ -42,10 +44,10 @@ class ControllerTracking : public ControllerSimple {
               cur_.first, cur_.second,            // current
               setpoint_.first, setpoint_.second,  // target
               &cur_.first, &cur_.second);         // new
-      clamp(&cur_.first, 0.3, kWidth-0.3);
-      clamp(&cur_.second, 0.3, kHeight-0.3);
-      clamp(&setpoint_.first, 0.3, kWidth-0.3);
-      clamp(&setpoint_.second, 0.3, kHeight-0.3);
+      clamp(&cur_.first, limit_left_, kWidth - limit_right_);
+      clamp(&cur_.second, limit_down_, kHeight - limit_up_);
+      clamp(&setpoint_.first, limit_left_, kWidth - limit_right_);
+      clamp(&setpoint_.second, limit_down_, kHeight - limit_up_);
     }
   }
 
@@ -82,7 +84,28 @@ bool ControllerTracking::readSerial(AsciiParser parser, Stream& serialOut) {
       setpoint.second -= amt;
       break;
     case 's':
-      UNWRAP_PARSE_CHECK(,parser.parseFloat('\n', &speed));
+      UNWRAP_PARSE_CHECK(, parser.parseFloat('\n', &speed));
+      return true;
+    case 'L': {  // limits
+      UNWRAP_PARSE_CHECK(char dir, parser.getChar(&dir));
+      UNWRAP_PARSE_CHECK(, parser.parseFloat('\n', &amt));
+      switch (dir) {
+        case 'u':
+          limit_up_ = amt;
+          return true;
+        case 'd':
+          limit_down_ = amt;
+          return true;
+        case 'l':
+          limit_left_ = amt;
+          return true;
+        case 'r':
+          limit_right_ = amt;
+          return true;
+        default:
+          return false;
+      }
+    }
     default:
       return false;
   }
