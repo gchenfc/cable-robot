@@ -21,12 +21,6 @@ class ControllerGouttefarde : public ControllerSimple {
                         const Robot& robot)
       : ControllerSimple(state_estimator), robot_(robot), kinematics_(robot) {}
 
-  // Datalogging
-  std::pair<float, float> setpointVel() const override {
-    return (state_ == RUNNING_TRAJ) ? desVel(trajTime_s())
-                                    : std::make_pair(0.0f, 0.0f);
-  }
-
   void update() override {
     ControllerSimple::update();
   }
@@ -197,7 +191,7 @@ float ControllerGouttefarde::calcTorque(float t, uint8_t winchnum) const {
   // float feedback_torque_Nm[4];
   float feedback_tension_N[4];
   for (int i = 0; i < 4; ++i) {
-    float lerr = -ldes[i] - robot_.len(i);
+    float lerr = ldes[i] - robot_.len(i);
     feedback_tension_N[i] = pid_[i].update(lerr);
   }
 

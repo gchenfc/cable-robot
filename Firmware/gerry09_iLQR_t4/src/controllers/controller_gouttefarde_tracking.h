@@ -13,13 +13,9 @@ class ControllerGouttefardeTracking : public ControllerTracking {
                         const Robot& robot)
       : ControllerTracking(state_estimator), robot_(robot), kinematics_(robot) {}
 
-  // Datalogging
-  std::pair<float, float> setpointVel() const override {
-    return (state_ == RUNNING_TRAJ) ? desVel(trajTime_s())
-                                    : std::make_pair(0.0f, 0.0f);
-  }
-
   bool readSerial(AsciiParser parser, Stream& serialOut) override {
+    ControllerTracking::readSerial(parser, serialOut);
+
     UNWRAP_PARSE_CHECK(,parser.checkChar('K'));
     UNWRAP_PARSE_CHECK(char c, parser.getChar(&c));
     UNWRAP_PARSE_CHECK(float a, parser.parseFloat('\n', &a));
@@ -42,6 +38,9 @@ class ControllerGouttefardeTracking : public ControllerTracking {
       case 'u':
         mu_ = a;
         break;
+      case 'm':
+        midTension_ = a;
+        break;
     }
     return true;
   }
@@ -62,7 +61,7 @@ class ControllerGouttefardeTracking : public ControllerTracking {
                      torque_[2], torque_[3]);
     }
   }
-  Metro print_timer_{20};
+  Metro print_timer_{1000};
 
  protected:
   static constexpr float dt = 0.01;
@@ -96,6 +95,7 @@ class ControllerGouttefardeTracking : public ControllerTracking {
  public:
   float fs_ = 0., fv_ = 0., mu_ = 0.;
   float kp_ = 5000., ki_ = 10., kd_ = 0.;
+  float midTension_ = 50;
   Pid pid_[4]{Pid(kp_, ki_, kd_), Pid(kp_, ki_, kd_), Pid(kp_, ki_, kd_),
               Pid(kp_, ki_, kd_)};
   void setKp(float kp) {
@@ -165,7 +165,7 @@ float ControllerGouttefardeTracking::calcTorque(float t,
   // float feedback_torque_Nm[4];
   float feedback_tension_N[4];
   for (int i = 0; i < 4; ++i) {
-    float lerr = -ldes[i] - robot_.len(i);
+    float lerr = ldes[i] - robot_.len(i);
     feedback_tension_N[i] = pid_[i].update(lerr);
   }
 
@@ -198,7 +198,7 @@ float ControllerGouttefardeTracking::calcTorque(float t,
   // TODO(gerry): use better tension distribution algorithm
   float tensionTD_Nm[4];
   kinematics_.forceSolverPott(fc_N[0], fc_N[1], xdes[0], xdes[1], W,
-                              tensionTD_Nm);
+                              tensionTD_Nm, midTension_);
   // SerialD.printf("Tension Distribution: %.3f %.3f %.3f %.3f\n", tensionTD_Nm[0],
   //                tensionTD_Nm[1], tensionTD_Nm[2],
   //                tensionTD_Nm[3]);

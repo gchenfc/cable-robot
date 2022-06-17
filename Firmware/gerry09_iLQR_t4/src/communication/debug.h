@@ -17,8 +17,17 @@
 #include "../spray.h"
 #include "ascii_parser.h"
 
+bool default_callback(char* buffer, int size) {
+  return false;
+}
+
 class Debug {
  public:
+  Debug(Stream& serial, Robot& robot, ControllerInterface* controller,
+        StateEstimatorInterface* estimator, Odrive& odrive, Spray& spray,
+        int delay = 250)
+      : Debug(serial, robot, controller, estimator, odrive, spray,
+              default_callback, delay) {}
   Debug(Stream& serial, Robot& robot, ControllerInterface* controller,
         StateEstimatorInterface* estimator, Odrive& odrive, Spray& spray,
         bool (*custom_callback)(char* buffer, int size), int delay = 250)
@@ -322,46 +331,6 @@ bool parseMsgController(ControllerInterface* controller, Odrive& odrive,
       serial.println("\n\nInvalid controller command code\n\n");
       return false;
   }
-}
-bool parseMsgTracking(ControllerTracking& controller, char* buffer, int size) {
-  if (size == 0) return false;
-  char* parse_cur = buffer;
-  char* parse_end = buffer + size;
-  if (parse_cur[0] != 't') return false;
-  ++parse_cur;
-  char cmd = *parse_cur;
-  ++parse_cur;
-
-  std::pair<float, float> setpoint = controller.getSetpoint();
-  float amt;
-  switch (cmd) {
-    case 'a':
-      if (!parseFloat(&parse_cur, parse_end, ',', &setpoint.first))
-        return false;
-      if (!parseFloat(&parse_cur, parse_end, '\n', &setpoint.second))
-        return false;
-      break;
-    case 'r':
-      if (!parseFloat(&parse_cur, parse_end, '\n', &amt)) return false;
-      setpoint.first += amt;
-      break;
-    case 'l':
-      if (!parseFloat(&parse_cur, parse_end, '\n', &amt)) return false;
-      setpoint.first -= amt;
-      break;
-    case 'u':
-      if (!parseFloat(&parse_cur, parse_end, '\n', &amt)) return false;
-      setpoint.second += amt;
-      break;
-    case 'd':
-      if (!parseFloat(&parse_cur, parse_end, '\n', &amt)) return false;
-      setpoint.second -= amt;
-      break;
-    default:
-      return false;
-  }
-  controller.setSetpoint(setpoint);
-  return true;
 }
 
 bool parseMsgSpray(Spray& spray, char* buffer, int size, Stream& serial) {

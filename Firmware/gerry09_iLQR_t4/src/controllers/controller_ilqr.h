@@ -24,12 +24,6 @@ class ControllerIlqr : public ControllerSimple {
   ControllerIlqr(const StateEstimatorInterface* state_estimator, Spray& spray)
       : ControllerSimple(state_estimator), spray_(spray) {}
 
-  // Datalogging
-  std::pair<float, float> setpointVel() const override {
-    return (state_ == RUNNING_TRAJ) ? desVel(trajTime_s())
-                                    : std::make_pair(0.0f, 0.0f);
-  }
-
  protected:
   static constexpr float dt = 0.01;
   Spray& spray_;

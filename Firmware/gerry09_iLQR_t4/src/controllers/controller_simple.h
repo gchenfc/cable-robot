@@ -34,26 +34,10 @@ class ControllerSimple : public ControllerInterface {
   bool release() override;
 
   // Datalogging
-  Vector2 setpointPos() const override {
-    return ((state_ == RUNNING_TRAJ) || (state_ == HOLD_TRAJ_BEGIN))
-               ? desPos(trajTime_s())
-               : std::make_pair(0.0f, 0.0f);
-  }
-  float setpointTheta() const override {
-    return ((state_ == RUNNING_TRAJ) || (state_ == HOLD_TRAJ_BEGIN))
-               ? desTheta(trajTime_s())
-               : 0.0f;
-  }
-  Vector2 setpointVel() const override {
-    return ((state_ == RUNNING_TRAJ) || (state_ == HOLD_TRAJ_BEGIN))
-               ? desVel(trajTime_s())
-               : std::make_pair(0.0f, 0.0f);
-  }
-  float setpointThetaDot() const override {
-    return ((state_ == RUNNING_TRAJ) || (state_ == HOLD_TRAJ_BEGIN))
-               ? desThetaDot(trajTime_s())
-               : 0.0f;
-  }
+  Vector2 setpointPos() const override { return desPos(trajTime_s()); }
+  float setpointTheta() const override { return desTheta(trajTime_s()); }
+  Vector2 setpointVel() const override { return desVel(trajTime_s()); }
+  float setpointThetaDot() const override { return desThetaDot(trajTime_s()); }
 
  protected:
   using Vector2 = std::pair<float, float>;

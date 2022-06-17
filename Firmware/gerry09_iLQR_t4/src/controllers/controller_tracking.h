@@ -9,11 +9,6 @@ class ControllerTracking : public ControllerSimple {
         cur_(kWidth / 2, kHeight / 2),
         setpoint_(cur_) {}
 
-  // Datalogging
-  std::pair<float, float> setpointVel() const override {
-    return std::make_pair(0.0f, 0.0f);
-  }
-
   Vector2 getSetpoint() const {
     return setpoint_;
   }
@@ -21,18 +16,29 @@ class ControllerTracking : public ControllerSimple {
     setpoint_ = setpoint;
   }
 
+  bool readSerial(AsciiParser parser, Stream& serialOut) override;
+
  protected:
-  static constexpr float SPEED = 0.5;
+  float speed = 0.5;
   Vector2 cur_, setpoint_;
   Metro setpointUpdateTimer_{1};
 
   void myUpdate() override {
+    if (state_ == HOLD_TRAJ_BEGIN) {
+      cur_ = state_estimator_->posEst();
+      setpoint_ = cur_;
+    }
+    // if (state_ == RUNNING_TRAJ) {
+    //   // For safety reasons, snap the desired position to current estimated
+    //   // position just in case.
+    //   const Vector2& x = state_estimator_->posEst();
+    //   towards(1e-3 * speed,                //
+    //           x.first, x.second,           //
+    //           cur_.first, cur_.second,     //
+    //           &cur_.first, &cur_.second);  //
+    // }
     if (setpointUpdateTimer_.check()) {
-      if (state_ == HOLD_TRAJ_BEGIN) {
-        cur_ = state_estimator_->posEst();
-        setpoint_ = cur_;
-      }
-      towards(1e-3 * SPEED,                       //
+      towards(1e-3 * speed,                       //
               cur_.first, cur_.second,            // current
               setpoint_.first, setpoint_.second,  // target
               &cur_.first, &cur_.second);         // new
@@ -47,3 +53,39 @@ class ControllerTracking : public ControllerSimple {
     return cur_;
   }
 };
+
+bool ControllerTracking::readSerial(AsciiParser parser, Stream& serialOut) {
+  UNWRAP_PARSE_CHECK(,parser.checkChar('t'));
+  UNWRAP_PARSE_CHECK(char cmd, parser.getChar(&cmd));
+
+  std::pair<float, float> setpoint = getSetpoint();
+  float amt;
+  switch (cmd) {
+    case 'a':
+      UNWRAP_PARSE_CHECK(,parser.parseFloat(',', &setpoint.first));
+      UNWRAP_PARSE_CHECK(,parser.parseFloat('\n', &setpoint.second));
+      break;
+    case 'r':
+      UNWRAP_PARSE_CHECK(,parser.parseFloat('\n', &amt));
+      setpoint.first += amt;
+      break;
+    case 'l':
+      UNWRAP_PARSE_CHECK(,parser.parseFloat('\n', &amt));
+      setpoint.first -= amt;
+      break;
+    case 'u':
+      UNWRAP_PARSE_CHECK(,parser.parseFloat('\n', &amt));
+      setpoint.second += amt;
+      break;
+    case 'd':
+      UNWRAP_PARSE_CHECK(,parser.parseFloat('\n', &amt));
+      setpoint.second -= amt;
+      break;
+    case 's':
+      UNWRAP_PARSE_CHECK(,parser.parseFloat('\n', &speed));
+    default:
+      return false;
+  }
+  setSetpoint(setpoint);
+  return true;
+}

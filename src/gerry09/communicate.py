@@ -171,9 +171,12 @@ class CableRobot:
                 print('parse error!', chunks)
                 continue
             self.cur_xy = np.array([cdata['cur_x'], cdata['cur_y']])
-            self.log_data['controller'] = ControllerState(**cdata.named)
-            self.log_data['motors'] = [MotorState(**mdatum.named) for mdatum in mdata]
-            self.all_data.append(copy.deepcopy(self.log_data))
+            try:
+                self.log_data['controller'] = ControllerState(**cdata.named)
+                self.log_data['motors'] = [MotorState(**mdatum.named) for mdatum in mdata]
+                self.all_data.append(copy.deepcopy(self.log_data))
+            except AttributeError as e:
+                print('parse error')
 
             # self.setpoint_xy = np.array([cdata['set_x'], cdata['set_y']])
             # if cdata['state'] == 1:

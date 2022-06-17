@@ -53,15 +53,9 @@ StateEstimatorFirstOrder state_estimator(robot);
 ControllerGouttefardeTracking controller(&state_estimator, robot);
 Odrive odrive(robot, controller);
 Estop<ESTOP> estop(odrive, &controller, spray);
-Debug debug(SerialD, robot, &controller, &state_estimator, odrive, spray,
-            [](char *buffer, int size) {
-              return human_serial::parseMsgTracking(controller, buffer, size);
-            });
+Debug debug(SerialD, robot, &controller, &state_estimator, odrive, spray);
 Debug computer(SerialComputer, robot, &controller, &state_estimator, odrive,
-               spray, [](char *buffer, int size) {
-                 return human_serial::parseMsgTracking(controller, buffer,
-                                                       size);
-               }, 100);
+               spray, 100);
 Slave slave(Serial);
 
 // -------------------------------------------------------------

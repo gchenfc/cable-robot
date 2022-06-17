@@ -46,7 +46,8 @@ class Kinematics {
 
   // Force distribution solvers
   static void forceSolverPott(float Fx, float Fy, float x, float y,
-                              const float (&W)[2][4], float (&tensions)[4]);
+                              const float (&W)[2][4], float (&tensions)[4],
+                              float midTension = (0.6 / kR));
   // static void forceSolver(float tensions[4], float Fx, float Fy, float x,
   //                         float y);
   // void forceSolver(float tensions[4], float Fx, float Fy) const {
@@ -130,7 +131,8 @@ void Kinematics::FKv(const float lDots[4], const float W[4][2], float *vx,
 }
 
 void Kinematics::forceSolverPott(float Fx, float Fy, float x, float y,
-                                 const float (&W)[2][4], float (&tensions)[4]) {
+                                 const float (&W)[2][4], float (&tensions)[4],
+                                 float midTension) {
   float WT[4][2];
   for (int i = 0; i < 4; ++i) {
     for (int j = 0; j < 2; ++j) {
@@ -139,7 +141,7 @@ void Kinematics::forceSolverPott(float Fx, float Fy, float x, float y,
   }
 
   // t = tm + pinv(W)*(f - W * tm) = tm + W'.inv(W.W').(f - W.tm)
-  float tm[4] = {0.6 / kR, 0.6 / kR, 0.6 / kR, 0.6 / kR};
+  float tm[4] = {midTension, midTension, midTension, midTension};
   // f - W.tm
   float Wtm[2];
   matmul(W, tm, Wtm);

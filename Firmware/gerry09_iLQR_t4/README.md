@@ -72,6 +72,19 @@ command | description
 `g7`    | release - set all motors to 0.0Nm which drops the end effector
 `g8`    | closed loop control - enables the motors
 
+## Tracking Control (`t` commands)
+
+format: `t_#`
+
+command | description
+|-------| -----------
+`ta#,#` | go to the absolute coordinate #, # in meters
+`tr#`   | go to the right by # meters
+`tl#`   | go to the left by # meters
+`tu#`   | go to up by # meters
+`td#`   | go to down by # meters
+`ts#`   | set movement speed to # m/s
+
 ## Parameter adjustment (`K` commands)
 
 ### Gouttefarde controller:
@@ -86,6 +99,7 @@ command | description
 `Kv#`   | Set viscous friction coefficient (fv)
 `Ks#`   | Set static friction coefficient (fs)
 `Ku#`   | Set static friction parameter (mu)
+`Km#`   | Set "midpoint" tension in Newtons!!! (t_m)
 
 (friction force) = fv * (cable vel) + fs * tanh(mu * (cable vel))
 

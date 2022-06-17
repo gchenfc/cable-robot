@@ -17,12 +17,6 @@ class ControllerLqg : public ControllerSimple {
       : ControllerSimple(state_estimator),
         state_estimator_kf_(state_estimator) {}
 
-  // Datalogging
-  std::pair<float, float> setpointVel() const override {
-    return (state_ == RUNNING_TRAJ) ? desVel(trajTime_s())
-                                    : std::make_pair(0.0f, 0.0f);
-  }
-
  protected:
   StateEstimatorKf* state_estimator_kf_;
 

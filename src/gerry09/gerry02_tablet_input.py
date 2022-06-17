@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
+
 def get_tablet():
     tablet = None
     for device in pyglet.input.get_devices():
@@ -18,9 +19,11 @@ def get_tablet():
             break
     return tablet
 
+
 def get_controls(tablet):
     controls = tablet.get_controls()
     return controls
+
 
 def callback(controls, debug=False):
     """Returns (x, y, ispressed)"""
@@ -40,19 +43,23 @@ def callback(controls, debug=False):
             if isinstance(control, pyglet.input.base.Button):
                 print(control.value, end='\t')
             else:
-                print(control.value, end='\t') # control.min, control.max
+                print(control.value, end='\t')  # control.min, control.max
         print()
-    return x, y, controls[0].value
+    return x, y, controls[0].value or controls[1].value or controls[2].value
+
 
 def update_cablerobot(robot, x, y):
-    robot.send('ta{:},{:}'.format(1.5 + (x-0.5), 1.2 + (y-0.5)))
+    robot.send('ta{:},{:}'.format(1.6 + 1.6 * 1.8 * (x - 0.5),
+                                  1.3 + 1.0 * 1.8 * (y - 0.5)))  # 4.8" x 3"
+
 
 def main():
     tablet = get_tablet()
     controls = get_controls(tablet)
 
     # Set up gui
-    window = pyglet.window.Window(1020, 576, visible=True)
+    # window = pyglet.window.Window(fullscreen=True)
+    window = pyglet.window.Window(640, 480)
 
     try:
         canvas = tablet.open(window)
@@ -70,7 +77,8 @@ def main():
         if symbol == ord('q'):
             window.close()
 
-    with CableRobot(print_raw=False, write_timeout=None, initial_msg='d10,100') as robot:
+    with CableRobot(print_raw=False, write_timeout=None,
+                    initial_msg='Kp5000;Ki15;Kd30;d10,100') as robot:
         @controls[-2].event
         @controls[-3].event
         @controls[-1].event
@@ -81,7 +89,17 @@ def main():
                 update_cablerobot(robot, x, y)
                 print(x, y)
 
+        # def update(dt):
+        #     x, y, is_pressed = callback(controls)
+        #     print(x, y)
+        #     if is_pressed:
+        #         update_cablerobot(robot, x, y)
+        #         print(x, y)
+        #     robot.update()
+        # pyglet.clock.schedule_interval(update, 0.0003)
+
         pyglet.app.run()
+
 
 if __name__ == '__main__':
     main()
