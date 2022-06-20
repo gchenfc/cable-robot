@@ -142,7 +142,7 @@ float ControllerGouttefardeTracking::calcTorque(float t,
   if (winchnum >= 4) return 0.0f;
   // Setpoint
   const auto& xdes_ = desPos(t);
-  const auto& vdes_ = desPos(t);
+  const auto& vdes_ = desVel(t);
   const float xdes[2] = {xdes_.first, xdes_.second};
   const float vdes[2] = {vdes_.first, vdes_.second};
 
