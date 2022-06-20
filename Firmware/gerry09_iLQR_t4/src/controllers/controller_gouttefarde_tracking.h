@@ -14,7 +14,7 @@ class ControllerGouttefardeTracking : public ControllerTracking {
       : ControllerTracking(state_estimator), robot_(robot), kinematics_(robot) {}
 
   bool readSerial(AsciiParser parser, Stream& serialOut) override {
-    ControllerTracking::readSerial(parser, serialOut);
+    if (ControllerTracking::readSerial(parser, serialOut)) return true;
 
     UNWRAP_PARSE_CHECK(,parser.checkChar('K'));
     UNWRAP_PARSE_CHECK(char c, parser.getChar(&c));
@@ -41,6 +41,14 @@ class ControllerGouttefardeTracking : public ControllerTracking {
       case 'm':
         midTension_ = a;
         break;
+      case 'M':
+        maxTension_ = a;
+        break;
+      case 'L':
+        minTension_ = a;
+        break;
+      default:
+        return false;
     }
     return true;
   }
@@ -218,7 +226,7 @@ float ControllerGouttefardeTracking::calcTorque(float t,
 
   // Safety & return
   float torque = taum_Nm[winchnum];
-  clamp(&torque, 0.1, 1.2);
+  clamp(&torque, minTension_ * kR, maxTension_ * kR);
   return torque;
 }
 /************* END KEY FUNCTIONS **************/
