@@ -11,6 +11,9 @@ class Kinematics {
   // Calculate the transpose of the "jacobian" aka "wrench matrix" in the
   // current configuration.
   // f = W'.t, where f is x/y force and t is 4-d cable tension vector
+  // Note: due to positive length convention, actually there's a sign error:
+  //    Wf = t
+  //    Wv = -ldot
   static void jacobian(const float x, const float y, float W[4][2]);
   static void wrenchMatrix(const float x, const float y, float W[2][4]);
 
@@ -100,9 +103,9 @@ void Kinematics::FK(const float lengths[4], float *x, float *y) {
     Kinematics::IK(*x, *y, ls);
     for (int i = 0; i < 4; ++i) err[i] = ls[i] - lengths[i];
     Kinematics::jacobian(*x, *y, W);
-    Kinematics::FKv(err, W, &dx, &dy); // FK on vel -> ldot is LLS sol
-    *x += dx;
-    *y += dy;
+    Kinematics::FKv(err, W, &dx, &dy); // FK on vel -> -ldot is LLS sol
+    *x -= dx;  // negative sign because there's a minus sign in FKv convention
+    *y -= dy;
   }
 }
 
@@ -111,7 +114,7 @@ void Kinematics::FKv(const float lDots[4], const float W[4][2], float *vx,
   // least squares: v = (W'.W)^(-1).W'.qdot
   float WTqdotx = 0, WTqdoty = 0;
   for (uint8_t i = 0; i < 4; ++i) {
-    const float &qdot = lDots[i];
+    const float &qdot = -lDots[i];  // Note this sign flip due to negative power
     WTqdotx += W[i][0] * qdot;
     WTqdoty += W[i][1] * qdot;
   }

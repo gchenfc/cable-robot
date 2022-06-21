@@ -189,7 +189,7 @@ bool ControllerSimple::goToStartTraj() {
 }
 bool ControllerSimple::startTraj() {
   if (state_ == HOLD_TRAJ_BEGIN) {
-    tpause_us_ = 0; // TODO(gerry): remove this later
+    // tpause_us_ = 0; // TODO(gerry): remove this later
     tstart_us_ = micros() - tpause_us_ + (kSprayDelay_s * 1e6);
     setupFor(RUNNING_TRAJ);
     state_ = RUNNING_TRAJ;

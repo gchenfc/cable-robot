@@ -32,10 +32,10 @@
 // #include "src/state_estimators/state_estimator_kf.h"
 // #include "src/controllers/controller_simple.h"
 // #include "src/controllers/controller_tracking.h"
-// #include "src/controllers/controller_ilqr.h"
+#include "src/controllers/controller_ilqr.h"
 // #include "src/controllers/controller_lqg.h"
 // #include "src/controllers/controller_gouttefarde.h"
-#include "src/controllers/controller_gouttefarde_tracking.h"
+// #include "src/controllers/controller_gouttefarde_tracking.h"
 #include "src/communication/odrive_can.h"
 #include "src/spray.h"
 #include "src/estop.h"
@@ -48,9 +48,9 @@ StateEstimatorFirstOrder state_estimator(robot);
 // StateEstimatorKf state_estimator(robot);
 // ControllerSimple controller(&state_estimator);
 // ControllerTracking controller(&state_estimator);
-// ControllerIlqr controller(&state_estimator, spray);
+ControllerIlqr controller(&state_estimator, spray);
 // ControllerLqg controller(&state_estimator);
-ControllerGouttefardeTracking controller(&state_estimator, robot);
+// ControllerGouttefardeTracking controller(&state_estimator, robot);
 Odrive odrive(robot, controller);
 Estop<ESTOP> estop(odrive, &controller, spray);
 Debug debug(SerialD, robot, &controller, &state_estimator, odrive, spray);

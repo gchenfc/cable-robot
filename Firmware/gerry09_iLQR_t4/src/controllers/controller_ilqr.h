@@ -11,10 +11,13 @@
 // #include "../../trajectories/ATL_filled.h"
 // #include "../../trajectories/concentric_diamonds2_output_2mps_20mps2_controller_1e4.h"
 // #include "../../trajectories/concentric_diamonds2_output_2mps_20mps2.h"
-#include "../../trajectories/Gs_5cm_10_08_04_04_output_controller_1e4.h"
-#include "../../trajectories/Gs_5cm_10_08_04_04_output.h"
+// #include "../../trajectories/Gs_5cm_10_08_04_04_output_controller_1e4.h"
+// #include "../../trajectories/Gs_5cm_10_08_04_04_output.h"
 // #include "../../trajectories/concentric_diamonds_output_1mps_controller_1e4.h"
 // #include "../../trajectories/concentric_diamonds_output_1mps.h"
+#include "../../trajectories/2022-05-12_catherine/ATL_output.h"
+#include "../../trajectories/2022-05-12_catherine/ATL_output_controller.h"
+
 static_assert((sizeof(painton) / sizeof(painton[0]) - 1) ==
                   (sizeof(xffs) / sizeof(xffs[0])),
               "Trajectories are not the same length");
