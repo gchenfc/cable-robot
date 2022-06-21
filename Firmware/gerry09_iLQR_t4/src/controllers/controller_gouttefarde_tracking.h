@@ -32,9 +32,8 @@ class ControllerGouttefardeTracking : public ControllerTracking {
   bool readSerial(AsciiParser parser, Stream& serialOut) override {
     if (ControllerTracking::readSerial(parser, serialOut)) return true;
 
-    {
-      AsciiParser parser_gains = parser;
-      UNWRAP_PARSE_CHECK(, parser_gains.checkChar('K'));
+    AsciiParser parser_gains = parser;
+    if (parser_gains.checkChar('K')) {
       UNWRAP_PARSE_CHECK(char c, parser_gains.getChar(&c));
       UNWRAP_PARSE_CHECK(float a, parser_gains.parseFloat('\n', &a));
       switch (c) {
@@ -67,9 +66,8 @@ class ControllerGouttefardeTracking : public ControllerTracking {
           return true;
       }
     }
-    {
-      AsciiParser parser_print_debug = parser;
-      UNWRAP_PARSE_CHECK(, parser_print_debug.checkChar('p'));
+    AsciiParser parser_print_debug = parser;
+    if (parser_print_debug.checkChar('p')) {
       UNWRAP_PARSE_CHECK(char c, parser_print_debug.getChar(&c));
       UNWRAP_PARSE_CHECK(int a, parser_print_debug.parseInt('\n', &a));
       switch (c) {
