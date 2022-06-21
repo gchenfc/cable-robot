@@ -105,26 +105,26 @@ void moveToPos(const float xy[2], Robot *robot) {
 //   }
 // }
 
-TEST(Kinematics, calibration) {
-  Robot robot;
-  Kinematics kinematics(robot);
-  float lengths[4][4] = {{0., -1., -2., 0.},
-                         {83., -2.5, -1.2, -123.},
-                         {1., -0.5, -2.6, 3.},
-                         {2., -3., -3., 4.}};
-  float positions[4][2] = {{2.01691951, 1.62366381},
-                           {0.65938464, 1.1274681},
-                           {2.6227755, 1.74876553},
-                           {1.50119715, -0.32558134}};
+// TEST(Kinematics, calibration) {
+//   Robot robot;
+//   Kinematics kinematics(robot);
+//   float lengths[4][4] = {{0., -1., -2., 0.},
+//                          {83., -2.5, -1.2, -123.},
+//                          {1., -0.5, -2.6, 3.},
+//                          {2., -3., -3., 4.}};
+//   float positions[4][2] = {{2.01691951, 1.62366381},
+//                            {0.65938464, 1.1274681},
+//                            {2.6227755, 1.74876553},
+//                            {1.50119715, -0.32558134}};
 
-  // FK
-  for (int i = 0; i < 4; ++i) {
-    float x, y;
-    kinematics.FK(lengths[i], &x, &y);
-    EXPECT_DOUBLES_EQUAL(positions[i][0], x, 1e-5);
-    EXPECT_DOUBLES_EQUAL(positions[i][1], y, 2e-5);
-  }
-}
+//   // FK
+//   for (int i = 0; i < 4; ++i) {
+//     float x, y;
+//     kinematics.FK(lengths[i], &x, &y);
+//     EXPECT_DOUBLES_EQUAL(positions[i][0], x, 1e-5);
+//     EXPECT_DOUBLES_EQUAL(positions[i][1], y, 2e-5);
+//   }
+// }
 
 int main() {
   TestResult tr;
