@@ -91,11 +91,11 @@ struct AsciiParser {
     return human_serial::parseFloat(&buffer_cur_, buffer_end_, '\255', ret);
   }
 
+  /// Generic (template-based) parsing
   bool parse() { return checkDone(); }
 #define COMMA ,
 #define ENABLE_IF(expr) std::enable_if_t<expr, bool> = true
-  template <typename T, ENABLE_IF(std::is_same<char COMMA T>::value)>
-  bool parse(T* ret, char delimiter = '\n') {
+  bool parse(char* ret, char delimiter = '\n') {
     return getChar(ret) && (delimiter == ',' ? advanceOnMatchChar(delimiter)
                                              : checkChar(delimiter));
   }
@@ -113,9 +113,28 @@ struct AsciiParser {
     return parse(ret, ',') && parse(otherRets...);
   }
 
+  // Parse (non-const) but don't output the results
+  template <typename T>
+  bool parse() {
+    T t;
+    return parse(&t);
+  }
+  template <typename T1, typename T2, typename... T>
+  bool parse() {
+    T1 t2 = 5;
+    return parse(&t2, ',') && parse<T2, T...>();
+  }
+
+  // Peek (const) outputs results but doesn't modify the underlying buffer
   template <typename... T>
-  bool peek(T*... ret) {
+  bool peek(T*... ret) const {
     AsciiParser parser(*this);
     return parser.parse(ret...);
+  }
+  // Peek (const) neither outputs the results nor modifies the buffer
+  template <typename... T>
+  bool peek() const {
+    AsciiParser parser(*this);
+    return parser.parse<T...>();
   }
 };

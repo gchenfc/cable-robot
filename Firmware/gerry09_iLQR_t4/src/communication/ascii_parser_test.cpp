@@ -58,6 +58,15 @@ TEST(AsciiParser, test_peek) {
   CHECK(parser.parse(&a, &f, &i, &n));
 }
 
+TEST(AsciiParser, test_peek2) {
+  AsciiParser parser = parser_;
+  CHECK(parser.checkChar('c'))
+  CHECK((!parser.peek<char, float, int, char, int>()));
+  CHECK((!parser.peek<char, float, int>()));
+  CHECK((parser.peek<char, float, int, char>()));
+  CHECK((parser.parse(&a, &f, &i, &n)));
+}
+
 int main() {
   TestResult tr;
   return TestRegistry::runAllTests(tr);
