@@ -6,25 +6,35 @@
 #define SerialComputer SerialUSB1
 #define btSerial Serial5
 
+// Select which robot:
+#define KLAUS
+#define DFLx
+#define HYDROPONICSx
+
 #ifndef DEBUG_CONSTANTS
 
 /******** Winch Parameters **********/
-float kZeros[4] = {4.868, 4.672, 6.490, 7.980};
+float kZeros[4] = {4.868, 4.672, 6.490, 7.980};  // these will get reset anyway
 static constexpr float kR = 0.0254 / 2;
 // static constexpr float kSprayDelay_s = 0.40;
 static constexpr float kSprayDelay_s = 0.0;
 
 /******** Frame Geometry **********/
-// Klaus lab measurements:
-//      w          h
-// 0: 1.9815  -  1.7286
-// 1: 2.1146  -  1.8300
-// 2: 2.0470  -  1.7721
-// 3: 2.1305  -  1.8637
+/* NOTE: THESE ACTUALLY GET OVERWRITTEN BY EEPROM */
+#ifdef KLAUS
 static constexpr float kFrameWidth = 3.05, kFrameHeight = 2.44;
+static constexpr float kCarriageWidth = 0.187, kCarriageHeight = 0.122;
+#endif
+#ifdef DFL
+static constexpr float kFrameWidth = 3.05, kFrameHeight = 2.44;
+static constexpr float kCarriageWidth = 0.187, kCarriageHeight = 0.122;
+#endif
+#ifdef HYDROPONICS
+static constexpr float kFrameWidth = 2.20, kFrameHeight = 2.00;
+static constexpr float kCarriageWidth = 0.22377, kCarriageHeight = 0.22377;
+#endif
 
 // Constants including carriage
-static constexpr float kCarriageWidth = 0.22377, kCarriageHeight = 0.22377;
 static constexpr float kWidth = kFrameWidth - kCarriageWidth,
                        kHeight = kFrameHeight - kCarriageHeight;
 
@@ -55,6 +65,7 @@ static float lenCorrectionParamsAll[4][3] = {
 static float mountPoints[4][2] = {
     {kWidth, 0}, {kWidth, kHeight}, {0, kHeight}, {0, 0}};
 
+/********** LENGTH CORRECTION ***********/
 float lenCorrection(float len, const float (&params)[3]) {
   return params[0] * len * len + params[1] * len + params[2];
 }

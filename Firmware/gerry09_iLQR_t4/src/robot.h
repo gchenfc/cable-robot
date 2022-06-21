@@ -9,6 +9,25 @@
 #include "../unit_test_simulator/arduino_test_utils.h"
 #include "winch.h"
 
+/******** EEPROM **********/
+#ifdef KLAUS
+static constexpr uint64_t kEepromStartAddress = 0;
+#endif
+#ifdef DFL
+static constexpr uint64_t kEepromStartAddress = 4 << 5;
+#endif
+#ifdef HYDROPONICS
+static constexpr uint64_t kEepromStartAddress = 8 << 5;
+#endif
+static_assert((1 << 5) > Winch::STORAGE_SIZE,
+              "EEPROM storage size too large for indexing "
+              "scheme");
+static_assert((kEepromStartAddress + (4 << 5)) < E2END,  // EEPROM.length()
+              "Not enough EEPROM storage for this indexing scheme");
+
+/* Robot
+ * Robot struct holds winches and contains some convenience functions.
+ */
 struct Robot {
   std::array<Winch, 4> winches;
 
@@ -67,25 +86,30 @@ struct Robot {
   }
 
   // Saving/Restoring parameters
-  static_assert((1 << 5) > Winch::STORAGE_SIZE,
-                "EEPROM storage size too large for indexing "
-                "scheme");
-  void saveZero(uint8_t node) const { winches[node].saveZero(node << 5); }
-  void restoreZero(uint8_t node) { winches[node].restoreZero(node << 5); }
+  void saveZero(uint8_t node) const {
+    winches[node].saveZero(kEepromStartAddress + (node << 5));
+  }
+  void restoreZero(uint8_t node) {
+    winches[node].restoreZero(kEepromStartAddress + (node << 5));
+  }
   void saveLenCorrectionParams(uint8_t node) const {
-    winches[node].saveLenCorrectionParams(node << 5);
+    winches[node].saveLenCorrectionParams(kEepromStartAddress + (node << 5));
   }
   void restoreLenCorrectionParams(uint8_t node) {
-    winches[node].restoreLenCorrectionParams(node << 5);
+    winches[node].restoreLenCorrectionParams(kEepromStartAddress + (node << 5));
   }
   void saveMountPoint(uint8_t node) const {
-    winches[node].saveMountPoint(node << 5);
+    winches[node].saveMountPoint(kEepromStartAddress + (node << 5));
   }
   void restoreMountPoint(uint8_t node) {
-    winches[node].restoreMountPoint(node << 5);
+    winches[node].restoreMountPoint(kEepromStartAddress + (node << 5));
   }
-  void saveAll(uint8_t node) const { winches[node].saveAll(node << 5); }
-  void restoreAll(uint8_t node) { winches[node].restoreAll(node << 5); }
+  void saveAll(uint8_t node) const {
+    winches[node].saveAll(kEepromStartAddress + (node << 5));
+  }
+  void restoreAll(uint8_t node) {
+    winches[node].restoreAll(kEepromStartAddress + (node << 5));
+  }
   void saveZeros() const {
     for (int i = 0; i < 4; ++i) saveZero(i);
   }

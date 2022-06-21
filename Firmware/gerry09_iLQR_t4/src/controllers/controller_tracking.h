@@ -2,6 +2,13 @@
 
 #include "controller_simple.h"
 
+#if defined(KLAUS) || defined(DFL)
+static constexpr float kSpeed = 1.0;
+#endif
+#ifdef HYDROPONICS
+static constexpr float kSpeed = 0.1;
+#endif
+
 class ControllerTracking : public ControllerSimple {
  public:
   ControllerTracking(const StateEstimatorInterface* state_estimator)
@@ -19,7 +26,7 @@ class ControllerTracking : public ControllerSimple {
   bool readSerial(AsciiParser parser, Stream& serialOut) override;
 
  protected:
-  float speed = 0.5;
+  float speed = kSpeed;
   Vector2 cur_, setpoint_;
   float limit_left_ = 0.2, limit_right_ = 0.2, limit_up_ = 0.2,
         limit_down_ = 0.2;
