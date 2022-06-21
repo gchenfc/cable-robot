@@ -115,6 +115,7 @@ class StringStreamer : public Stream, public StringPrinter {
 
 class HardwareSerial : public StringStreamer {};
 
+#define E2END 1024
 class Eeprom {
  public:
   template <typename T>

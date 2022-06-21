@@ -222,8 +222,7 @@ float ControllerGouttefarde::calcTorque(float t, uint8_t winchnum) const {
   // Tension distribution
   // TODO(gerry): use better tension distribution algorithm
   float tensionTD_Nm[4];
-  kinematics_.forceSolverPott(fc_N[0], fc_N[1], xdes[0], xdes[1], W,
-                              tensionTD_Nm);
+  kinematics_.forceSolverPott(fc_N[0], fc_N[1], W, tensionTD_Nm);
   // SerialD.printf("Tension Distribution: %.3f %.3f %.3f %.3f\n", tensionTD_Nm[0],
   //                tensionTD_Nm[1], tensionTD_Nm[2],
   //                tensionTD_Nm[3]);

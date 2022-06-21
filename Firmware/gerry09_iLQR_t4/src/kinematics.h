@@ -45,16 +45,16 @@ class Kinematics {
   }
 
   // Force distribution solvers
-  static void forceSolverPott(float Fx, float Fy, float x, float y,
-                              const float (&W)[2][4], float (&tensions)[4],
+  static void forceSolverPott(float Fx, float Fy, const float (&W)[2][4],
+                              float (&tensions)[4],
                               float midTension = (0.6 / kR));
-  // static void forceSolver(float tensions[4], float Fx, float Fy, float x,
-  //                         float y);
-  // void forceSolver(float tensions[4], float Fx, float Fy) const {
-  //   float x, y;
-  //   FK(x, y);
-  //   forceSolver(tensions, Fx, Fy, x, y);
-  // }
+  static void forceSolverPott(float Fx, float Fy, float x, float y,
+                              float (&tensions)[4],
+                              float midTension = (0.6 / kR)) {
+    float W[2][4];
+    wrenchMatrix(x, y, W);
+    forceSolverPott(Fx, Fy, W, tensions, midTension);
+  }
 
  protected:
   const Robot &robot_;
@@ -130,9 +130,8 @@ void Kinematics::FKv(const float lDots[4], const float W[4][2], float *vx,
   if (isnan(*vy)) *vy = 0;
 }
 
-void Kinematics::forceSolverPott(float Fx, float Fy, float x, float y,
-                                 const float (&W)[2][4], float (&tensions)[4],
-                                 float midTension) {
+void Kinematics::forceSolverPott(float Fx, float Fy, const float (&W)[2][4],
+                                 float (&tensions)[4], float midTension) {
   float WT[4][2];
   for (int i = 0; i < 4; ++i) {
     for (int j = 0; j < 2; ++j) {
