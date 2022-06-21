@@ -1,5 +1,6 @@
 #ifndef ARDUINO
 
+#include <iostream>
 #include <algorithm>
 #include "ascii_parser.h"
 
@@ -23,6 +24,10 @@ TEST(ascii_parser, test_manual) {
   CHECK_EQUAL(9, i);
   CHECK(parser.checkChar('n'));
   CHECK(parser.checkDone());
+  EXPECT_LONGS_EQUAL('a', a);
+  EXPECT_DOUBLES_EQUAL(1.2, f, 1e-4);
+  EXPECT_LONGS_EQUAL(9, i);
+  EXPECT_LONGS_EQUAL('n', n);
 }
 
 TEST(AsciiParser, test_template_success) {
@@ -55,7 +60,16 @@ TEST(AsciiParser, test_peek) {
   CHECK(parser.checkChar('c'))
   CHECK(!parser.peek(&a, &f, &i, &n, &i2));
   CHECK(!parser.peek(&a, &f, &i));
+  CHECK(parser.peek(&a, &f, &i, &n));
+  EXPECT_LONGS_EQUAL('a', a);
+  EXPECT_DOUBLES_EQUAL(1.2, f, 1e-4);
+  EXPECT_LONGS_EQUAL(9, i);
+  EXPECT_LONGS_EQUAL('n', n);
   CHECK(parser.parse(&a, &f, &i, &n));
+  EXPECT_LONGS_EQUAL('a', a);
+  EXPECT_DOUBLES_EQUAL(1.2, f, 1e-4);
+  EXPECT_LONGS_EQUAL(9, i);
+  EXPECT_LONGS_EQUAL('n', n);
 }
 
 TEST(AsciiParser, test_peek2) {
@@ -65,6 +79,23 @@ TEST(AsciiParser, test_peek2) {
   CHECK((!parser.peek<char, float, int>()));
   CHECK((parser.peek<char, float, int, char>()));
   CHECK((parser.parse(&a, &f, &i, &n)));
+  EXPECT_LONGS_EQUAL('a', a);
+  EXPECT_DOUBLES_EQUAL(1.2, f, 1e-4);
+  EXPECT_LONGS_EQUAL(9, i);
+  EXPECT_LONGS_EQUAL('n', n);
+}
+
+TEST(AsciiParser, aoeu) {
+  char begin[] = "gs1\n";
+  AsciiParser parser(begin, 10);
+
+  if (parser.checkChar('g') && parser.checkChar('s')) {
+    uint8_t num;
+    EXPECT(parser.parseInt('\n', &num));
+    EXPECT_LONGS_EQUAL(1, num);
+    return;
+  }
+  EXPECT(false);
 }
 
 int main() {

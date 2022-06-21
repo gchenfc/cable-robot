@@ -20,12 +20,40 @@ bool until(char** buffer_start, char* buffer_end, char delim = '\255') {
   *((*buffer_start)++) = 0;  // null terminate the number and advance to next
   return true;
 }
+bool valid_int(char* buffer, char* end) {
+  if (buffer == end) return false;
+  if ((*buffer >= '0') && (*buffer <= '9')) return true;  // case range gnu-ext
+  switch (*buffer) {
+    case '+':
+    case '-':
+    case ' ':
+      return true;
+  }
+  return false;
+}
+bool valid_float(char* buffer, char* end) {
+  if (buffer == end) return false;
+  if (valid_int(buffer, end)) return true;
+  switch (*buffer) {
+    // case 'e': // scientific notation cannot start with e
+    // case 'E':
+    // case 'x': // hex cannot start with x
+    // case 'X':
+    case 'n':  // nan
+    case 'N':
+    case 'i':  // inf
+    case 'I':
+      return true;
+  }
+  return false;
+}
 template <typename T>
 bool parseInt(char** buffer_start, char* buffer_end, char delim, T* value) {
   char* original_start = *buffer_start;
   if (!until(buffer_start, buffer_end, delim)) return false;
   *value = atoi(original_start);
   *(*buffer_start - 1) = delim;
+  if (!valid_int(original_start, buffer_end)) return false;
   return true;
 }
 template <typename T>
@@ -34,6 +62,7 @@ bool parseFloat(char** buffer_start, char* buffer_end, char delim, T* value) {
   if (!until(buffer_start, buffer_end, delim)) return false;
   *value = atof(original_start);
   *(*buffer_start - 1) = delim;
+  if (!valid_float(original_start, buffer_end)) return false;
   return true;
 }
 
