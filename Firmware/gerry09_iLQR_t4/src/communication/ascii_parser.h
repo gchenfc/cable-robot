@@ -50,19 +50,19 @@ bool valid_float(char* buffer, char* end) {
 template <typename T>
 bool parseInt(char** buffer_start, char* buffer_end, char delim, T* value) {
   char* original_start = *buffer_start;
+  if (!valid_int(original_start, buffer_end)) return false;
   if (!until(buffer_start, buffer_end, delim)) return false;
   *value = atoi(original_start);
   *(*buffer_start - 1) = delim;
-  if (!valid_int(original_start, buffer_end)) return false;
   return true;
 }
 template <typename T>
 bool parseFloat(char** buffer_start, char* buffer_end, char delim, T* value) {
   char* original_start = *buffer_start;
+  if (!valid_float(original_start, buffer_end)) return false;
   if (!until(buffer_start, buffer_end, delim)) return false;
   *value = atof(original_start);
   *(*buffer_start - 1) = delim;
-  if (!valid_float(original_start, buffer_end)) return false;
   return true;
 }
 
