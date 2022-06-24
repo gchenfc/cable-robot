@@ -124,4 +124,3 @@ document.getElementById("lineToSend").addEventListener("keyup", async function (
 document.getElementById("addLine").checked = (localStorage.addLine == "false" ? false : true);
 document.getElementById("echoOn").checked = (localStorage.echoOn == "false" ? false : true);
 document.getElementById("autoConnect").checked = (localStorage.autoConnect == "false" ? false : true);
-

@@ -7,14 +7,24 @@ const gamepad_ctx = gamepad_canvas.getContext("2d");
 var gamepad_idx = null;
 const cdpr = new Cdpr(new Dims(3.0, 2.3), new Dims(0.2, 0.3));
 const drawing = new Drawing();
+const gamepad = new MyGamepad();
 const gamepad_drawing = new GamepadDrawing();
 
 var animation_interval, cdpr_interval, serial_interval;
 
 function init() {
-  cdpr_interval = setInterval(function () { cdpr.update(1 / 60); }, 1000 / 60);
+  // register callbacks
+  gamepad.onpress["A"] = function () { cdpr.clearErrors(); };
+  gamepad.onpress["X"] = function () { cdpr.setMode(Mode.HOLD); };
+  gamepad.onpress["Y"] = function () { cdpr.setMode(Mode.TRACKING); };
+  gamepad.onchange["RT"] = function (state) { cdpr.send(`s${state ? 1 : 0}`); };
+  gamepad.onchange["LT"] = function (state) { cdpr.send(`s${state ? 1 : 0}`); };
+  // start updates
+  cdpr_interval = setInterval(function () { cdpr.update(1 / 150); }, 1000 / 150);
   animation_interval = setInterval(draw, 1000 / 30);
+  // Connect serial
   attemptAutoconnect();
+  // initial draw
   draw();
 }
 
@@ -39,8 +49,8 @@ function draw_gamepad() {
   gamepad_ctx.clearRect(0, 0, gamepad_canvas.width, gamepad_canvas.height);
   gamepad_ctx.save();
   if (gamepad_idx !== null) {
-    const gamepad = new MyGamepad(navigator.getGamepads()[gamepad_idx]);
-    cdpr.setControls(gamepad.joyleft.x, gamepad.joyleft.y);
+    gamepad.update(navigator.getGamepads()[gamepad_idx]);
+    cdpr.setControls(0.45 / Math.sqrt(2) * gamepad.joyleft.x, 0.45 / Math.sqrt(2) * gamepad.joyleft.y);
     drawing.update(cdpr.x, cdpr.y, gamepad.LT || gamepad.RT);
     gamepad_drawing.update(gamepad);
   } else {

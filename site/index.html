@@ -5,6 +5,7 @@
 <script src="drawing.js"></script>
 <script defer src="serial.js"></script>
 <script defer src="logfile.js"></script>
+<script defer src="output.js"></script>
 <script defer src="main.js"></script>
 
 <head>
@@ -12,15 +13,29 @@
 </head>
 
 <body onload="init();">
-  <div>
-    <canvas class="cdpr" id="cdpr_canvas" width="300" height="230" style="aspect-ratio: 4/3;"></canvas>
-    <canvas class="gamepad" id="gamepad_canvas" width="300" height="260" style="aspect-ratio: 300/260;"></canvas>
+  <div style="width:100%">
+    <div style="width:calc(100% - 400px - 30px); float: left;">
+      <canvas class="cdpr" id="cdpr_canvas" width="300" height="230" style="aspect-ratio: 4/3;"></canvas>
+      <canvas class="gamepad" id="gamepad_canvas" width="300" height="260" style="aspect-ratio: 300/260;"></canvas>
+    </div>
+    <div style="width: 400px; float: right;">
+      <h2>Debug Output</h2>
+      <label for="verbosity">Verbosity</label>
+      <select name="verbosity" id="verbosity">
+        <option value="0">0</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+      </select>
+      <p class="serialoutput" id="output" style="height:calc((100vw - 400px - 30px) * 0.55 * 3 / 4 - 70px);"></p>
+    </div>
   </div>
+  <div style="clear: both;"></div>
   <!-- <input class="serialinput" type="text" id="serialinput" placeholder="input commands here" /> -->
 
   <br />
   <br />
 
+  <h2>Low-level Serial Communication</h2>
   <!-- BEGIN PLARIARISM FROM https://github.com/mmiscool/serialTerminal.com -->
   <div class="serialterminalbackground">
     <button onclick="connectSerial()">Connect</button>

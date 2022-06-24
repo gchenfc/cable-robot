@@ -13,6 +13,8 @@ function Motor(error, state, l, ldot) { this.error = error; this.state = state; 
 function ControllerState(t_us, state, est, set) { this.t_us = t_us; this.state = state; this.est = est; this.set = set; }
 function CdprState(controller, motors, spray) { this.controller = controller; this.motors = motors; this.spray = spray; }
 
+const Mode = { IDLE: "idle", HOLD: "hold", TRACKING: "tracking" };
+
 function Cdpr(frameDims, eeDims) {
   this.frame = frameDims;
   this.ee = eeDims;
@@ -22,6 +24,7 @@ function Cdpr(frameDims, eeDims) {
   this.vy = 0;
   this.lastState = new CdprState(new ControllerState(null, null, new Pose2(this.x, this.y, 0), new Pose2(this.x, this.y, 0)), null, null);
   this.logBuffer = "";
+  this.mode = Mode.IDLE;
 }
 
 function zip(a, b) {
@@ -73,11 +76,44 @@ function clamp(x, min, max) {
 }
 
 Cdpr.prototype.update = function (dt) {
+  if ((this.mode != Mode.TRACKING) && (this.lastState.t_us !== null)) {
+    this.x = this.lastState.controller.est.x;
+    this.y = this.lastState.controller.est.y;
+    return;
+  }
   this.x += this.vx * dt;
   this.y += this.vy * dt;
   this.x = clamp(this.x, this.ee.w / 2, this.frame.w - this.ee.w / 2);
   this.y = clamp(this.y, this.ee.h / 2, this.frame.h - this.ee.h / 2);
+  if (this.mode === Mode.TRACKING) {
+    this.sendPosition();
+  }
 }
+
+/*********** CDPR CONTROL CODE ***************/
+Cdpr.prototype.clearErrors = function () {
+  this.send('g0');
+}
+Cdpr.prototype.setMode = function (mode) {
+  const pos = (this.lastState.t_us !== null) ? this.lastState.controller.est : new Pose2(this.x, this.y, 0);
+  const MSGS = { [Mode.IDLE]: 'g7', [Mode.HOLD]: `ta${pos.x},${pos.y};g6;g8`, [Mode.TRACKING]: `g1;g2` };
+  this.send(MSGS[mode]);
+  this.mode = mode;
+}
+
+/*********** CDPR CONTROL CODE ***************/
+
+/*********** SERIAL SENDING CODE ***************/
+Cdpr.prototype.sendPosition = function () {
+  toSend = `ta${this.x},${this.y}`;
+  writer.write(toSend + '\n');
+  println(toSend, 1);
+}
+Cdpr.prototype.send = function (msg) {
+  writer.write(msg + '\n');
+  println(msg, 0);
+}
+/*********** END SERIAL SENDING CODE ***************/
 
 /*********** SERIAL PARSING CODE ***************/
 function joinRegexWith(regexes, sep) {
@@ -100,8 +136,7 @@ Motor.fromStrArr = function (arr) {
 
 function parseLine(line) {
   result = line.match(LINE_REGEX);
-  if (result) {
-    console.log(result.length);
+  if (result && (result.length == 26)) {
     return new CdprState(
       controller = {
         t_us: parseInt(result[1]),
@@ -128,7 +163,9 @@ Cdpr.prototype.parseLogString = function (logString) {
     const lines = this.logBuffer.split("\n");
     this.logBuffer = lines.pop();
     for (const line of lines) {
-      this.lastState = parseLine(line);
+      const result = parseLine(line);
+      if (result) this.lastState = result;
     }
   }
 }
+/*********** END SERIAL PARSING CODE ***************/

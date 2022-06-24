@@ -3,7 +3,7 @@ canvas {
   border: 1px solid #000;
   margin: 0 auto;
   padding: 0;
-  width: 49%;
+  width: 50%;
   aspect-ratio: 2/1;
 }
 
@@ -14,7 +14,7 @@ canvas.gamepad {
   background-color: #fff;
   border: 1px solid #eee;
   margin-left: 30px;
-  width: 40%;
+  width: calc(45% - 30px - 10px);
 }
 
 .serialoutput {
@@ -30,6 +30,10 @@ canvas.gamepad {
   width: 100%;
 }
 
+h2 {
+  margin: 0;
+}
+
 
 /* Begin plagiarism from https://github.com/mmiscool/serialTerminal.com */
 .serialterminalbackground {
@@ -41,13 +45,13 @@ canvas.gamepad {
 
 button,
 datalist {
-  background-color: rgb(85, 85, 85);
+  background-color: rgb(140, 140, 140);
 }
 
 input[type=text] {
   color: rgb(179, 255, 179);
   background-color: rgb(102, 86, 86);
-  border: 1px solid;
+  border: 2px solid;
   border-color: #696 #363 #363 #696;
 }
 
@@ -57,7 +61,7 @@ input[type=text] {
   /* height: calc(100% - 120px); */
   /* width: calc(100% - 20px); */
   border-style: solid;
-  overflow: scroll;
+  overflow: overlay;
   background-color: rgb(88, 92, 92);
   padding: 10px;
   margin: 0px;

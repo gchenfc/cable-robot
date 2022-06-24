@@ -21,15 +21,34 @@ const JOYSTICKS = {
   RHORIZ: 2, RVERT: 3,
 };
 
-function MyGamepad(gamepad) {
+function MyGamepad() {
+  this.onchange = {};
+  this.onpress = {};
+  this.onrelease = {};
+}
+
+MyGamepad.prototype.update = function (gamepad) {
   this.gamepad = gamepad;
   var buttons = gamepad.id.includes('Vendor: 0079 Product: 0006') ? BUTTONS_0079_0006 : BUTTONS;
+  prevButtons = Object.fromEntries(Object.keys(buttons).map((name) => [name, this[name]]));
 
   for (const [BUTTON, index] of Object.entries(buttons)) {
     this[BUTTON] = gamepad.buttons[index].pressed;
   }
   this.joyleft = { x: gamepad.axes[JOYSTICKS.LHORIZ], y: -gamepad.axes[JOYSTICKS.LVERT] };
   this.joyright = { x: gamepad.axes[JOYSTICKS.RHORIZ], y: -gamepad.axes[JOYSTICKS.RVERT] };
+
+  this.handleCallbacks(prevButtons);
+}
+
+MyGamepad.prototype.handleCallbacks = function (oldButtons) {
+  for (const [name, button] of Object.entries(oldButtons)) {
+    if (button != this[name]) {
+      if (this.onchange[name]) this.onchange[name](this[name]);
+      if (this[name] && this.onpress[name]) this.onpress[name]();
+      if (!this[name] && this.onrelease[name]) this.onrelease[name]();
+    }
+  }
 }
 
 function GamepadDrawing() {
