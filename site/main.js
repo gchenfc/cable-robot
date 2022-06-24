@@ -26,13 +26,13 @@ function draw() {
 function draw_drawing() {
   cdpr_ctx.clearRect(0, 0, cdpr_canvas.width, cdpr_canvas.height);
   cdpr_ctx.save();
-  cdpr_ctx.drawAtLoc(0, 0, 100, drawing);
+  cdpr_ctx.drawAtLoc(0, cdpr_canvas.height, 100, drawing, -100);
   cdpr_ctx.restore();
 }
 function draw_cdpr() {
   // cdpr_ctx.clearRect(0, 0, cdpr_canvas.width, cdpr_canvas.height);
   cdpr_ctx.save();
-  cdpr_ctx.drawAtLoc(0, 0, 100, cdpr);
+  cdpr_ctx.drawAtLoc(0, cdpr_canvas.height, 100, cdpr, -100);
   cdpr_ctx.restore();
 }
 function draw_gamepad() {
@@ -41,7 +41,7 @@ function draw_gamepad() {
   if (gamepad_idx !== null) {
     const gamepad = new MyGamepad(navigator.getGamepads()[gamepad_idx]);
     cdpr.setControls(gamepad.joyleft.x, gamepad.joyleft.y);
-    drawing.update(cdpr.x, cdpr.y, gamepad.A);
+    drawing.update(cdpr.x, cdpr.y, gamepad.LT || gamepad.RT);
     gamepad_drawing.update(gamepad);
   } else {
     gamepad_ctx.fillStyle = 'rgb(0, 0, 0)';
@@ -56,10 +56,10 @@ function draw_gamepad() {
   gamepad_ctx.restore();
 }
 
-CanvasRenderingContext2D.prototype.drawAtLoc = function (x, y, scale, obj) {
+CanvasRenderingContext2D.prototype.drawAtLoc = function (x, y, scalex, obj, scaley = scalex) {
   this.save();
   this.translate(x, y);
-  this.scale(scale, scale);
+  this.scale(scalex, scaley);
   obj.draw(this);
   this.restore();
 }

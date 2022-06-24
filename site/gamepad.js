@@ -28,8 +28,8 @@ function MyGamepad(gamepad) {
   for (const [BUTTON, index] of Object.entries(buttons)) {
     this[BUTTON] = gamepad.buttons[index].pressed;
   }
-  this.joyleft = { x: gamepad.axes[JOYSTICKS.LHORIZ], y: gamepad.axes[JOYSTICKS.LVERT] };
-  this.joyright = { x: gamepad.axes[JOYSTICKS.RHORIZ], y: gamepad.axes[JOYSTICKS.RVERT] };
+  this.joyleft = { x: gamepad.axes[JOYSTICKS.LHORIZ], y: -gamepad.axes[JOYSTICKS.LVERT] };
+  this.joyright = { x: gamepad.axes[JOYSTICKS.RHORIZ], y: -gamepad.axes[JOYSTICKS.RVERT] };
 }
 
 function GamepadDrawing() {
@@ -93,7 +93,7 @@ GamepadDrawing.prototype.draw = function (ctx) {
   }
   for (const [_, joystick] of Object.entries(this.joysticks)) {
     ctx.save();
-    ctx.translate(joystick[1] * 20, joystick[2] * 20);
+    ctx.translate(joystick[1] * 20, -joystick[2] * 20);
     ctx.stroke(joystick[0]);
     ctx.fillStyle = joystick[3] ? '#000' : '#e0e0e0';
     ctx.fill(joystick[0]);

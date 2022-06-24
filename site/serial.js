@@ -81,6 +81,7 @@ async function listenToPort() {
       }
       // value is a string.
       appendToTerminal(value);
+      cdpr.parseLogString(value);
     }
   } finally {
     try { await readableStreamClosed; } catch (e) { console.log("error closing readableStream", e); }
