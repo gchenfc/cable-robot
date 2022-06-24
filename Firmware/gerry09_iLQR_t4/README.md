@@ -71,6 +71,7 @@ command | description
 `g6`    | hold - set all motors to 0.2Nm which effectively loosely holds the end effector in position
 `g7`    | release - set all motors to 0.0Nm which drops the end effector
 `g8`    | closed loop control - enables the motors
+`gs#`   | if using a switchable controller, switch to controller #
 
 ## Tracking Control (`t` commands)
 
