@@ -46,7 +46,13 @@ Cdpr.prototype.setControls = function (vx, vy) {
   this.vy = vy;
 }
 
+function clamp(x, min, max) {
+  return Math.min(Math.max(x, min), max);
+}
+
 Cdpr.prototype.update = function (dt) {
   this.x += this.vx * dt;
   this.y += this.vy * dt;
+  this.x = clamp(this.x, this.ee.w / 2, this.frame.w - this.ee.w / 2);
+  this.y = clamp(this.y, this.ee.h / 2, this.frame.h - this.ee.h / 2);
 }

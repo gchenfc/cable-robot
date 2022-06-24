@@ -27,7 +27,6 @@ function draw_drawing() {
   cdpr_ctx.clearRect(0, 0, cdpr_canvas.width, cdpr_canvas.height);
   cdpr_ctx.save();
   cdpr_ctx.drawAtLoc(0, 0, 100, drawing);
-  console.log(drawing.path);
   cdpr_ctx.restore();
 }
 function draw_cdpr() {
@@ -39,7 +38,7 @@ function draw_cdpr() {
 function draw_gamepad() {
   gamepad_ctx.clearRect(0, 0, gamepad_canvas.width, gamepad_canvas.height);
   gamepad_ctx.save();
-  if (gamepad_idx) {
+  if (gamepad_idx !== null) {
     const gamepad = new MyGamepad(navigator.getGamepads()[gamepad_idx]);
     cdpr.setControls(gamepad.joyleft.x, gamepad.joyleft.y);
     drawing.update(cdpr.x, cdpr.y, gamepad.A);
