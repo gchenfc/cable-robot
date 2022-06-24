@@ -1,0 +1,67 @@
+<html>
+<link rel="stylesheet" href="style.css" />
+<script src="gamepad.js"></script>
+<script src="cdpr.js"></script>
+<script src="drawing.js"></script>
+<script defer src="serial.js"></script>
+<script defer src="main.js"></script>
+
+<head>
+  <title>Cable Robot Control Panel</title>
+</head>
+
+<body onload="init();">
+  <div>
+    <canvas class="cdpr" id="cdpr_canvas" width="300" height="230" style="aspect-ratio: 4/3;"></canvas>
+    <canvas class="gamepad" id="gamepad_canvas" width="300" height="260" style="aspect-ratio: 300/260;"></canvas>
+  </div>
+  <!-- <input class="serialinput" type="text" id="serialinput" placeholder="input commands here" /> -->
+
+  <br />
+  <br />
+
+  <!-- BEGIN PLARIARISM FROM https://github.com/mmiscool/serialTerminal.com -->
+  <div class="serialterminalbackground">
+    <button onclick="connectSerial()">Connect</button>
+    <button onclick="serialResultsDiv.innerHTML = '';">Clear</button>
+
+    <br>
+    <input type="text" id="lineToSend" style="width:calc(100% - 165px)">
+    <button onclick="sendSerialLine()" style="width:45px">Send</button>
+    <button onclick="sendCharacterNumber()" style="width:100px">Send Char</button>
+    <br>
+
+    <input type="checkbox" id="addLine" onclick="localStorage.addLine = this.checked;" checked>
+    <label for="addLine">send with /r/n</label>
+
+    <input type="checkbox" id="echoOn" onclick="localStorage.echoOn = this.checked;" checked>
+    <label for="echoOn">echo</label>
+
+
+    <br>
+    <!-- <div id="serialResults">
+    </div> -->
+  </div>
+  <!-- END PLARIARISM FROM https://github.com/mmiscool/serialTerminal.com -->
+
+  <p class="serialoutput" id="serialResults">dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
+dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
+dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
+dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
+dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
+dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
+dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
+dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
+dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
+dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
+dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
+dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
+dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
+dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
+dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
+dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
+dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
+  </p>
+</body>
+
+</html>
