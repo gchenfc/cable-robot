@@ -1,23 +1,54 @@
-// PLAGIARIZED FROM https://github.com/mmiscool/serialTerminal.com
+// MODIFIED FROM https://github.com/mmiscool/serialTerminal.com
 
 
-var port, textEncoder, writableStreamClosed, writer, historyIndex = -1;
+var port, textEncoder, writableStreamClosed, writer, historyIndex = -1, reader;
 const lineHistory = [];
+var readStreamDisplay, readStreamLogfile;
+
+async function attemptAutoconnect() {
+  if (!document.getElementById("autoConnect").checked) return;
+  return await navigator.serial.getPorts().then((ports) => {
+    for (const port_ of ports) {
+      info = port_.getInfo();
+      if (info.usbProductId === 1163 && info.usbVendorId === 5824) {
+        port = port_;
+        connectSerialPort();
+        return true;
+      }
+    }
+  });
+}
 
 async function connectSerial() {
+  // Prompt user to select any serial port.
+  if (reader && reader.locked) await closeSerial();
+  if (document.getElementById("autoConnect").checked) {
+    if (await attemptAutoconnect()) return;
+  }
   try {
-    // Prompt user to select any serial port.
     port = await navigator.serial.requestPort();
-    await port.open({ baudRate: document.getElementById("baud").value });
-    listenToPort();
-
-    textEncoder = new TextEncoderStream();
-    writableStreamClosed = textEncoder.readable.pipeTo(port.writable);
-
-    writer = textEncoder.writable.getWriter();
+    connectSerialPort();
   } catch {
     alert("Serial Connection Failed");
   }
+}
+async function connectSerialPort() {
+  await port.open({ baudRate: 9600 });
+  // [readStreamDisplay, readStreamLogfile] = port.readable.tee();
+  readStreamDisplay = port.readable;
+  listenToPort().then(() => {
+    console.log("Done listening");
+  }).catch((e) => { console.log("Error closing serial port!", e); });
+
+  textEncoder = new TextEncoderStream();
+  writableStreamClosed = textEncoder.readable.pipeTo(port.writable);
+
+  writer = textEncoder.writable.getWriter();
+}
+async function closeSerial() {
+  writer.close();
+  await writableStreamClosed;
+  await reader.cancel(); // listenToPort will handle closing the actual serial device.
 }
 
 async function sendCharacterNumber() {
@@ -37,25 +68,31 @@ async function sendSerialLine() {
 
 async function listenToPort() {
   const textDecoder = new TextDecoderStream();
-  const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
-  const reader = textDecoder.readable.getReader();
+  const readableStreamClosed = readStreamDisplay.pipeTo(textDecoder.writable);
+  reader = textDecoder.readable.getReader();
 
   // Listen to data coming from the serial device.
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) {
-      // Allow the serial port to be closed later.
-      //reader.releaseLock();
-      break;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) {
+        // Allow the serial port to be closed later.
+        break;
+      }
+      // value is a string.
+      appendToTerminal(value);
     }
-    // value is a string.
-    appendToTerminal(value);
+  } finally {
+    try { await readableStreamClosed; } catch (e) { console.log("error closing readableStream", e); }
+    reader.releaseLock();
   }
+  return await port.close();
 }
 
 const serialResultsDiv = document.getElementById("serialResults");
 
 async function appendToTerminal(newStuff) {
+  logText(newStuff);
   serialResultsDiv.innerHTML += newStuff;
   if (serialResultsDiv.innerHTML.length > 12000) serialResultsDiv.innerHTML = serialResultsDiv.innerHTML.slice(serialResultsDiv.innerHTML.length - 12000);
 
@@ -85,3 +122,5 @@ document.getElementById("lineToSend").addEventListener("keyup", async function (
 
 document.getElementById("addLine").checked = (localStorage.addLine == "false" ? false : true);
 document.getElementById("echoOn").checked = (localStorage.echoOn == "false" ? false : true);
+document.getElementById("autoConnect").checked = (localStorage.autoConnect == "false" ? false : true);
+

@@ -4,6 +4,7 @@
 <script src="cdpr.js"></script>
 <script src="drawing.js"></script>
 <script defer src="serial.js"></script>
+<script defer src="logfile.js"></script>
 <script defer src="main.js"></script>
 
 <head>
@@ -24,6 +25,13 @@
   <div class="serialterminalbackground">
     <button onclick="connectSerial()">Connect</button>
     <button onclick="serialResultsDiv.innerHTML = '';">Clear</button>
+    <button onclick="closeSerial();">Disconnect</button>
+    <button onclick="openFile();">Select logfile</button>
+    <button onclick="beginLogging(false);" id="beginLogging" disabled="true">Start Logging</button>
+    <button onclick="finishLogging();" id="finishLogging" hidden="true">Stop Logging</button>
+
+    <input type="checkbox" id="append" onclick="localStorage.append = this.checked;" checked>
+    <label for="append">Append to logfile</label>
 
     <br>
     <input type="text" id="lineToSend" style="width:calc(100% - 165px)">
@@ -37,6 +45,10 @@
     <input type="checkbox" id="echoOn" onclick="localStorage.echoOn = this.checked;" checked>
     <label for="echoOn">echo</label>
 
+    <input type="checkbox" id="autoConnect" onclick="localStorage.autoConnect = this.checked; attemptAutoconnect();"
+      checked>
+    <label for="autoConnect">Auto-connect</label>
+
 
     <br>
     <!-- <div id="serialResults">
@@ -44,24 +56,7 @@
   </div>
   <!-- END PLARIARISM FROM https://github.com/mmiscool/serialTerminal.com -->
 
-  <p class="serialoutput" id="serialResults">dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
-dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
-dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
-dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
-dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
-dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
-dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
-dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
-dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
-dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
-dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
-dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
-dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
-dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
-dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
-dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
-dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data
-  </p>
+  <p class="serialoutput" id="serialResults"></p>
 </body>
 
 </html>

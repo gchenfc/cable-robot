@@ -14,7 +14,7 @@ var animation_interval, cdpr_interval, serial_interval;
 function init() {
   cdpr_interval = setInterval(function () { cdpr.update(1 / 60); }, 1000 / 60);
   animation_interval = setInterval(draw, 1000 / 30);
-  serial_interval = setInterval(function () {appendToTerminal((new Date()).getUTCMilliseconds() + 'dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data dummy data\n');}, 100);
+  attemptAutoconnect();
   draw();
 }
 
@@ -71,6 +71,7 @@ window.addEventListener("gamepadconnected", (event) => {
 });
 
 window.addEventListener("gamepaddisconnected", (event) => {
-  console.log("gamepad disconnected");
   gamepad_idx = null;
+  console.log("gamepad disconnected");
+  cdpr.setControls(0, 0);
 });
