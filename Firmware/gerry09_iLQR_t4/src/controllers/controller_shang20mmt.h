@@ -3,9 +3,10 @@
 #include <Metro.h>
 #include <tuple>
 
-#include "controller_tracking.h"
+#include "controller_simple.h"
 #include "../utils.h"
 #include "../math.h"
+#include "../spray.h"
 
 #include "../../trajectories/concentric_diamonds2_output_lqg_1e1-1e2-1e2_0.1-0.0-0.002-0.06.h"
 
@@ -15,17 +16,41 @@ class ControllerShang20mmt : public ControllerSimple {
 
  public:
   ControllerShang20mmt(const StateEstimatorInterface* state_estimator,
-                       const Robot& robot)
+                       const Robot& robot, const Spray& spray)
       : ControllerSimple(state_estimator), robot_(robot), kinematics_(robot) {}
 
   void update() override { ControllerSimple::update(); }
 
   bool readSerial(AsciiParser parser, Stream& serialOut) override {
+    if (parser.checkChar('K')) {
+      UNWRAP_PARSE_CHECK(char c, parser.getChar(&c));
+      UNWRAP_PARSE_CHECK(float a, parser.parseFloat('\n', &a));
+
+#define MAKE_CASE(code, lhs) \
+  case code:                 \
+    lhs = a;                 \
+    return true;
+
+      switch (c) {
+        MAKE_CASE('D', D_)
+        MAKE_CASE('P', P_)
+        MAKE_CASE('s', Ks_)
+        MAKE_CASE('c', Kc_)
+        MAKE_CASE('I', LambdaI_)
+        MAKE_CASE('v', LambdaFv_)
+        MAKE_CASE('f', LambdaFs_)
+        MAKE_CASE('G', Gamma_)
+        MAKE_CASE('<', minTension_)
+        MAKE_CASE('=', midTension_)
+        MAKE_CASE('>', maxTension_)
+      }
+#undef MAKE_CASE
+    }
     return false;
   }
   void writeSerial(Stream& serialOut) override {}
 
-  void reset() {
+  bool reset() override {
     int_c_ = Vector<4>();
     // winch parameters
     const float i = 19.6 * 1e-6 / kR,  // kg.m
@@ -38,6 +63,7 @@ class ControllerShang20mmt : public ControllerSimple {
     M_ = Vector<2>({0.727, 0.727});
     C_ = Vector<2>({0.0, 0.0});
     G_ = Vector<2>({0.0, -9.8 * 0.727});
+    return true;
   }
 
  protected:
@@ -52,11 +78,12 @@ class ControllerShang20mmt : public ControllerSimple {
   virtual float calcTorque(float t, uint8_t winchnum) const override;
 
   // Control parameters
-  float D_ = 5, P_ = 80;
+  float D_ = 0.8, P_ = 80;  // for some reason works better when D_ is negative?
   float Ks_ = 1, Kc_ = 3;
   float LambdaI_ = 1, LambdaFv_ = 4, LambdaFs_ = 2;
   float Gamma_ = 2.5;
-  Metro parameter_estimator_update_timer_{10};
+  float minTension_ = 10, midTension_ = 50, maxTension_ = 90;
+  Metro parameter_estimator_update_timer_{10}, debug_print_timer_{10};
 
   // Parameter Estimators
   Vector<4> int_c_{};
@@ -128,18 +155,18 @@ float ControllerShang20mmt::calcTorque(float t, uint8_t winchnum) const {
   robot_.lenDots(ldot.asCVector());
 
   // Errors
-  Vector<4> e = ldes - l;
+  Vector<4> e = ldes - l;  // + = too short
   Vector<4> edot = ldesdot - ldot;
   Vector<4> es, c, esdot, cdot;
   for (int i = 0; i < 4; ++i) es(i) = e(i) - e((i + 1) % 4);
-  for (int i = 0; i < 4; ++i) c(i) = es(i) - e((i + 3) % 4);
+  for (int i = 0; i < 4; ++i) c(i) = es(i) - es((i + 3) % 4);  // + = too short
   for (int i = 0; i < 4; ++i) esdot(i) = edot(i) - edot((i + 1) % 4);
-  for (int i = 0; i < 4; ++i) cdot(i) = esdot(i) - edot((i + 3) % 4);
+  for (int i = 0; i < 4; ++i) cdot(i) = esdot(i) - esdot((i + 3) % 4);
   int_c_ += c * CONTROLLER_DT;
-  Vector<4> ec = e + D_ * int_c_;
+  Vector<4> ec = e + D_ * int_c_;  // + = too short
   Vector<4> ecdot = edot + D_ * c;
   // Vector<4> ecddot = eddot + D_ * cdot;  // TODO: eddot
-  Vector<4> s = ecdot + P_ * ec;
+  Vector<4> s = ecdot + P_ * ec;  // + = too short
 
   // Reference CS trajectories
   Vector<4> lrdot = ldesdot + D_ * c + P_ * ec;
@@ -159,21 +186,38 @@ float ControllerShang20mmt::calcTorque(float t, uint8_t winchnum) const {
   Vector<2> Fdes = M_.elementwise() * Xrddot + C_.elementwise() * Xrddot + G_;
   Vector<4> u_fd;
   kinematics_.forceSolverPott(Fdes(0), Fdes(1), A.T().asCMatrix(),
-                              u_fd.asCVector(), 0.65f / kR);
+                              u_fd.asCVector(), midTension_);
 
   // total tension
-  Vector<4> tension = u_ff + Ks_ * s + Kc_ * c + u_fd;
+  Vector<4> tension = u_ff - Ks_ * s - Kc_ * c + u_fd;
   Vector<4> tau = tension * kR;
 
   // update parameter estimators
-  if (parameter_estimator_update_timer_.check()) {
-    updateCSParams(ldot, lrdot, lrddot, s);
-    updateTSParams(Xrddot, A, s);
-  }
+  // if (parameter_estimator_update_timer_.check()) {
+  //   updateCSParams(ldot, lrdot, lrddot, s);
+  //   updateTSParams(Xrddot, A, s);
+  //   while (parameter_estimator_update_timer_.check())
+  //     ;
+  // }
 
   // return
   float torque = tau(winchnum);
-  clamp(&torque, 0.1, 1.2);
+  clamp(&torque, minTension_ * kR, maxTension_ * kR);
+  // clamp(&torque, 0.4, 0.9);
+
+  // debug
+  if (debug_print_timer_.check()) {
+    Vector<4> fb = -Ks_ * s - Kc_ * c;
+    Serial.printf(
+        "%.1f %.1f %.1f %.1f\t-\t%.1f %.1f %.1f %.1f\t-\t%.2f %.2f\t-\t%.1f "
+        "%.1f %.1f %.1f\n",
+        u_ff(0), u_ff(1), u_ff(2), u_ff(3),  //
+        fb(0), fb(1), fb(2), fb(3),          //
+        Fdes(0), Fdes(1), tension(0), tension(1), tension(2), tension(3));
+    while (debug_print_timer_.check())
+      ;
+  }
+
   return torque;
 }
 

@@ -32,6 +32,7 @@ class ControllerSimple : public ControllerInterface {
   bool setToTrajIndex(uint64_t index) override;
   bool hold() override;
   bool release() override;
+  virtual bool reset(){};
 
   // Datalogging
   Vector2 setpointPos() const override { return desPos(trajTime_s()); }
@@ -74,7 +75,7 @@ class ControllerSimple : public ControllerInterface {
         return 0.0;  // error
     }
   }
-  virtual void myUpdate() {};
+  virtual void myUpdate(){};
 };
 
 /************* KEY FUNCTIONS **************/
@@ -145,7 +146,8 @@ bool ControllerSimple::encoderMsgCallback(Odrive* odrive,
     case HOLDING_ALLOW_INPUT:
       return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, 0.2f);
     case HOLD_TRAJ_BEGIN: {
-      float torque = calcTorque(tpause_us_ / static_cast<float>(1e6f), winchnum);
+      float torque =
+          calcTorque(tpause_us_ / static_cast<float>(1e6f), winchnum);
       return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, torque);
     }
     case RUNNING_TRAJ: {
@@ -193,7 +195,7 @@ bool ControllerSimple::startTraj() {
     tstart_us_ = micros() - tpause_us_ + (kSprayDelay_s * 1e6);
     setupFor(RUNNING_TRAJ);
     state_ = RUNNING_TRAJ;
-    return true;
+    return reset();
   }
   return false;
 }

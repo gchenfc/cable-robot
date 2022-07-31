@@ -36,6 +36,7 @@
 // #include "src/controllers/controller_lqg.h"
 // #include "src/controllers/controller_gouttefarde.h"
 // #include "src/controllers/controller_gouttefarde_tracking.h"
+#include "src/controllers/controller_shang20mmt.h"
 #include "src/controllers/controller_switchable.h"
 #include "src/communication/odrive_can.h"
 #include "src/spray.h"
@@ -52,7 +53,9 @@ StateEstimatorFirstOrder state_estimator(robot);
 // ControllerIlqr controller(&state_estimator, spray);
 // ControllerLqg controller(&state_estimator);
 // ControllerGouttefardeTracking controller(&state_estimator, robot);
-ControllerSwitchable controller(&state_estimator, robot, spray);
+// ControllerShang20mmt controller(&state_estimator, robot);
+ControllerSwitchable<ControllerGouttefardeTracking, ControllerShang20mmt>
+    controller(&state_estimator, robot, spray);
 Odrive odrive(robot, controller);
 Estop<ESTOP> estop(odrive, &controller, spray);
 Debug debug(SerialD, robot, &controller, &state_estimator, odrive, spray);

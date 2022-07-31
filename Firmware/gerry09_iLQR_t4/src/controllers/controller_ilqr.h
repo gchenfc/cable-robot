@@ -24,7 +24,8 @@ static_assert((sizeof(painton) / sizeof(painton[0]) - 1) ==
 
 class ControllerIlqr : public ControllerSimple {
  public:
-  ControllerIlqr(const StateEstimatorInterface* state_estimator, Spray& spray)
+  ControllerIlqr(const StateEstimatorInterface* state_estimator,
+                 const Robot& robot, Spray& spray)
       : ControllerSimple(state_estimator), spray_(spray) {}
 
  protected:

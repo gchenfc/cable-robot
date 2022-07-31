@@ -8,12 +8,14 @@
  * ControllerSwitchable enables dynamically switching between multiple
  * controllers.
  */
+template <typename Controller1 = ControllerGouttefardeTracking,
+          typename Controller2 = ControllerIlqr>
 class ControllerSwitchable : public ControllerInterface {
  public:
   ControllerSwitchable(const StateEstimatorInterface* state_estimator,
                        const Robot& robot, Spray& spray)
       : controller_tracking_(state_estimator, robot),
-        controller_trajectory_(state_estimator, spray),
+        controller_trajectory_(state_estimator, robot, spray),
         controller_active_(&controller_tracking_) {}
 
   // Common API
@@ -85,7 +87,7 @@ class ControllerSwitchable : public ControllerInterface {
   }
 
  protected:
-  ControllerGouttefardeTracking controller_tracking_;
-  ControllerIlqr controller_trajectory_;
+  Controller1 controller_tracking_;
+  Controller2 controller_trajectory_;
   ControllerInterface* controller_active_;
 };
