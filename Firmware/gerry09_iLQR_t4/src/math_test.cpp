@@ -37,7 +37,7 @@ TEST(utils, matmul) {
   EXPECT_DOUBLES_EQUAL(12, C(1, 0), 1e-12);
 }
 
-TEST(utils, mat_add_sub) {
+TEST(utils, mat_add_sub_elementwise) {
   Matrix<2, 3> A({{1, 2, 3},  //
                   {4, 5, 6}});
   Matrix<2, 3> B({{7, 10, 9},  //
@@ -68,6 +68,20 @@ TEST(utils, mat_add_sub) {
       }
     }
   }
+  {  // elementwise mult/div
+    auto C = A.elementwise() * B;
+    auto C2 = A.elementwise() / B;
+    float C_expected[2][3] = {{7, 20, 27},  //
+                              {40, 55, 78}};
+    float C_expected2[2][3] = {{1. / 7, 0.2, 1. / 3},  //
+                               {0.4, 5. / 11, 6. / 13}};
+    for (int ri = 0; ri < 2; ++ri) {
+      for (int ci = 0; ci < 3; ++ci) {
+        EXPECT_DOUBLES_EQUAL(C_expected[ri][ci], C(ri, ci), 1e-12);
+        EXPECT_DOUBLES_EQUAL(C_expected2[ri][ci], C2(ri, ci), 1e-12);
+      }
+    }
+  }
 }
 
 TEST(utils, mat_scalar) {
@@ -79,6 +93,7 @@ TEST(utils, mat_scalar) {
   C3 *= 2;
   auto C4 = A;
   C4 /= 0.5;
+  auto C5 = 2 * A;
   float C_expected[2][3] = {{2, 4, 6},  //
                             {8, 10, 12}};
   for (int ri = 0; ri < 2; ++ri) {
@@ -87,6 +102,7 @@ TEST(utils, mat_scalar) {
       EXPECT_DOUBLES_EQUAL(C_expected[ri][ci], C2(ri, ci), 1e-12);
       EXPECT_DOUBLES_EQUAL(C_expected[ri][ci], C3(ri, ci), 1e-12);
       EXPECT_DOUBLES_EQUAL(C_expected[ri][ci], C4(ri, ci), 1e-12);
+      EXPECT_DOUBLES_EQUAL(C_expected[ri][ci], C5(ri, ci), 1e-12);
     }
   }
 }
@@ -105,28 +121,71 @@ TEST(utils, transpose) {
   }
 }
 
+TEST(utils, least_squares) {
+  Matrix<3, 2> A({{1, 2},  //
+                  {3, 4},
+                  {5, 6}});
+  Matrix<3, 2> b({{10, 50},  // solve 2 problems at the same time
+                  {11, 51},
+                  {12, 52}});
+  auto x_actual = leastSquares(A, b);
+  Matrix<2, 2> x_expected({{-9, -49},  // computed w/ scipy.optimize.lsq_linear
+                           {9.5, 49.5}});
+  for (int ri = 0; ri < 2; ++ri) {
+    for (int ci = 0; ci < 2; ++ci) {
+      EXPECT_DOUBLES_EQUAL(x_expected(ri, ci), x_actual(ri, ci), 1e-3);
+    }
+  }
+}
+
 TEST(utils, converters) {
   Matrix<2, 3> A({{1, 2, 3},  //
                   {4, 5, 6}});
-  float A_array[2][3];
-  A.toFloatArray(A_array);
-  for (int ri = 0; ri < 2; ++ri) {
+  {
+    float A_array[2][3];
+    A.toCMatrix(A_array);
+    for (int ri = 0; ri < 2; ++ri) {
+      for (int ci = 0; ci < 3; ++ci) {
+        EXPECT_DOUBLES_EQUAL(A(ri, ci), A_array[ri][ci], 1e-12);
+      }
+    }
+    Vector<2> col = A.col(1);
+    for (int ri = 0; ri < 2; ++ri) {
+      EXPECT_DOUBLES_EQUAL(A(ri, 1), col(ri), 1e-12);
+    }
+    Vector<3> row = A.row(1);
     for (int ci = 0; ci < 3; ++ci) {
-      EXPECT_DOUBLES_EQUAL(A(ri, ci), A_array[ri][ci], 1e-12);
+      EXPECT_DOUBLES_EQUAL(A(1, ci), row(ci), 1e-12);
+    }
+    float B[3];
+    A.row(0).toCVector(B);
+    for (int ci = 0; ci < 3; ++ci) {
+      EXPECT_DOUBLES_EQUAL(A(0, ci), B[ci], 1e-12);
     }
   }
-  Vector<2> col = A.col(1);
-  for (int ri = 0; ri < 2; ++ri) {
-    EXPECT_DOUBLES_EQUAL(A(ri, 1), col(ri), 1e-12);
-  }
-  Vector<3> row = A.row(1);
-  for (int ci = 0; ci < 3; ++ci) {
-    EXPECT_DOUBLES_EQUAL(A(1, ci), row(ci), 1e-12);
-  }
-  float B[3];
-  A.row(0).toFloatVector(B);
-  for (int ci = 0; ci < 3; ++ci) {
-    EXPECT_DOUBLES_EQUAL(A(0, ci), B[ci], 1e-12);
+
+  {
+    float(&A_array)[2][3] = A.asCMatrix();
+    A_array[0][0] = 100;
+    A_array[0][1] = 101;
+    A_array[0][2] = 102;
+    A_array[1][0] = 103;
+    A_array[1][1] = 104;
+    A_array[1][2] = 105;
+    EXPECT_DOUBLES_EQUAL(100, A(0, 0), 1e-12);
+    EXPECT_DOUBLES_EQUAL(101, A(0, 1), 1e-12);
+    EXPECT_DOUBLES_EQUAL(102, A(0, 2), 1e-12);
+    EXPECT_DOUBLES_EQUAL(103, A(1, 0), 1e-12);
+    EXPECT_DOUBLES_EQUAL(104, A(1, 1), 1e-12);
+    EXPECT_DOUBLES_EQUAL(105, A(1, 2), 1e-12);
+    Vector<3> row = A.row(0);
+    float(&row_vec)[3] = row.asCVector();
+    row_vec[0] = 30;
+    row_vec[1] = 31;
+    row_vec[2] = 32;
+    EXPECT_DOUBLES_EQUAL(30, row(0), 1e-12);
+    EXPECT_DOUBLES_EQUAL(31, row(1), 1e-12);
+    EXPECT_DOUBLES_EQUAL(32, row(2), 1e-12);
   }
 }
 
