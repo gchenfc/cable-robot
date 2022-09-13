@@ -13,15 +13,23 @@ function Motor(error, state, l, ldot) { this.error = error; this.state = state; 
 function ControllerState(t_us, state, est, set) { this.t_us = t_us; this.state = state; this.est = est; this.set = set; }
 function CdprState(controller, motors, spray) { this.controller = controller; this.motors = motors; this.spray = spray; }
 
+const ControlMode = { POSITION: "position", VELOCITY: "velocity" };
 const Mode = { IDLE: "idle", HOLD: "hold", TRACKING: "tracking" };
 
 function Cdpr(frameDims, eeDims) {
   this.frame = frameDims;
   this.ee = eeDims;
+  this.padding_w = 0.1;
+  this.padding_h = 0.1;
+  this.isSpray = false;
   this.x = this.frame.w / 2;
   this.y = this.frame.h / 2;
   this.vx = 0;
   this.vy = 0;
+  // this.set_x = this.x;
+  // this.set_y = this.y;
+  this.set_queue = [[this.x * 1, this.y * 1, false]];
+  this.control_mode = ControlMode.VELOCITY;
   this.lastState = new CdprState(new ControllerState(null, null, new Pose2(this.x, this.y, 0), new Pose2(this.x, this.y, 0)), null, null);
   this.logBuffer = "";
   this.mode = Mode.IDLE;
@@ -64,6 +72,16 @@ Cdpr.prototype.draw = function (ctx) {
     }
     ctx.stroke();
   }
+  // Draw setpoint queue
+  ctx.beginPath();
+  ctx.lineWidth = 0.25;
+  ctx.strokeStyle = '#aaa';
+  ctx.lineCap = "round";
+  ctx.moveTo(this.set_queue[0][0], this.set_queue[0][1]);
+  for (const [x, y] of this.set_queue) {
+    ctx.lineTo(x, y);
+  }
+  ctx.stroke();
 }
 
 Cdpr.prototype.setControls = function (vx, vy) {
@@ -74,6 +92,18 @@ Cdpr.prototype.setControls = function (vx, vy) {
 function clamp(x, min, max) {
   return Math.min(Math.max(x, min), max);
 }
+function dist(x1, y1, x2, y2) {
+  return Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+}
+function towards(x, y, newx, newy, thresh) {
+  dx = newx - x;
+  dy = newy - y;
+  d = Math.sqrt(dx * dx + dy * dy);
+  if (d < thresh) {
+    return [x, y, true];
+  }
+  return [x + dx * thresh / d, y + dy * thresh / d, false];
+}
 
 Cdpr.prototype.update = function (dt) {
   if ((this.mode != Mode.TRACKING) && (this.lastState.t_us !== null)) {
@@ -81,10 +111,26 @@ Cdpr.prototype.update = function (dt) {
     this.y = this.lastState.controller.est.y;
     return;
   }
-  this.x += this.vx * dt;
-  this.y += this.vy * dt;
-  this.x = clamp(this.x, this.ee.w / 2, this.frame.w - this.ee.w / 2);
-  this.y = clamp(this.y, this.ee.h / 2, this.frame.h - this.ee.h / 2);
+  if (this.control_mode == ControlMode.VELOCITY) {
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+  } else if (this.control_mode == ControlMode.POSITION) {
+    [set_x, set_y, spray] = this.set_queue[0];
+    [this.x, this.y, success] = towards(this.x, this.y, set_x, set_y, 0.5 * dt);
+    // console.log(this.x, this.y, tmpx, tmpy, set_x, set_y, success);
+    this.spray(spray);
+    if (this.set_queue.length > 1) {
+      // either we sucessfully reached the setpoint or the setpoint is unreachable
+      if (success || (set_x < this.ee.w / 2 + this.padding_w)
+        || (set_x > this.frame.w - this.ee.w / 2 - this.padding_w)
+        || (set_y < this.ee.h / 2 + this.padding_h)
+        || (set_y > this.frame.h - this.ee.h / 2 - this.padding_h)) {
+        this.set_queue.shift();
+      }
+    }
+  }
+  this.x = clamp(this.x, this.ee.w / 2 + this.padding_w, this.frame.w - this.ee.w / 2 - this.padding_w);
+  this.y = clamp(this.y, this.ee.h / 2 + this.padding_h, this.frame.h - this.ee.h / 2 - this.padding_h);
   if (this.mode === Mode.TRACKING) {
     this.sendPosition();
   }
@@ -99,6 +145,12 @@ Cdpr.prototype.setMode = function (mode) {
   const MSGS = { [Mode.IDLE]: 'g7', [Mode.HOLD]: `ta${pos.x},${pos.y};g6;g8`, [Mode.TRACKING]: `g1;g2` };
   this.send(MSGS[mode]);
   this.mode = mode;
+}
+Cdpr.prototype.spray = function (on, force = false) {
+  if (!force && (this.isSpray != on)) {
+    this.send(`s${on ? 1 : 0}`);
+    this.isSpray = on;
+  }
 }
 
 /*********** CDPR CONTROL CODE ***************/
@@ -164,7 +216,10 @@ Cdpr.prototype.parseLogString = function (logString) {
     this.logBuffer = lines.pop();
     for (const line of lines) {
       const result = parseLine(line);
-      if (result) this.lastState = result;
+      if (result) {
+        this.lastState = result;
+        [this.x, this.y, met] = towards(this.x, this.y, result.controller.est.x, result.controller.est.y, 0.05);
+      }
     }
   }
 }
