@@ -6,6 +6,7 @@ import numpy as np
 import parse
 import copy
 
+
 @dataclasses.dataclass
 class ControllerState:
     time_us: int
@@ -16,8 +17,10 @@ class ControllerState:
     set_x: float
     set_y: float
     set_th: float
+
     def __repr__(self):
         return f'({self.time_us / 1e6} {self.state} ({self.cur_x}, {self.cur_y}) ({self.set_x}, {self.set_y}))'
+
 
 @dataclasses.dataclass
 class MotorState:
@@ -25,6 +28,7 @@ class MotorState:
     state: int
     length: float
     lengthdot: float
+
     def __repr__(self):
         return f'({self.error} {self.state} {self.length} {self.lengthdot})'
 
@@ -65,15 +69,21 @@ class CableRobot:
         self.vel_xy = np.array([0, 0])
         self.ser_buf = ''
         self.SERIAL_FMT = {
-            'controller': parse.compile('{time_us:d} - {state:d}: {cur_th:f} {cur_x:f} {cur_y:f} - {set_th:f} {set_x:f} {set_y:f}'),
-            'motor': parse.compile('{error:d} {state:d} {length:f} {lengthdot:f}'),
-            'spray': parse.compile('{spray:d}')
+            'controller':
+                parse.compile(
+                    '{time_us:d} - {state:d}: {cur_th:f} {cur_x:f} {cur_y:f} - {set_th:f} {set_x:f} {set_y:f}'
+                ),
+            'motor':
+                parse.compile('{error:d} {state:d} {length:f} {lengthdot:f}'),
+            'spray':
+                parse.compile('{spray:d}')
         }
         self.log_data = {'controller': None, 'motors': [None, None, None, None], 'spray': None}
         self.all_data = []
-    
+
     def __enter__(self):
         return self
+
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.ser.close()
         return False
@@ -92,7 +102,7 @@ class CableRobot:
             # self.update_tracking_position(dt)
 
     def send(self, str):
-        self.ser.write(bytes(str+'\n', 'utf-8'))
+        self.ser.write(bytes(str + '\n', 'utf-8'))
         if not self.silent:
             print("(cablerobot) sent: {:}\\n".format(str))
 
@@ -123,6 +133,7 @@ class CableRobot:
         return np.sum(np.square(dx)) < np.square(tol)
 
     def update_tracking_position(self):
+
         def towards(cur, target, dist):
             dx = target - cur
             if np.linalg.norm(dx) >= dist:
@@ -159,24 +170,13 @@ class CableRobot:
     def parse_buf(self):
         lines = self.ser_buf.split('\n')
         for line in lines[:-1]:
-            line = line.strip()
-            chunks = line.split('|')
-            if len(chunks) != 6:
-                print('not correct number of chunks!', chunks)
-                continue
-            cdata = self.SERIAL_FMT['controller'].parse(chunks[0].strip())
-            mdata = [self.SERIAL_FMT['motor'].parse(chunk.strip()) for chunk in chunks[1:-1]]
-            # sdata = self.SERIAL_FMT['spray'].parse(chunks[-1].strip())
-            if cdata is None: # or any(mdatum is None for mdatum in mdata):
-                print('parse error!', chunks)
+            cdata, mdata, _, controller_state, motor_states = parse_line(line, self.SERIAL_FMT)
+            if cdata is None or mdata is None or controller_state is None or motor_states is None:
                 continue
             self.cur_xy = np.array([cdata['cur_x'], cdata['cur_y']])
-            try:
-                self.log_data['controller'] = ControllerState(**cdata.named)
-                self.log_data['motors'] = [MotorState(**mdatum.named) for mdatum in mdata]
-                self.all_data.append(copy.deepcopy(self.log_data))
-            except AttributeError as e:
-                print('parse error')
+            self.log_data['controller'] = controller_state
+            self.log_data['motors'] = motor_states
+            self.all_data.append(copy.deepcopy(self.log_data))
 
             # self.setpoint_xy = np.array([cdata['set_x'], cdata['set_y']])
             # if cdata['state'] == 1:
@@ -192,6 +192,39 @@ class CableRobot:
             #                                                        self.setpoint_xy))
 
         self.ser_buf = lines[-1]
+
+
+SERIAL_FMT = {
+    'controller':
+        parse.compile(
+            '{time_us:d} - {state:d}: {cur_th:f} {cur_x:f} {cur_y:f} - {set_th:f} {set_x:f} {set_y:f}'
+        ),
+    'motor':
+        parse.compile('{error:d} {state:d} {length:f} {lengthdot:f}'),
+    'spray':
+        parse.compile('{spray:d}')
+}
+
+
+def parse_line(line, serial_fmt=SERIAL_FMT):
+    line = line.strip()
+    chunks = line.split('|')
+    if len(chunks) != 6:
+        print('not correct number of chunks!', chunks)
+        return None, None, None, None, None
+    cdata = serial_fmt['controller'].parse(chunks[0].strip())
+    mdata = [serial_fmt['motor'].parse(chunk.strip()) for chunk in chunks[1:-1]]
+    sdata = serial_fmt['spray'].parse(chunks[-1].strip())
+    try:
+        controller_state = ControllerState(**cdata.named)
+        motor_states = [MotorState(**mdatum.named) for mdatum in mdata]
+    except AttributeError as e:
+        print('parse error')
+        controller_state = None
+        motor_states = None
+
+    return cdata, mdata, sdata, controller_state, motor_states
+
 
 if __name__ == '__main__':
     print('Collecting data for 5 seconds...')

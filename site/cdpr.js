@@ -1,3 +1,5 @@
+const SPEED = 0.7;
+
 function Dims(w, h) {
   this.w = w;
   this.h = h;
@@ -11,7 +13,7 @@ function Pose2(x, y, th) { this.x = x; this.y = y; this.th = th; }
 function Motor(error, state, l, ldot) { this.error = error; this.state = state; this.l = l; this.ldot = ldot; }
 
 function ControllerState(t_us, state, est, set) { this.t_us = t_us; this.state = state; this.est = est; this.set = set; }
-function CdprState(controller, motors, spray) { this.controller = controller; this.motors = motors; this.spray = spray; }
+function CdprState(controller, motors, spray) { this.controller = controller; this.motors = motors; this.spray = spray; this.t = window.performance.now() / 1000; }
 
 const ControlMode = { POSITION: "position", VELOCITY: "velocity" };
 const Mode = { IDLE: "idle", HOLD: "hold", TRACKING: "tracking" };
@@ -31,6 +33,7 @@ function Cdpr(frameDims, eeDims) {
   this.set_queue = [[this.x * 1, this.y * 1, false]];
   this.control_mode = ControlMode.VELOCITY;
   this.lastState = new CdprState(new ControllerState(null, null, new Pose2(this.x, this.y, 0), new Pose2(this.x, this.y, 0)), null, null);
+  this.max_dt = 0.1;
   this.logBuffer = "";
   this.mode = Mode.IDLE;
 }
@@ -100,7 +103,7 @@ function towards(x, y, newx, newy, thresh) {
   dy = newy - y;
   d = Math.sqrt(dx * dx + dy * dy);
   if (d < thresh) {
-    return [x, y, true];
+    return [newx, newy, true];
   }
   return [x + dx * thresh / d, y + dy * thresh / d, false];
 }
@@ -114,20 +117,29 @@ Cdpr.prototype.update = function (dt) {
   if (this.control_mode == ControlMode.VELOCITY) {
     this.x += this.vx * dt;
     this.y += this.vy * dt;
+    // this.x = this.lastState.controller.est.x + this.vx * this.max_dt * 2.0;
+    // this.y = this.lastState.controller.est.y + this.vy * this.max_dt * 2.0;
   } else if (this.control_mode == ControlMode.POSITION) {
-    [set_x, set_y, spray] = this.set_queue[0];
-    [this.x, this.y, success] = towards(this.x, this.y, set_x, set_y, 0.5 * dt);
-    // console.log(this.x, this.y, tmpx, tmpy, set_x, set_y, success);
-    this.spray(spray);
-    if (this.set_queue.length > 1) {
-      // either we sucessfully reached the setpoint or the setpoint is unreachable
-      if (success || (set_x < this.ee.w / 2 + this.padding_w)
+    var next;
+    do {
+      [set_x, set_y, spray] = this.set_queue[0];
+      this.spray(spray);
+      let unreachable = ((set_x < this.ee.w / 2 + this.padding_w)
         || (set_x > this.frame.w - this.ee.w / 2 - this.padding_w)
         || (set_y < this.ee.h / 2 + this.padding_h)
-        || (set_y > this.frame.h - this.ee.h / 2 - this.padding_h)) {
+        || (set_y > this.frame.h - this.ee.h / 2 - this.padding_h));
+
+      [this.x, this.y, _] = towards(
+        this.lastState.controller.est.x, this.lastState.controller.est.y,
+        this.x, this.y, 
+        SPEED * this.max_dt * 1.5);
+      [this.x, this.y, success] = towards(this.x, this.y, set_x, set_y, SPEED * dt);
+
+      next = (this.set_queue.length > 1) && (success || unreachable);
+      if (next) {
         this.set_queue.shift();
       }
-    }
+    } while (next);
   }
   this.x = clamp(this.x, this.ee.w / 2 + this.padding_w, this.frame.w - this.ee.w / 2 - this.padding_w);
   this.y = clamp(this.y, this.ee.h / 2 + this.padding_h, this.frame.h - this.ee.h / 2 - this.padding_h);
@@ -136,9 +148,26 @@ Cdpr.prototype.update = function (dt) {
   }
 }
 
+Cdpr.prototype.add_to_queue = function(x, y, spray) {
+  [x2, y2, spray2] = this.set_queue[this.set_queue.length - 1];
+  if (dist(x, y, x2, y2) > 0.1) {
+    this.set_queue.push([x, y, spray]);
+  }
+}
+
 /*********** CDPR CONTROL CODE ***************/
 Cdpr.prototype.clearErrors = function () {
   this.send('g0');
+}
+Cdpr.prototype.estop = function () {
+  this.send('0n2n');
+  this.send('1n2n');
+  this.send('2n2n');
+  this.send('3n2n');
+  this.send('0n2c');
+  this.send('1n2c');
+  this.send('2n2c');
+  this.send('3n2c');
 }
 Cdpr.prototype.setMode = function (mode) {
   const pos = (this.lastState.t_us !== null) ? this.lastState.controller.est : new Pose2(this.x, this.y, 0);
@@ -217,8 +246,11 @@ Cdpr.prototype.parseLogString = function (logString) {
     for (const line of lines) {
       const result = parseLine(line);
       if (result) {
+        this.max_dt = (result.controller.t_us - this.lastState.controller.t_us) / 1e6;
+        while (this.max_dt < 0) { this.max_dt += 10; }
         this.lastState = result;
-        [this.x, this.y, met] = towards(this.x, this.y, result.controller.est.x, result.controller.est.y, 0.05);
+        // console.log(result.controller.est, result.controller.set, this.max_dt);
+        // [this.x, this.y, met] = towards(result.controller.est.x, result.controller.est.y, this.x, this.y, SPEED * 1.5 / 10);
       }
     }
   }

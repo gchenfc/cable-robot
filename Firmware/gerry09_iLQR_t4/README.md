@@ -46,6 +46,8 @@ Typical workflow:
 
 format: `c#`
 
+In general, the tens-digit describes the type of command, and the ones digit denotes which motor (4 denotes all-motors).  E.g. `c2` means calibrate motor 2 (zero-indexed), and `c4` means calibrate all the motors.
+
 command | description
 |-------| -----------
 `c0` - `c3` | run calibration on a single winch motor
@@ -55,6 +57,12 @@ command | description
 `c15`       | print out the zeros
 `c20` - `c23` | load zero from EEPROM for a single motor (this should automatically happen on startup)
 `c24`       | load all zeros
+`c30,#` - `c33,#` | set the winch zero such that the length equals the number given
+`c34,#,#,#,#` | set the winch zeros such that the lengths equal the numbers given
+`c40,#,#,#` - `c43,#,#,#` | set the winch length correction parameters
+`c44,#,#,#,#,#,#,#,#,#,#,#,#` | set all the winch length correction parameters
+`c50,#,#` - `c53,#,#` | set the pulley mount point
+`c54,#,#,#,#,#,#,#,#` | set all the pulley mount points
 
 ## High-level control messages (`g` commands)
 

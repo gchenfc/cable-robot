@@ -329,7 +329,7 @@ bool parseMsgSpray(Spray& spray, AsciiParser parser, Stream& serial) {
 bool parseMsgCanPassthrough(Odrive& odrive, AsciiParser parser,
                             Stream& serial) {
   UNWRAP_PARSE_CHECK(uint8_t node, parser.parseInt('n', &node))
-  UNWRAP_PARSE_CHECK(uint8_t cmd, parser.parseInt('n', &cmd))
+  UNWRAP_PARSE_CHECK(uint8_t cmd, parser.parseInt('c', &cmd)) // THIS WAS A TYPO AND MIGHT BE 'n'
 
   int32_t i1, i2;
   float f1, f2;

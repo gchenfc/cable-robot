@@ -17,8 +17,11 @@ function init() {
   gamepad.onpress["A"] = function () { cdpr.clearErrors(); };
   gamepad.onpress["X"] = function () { cdpr.setMode(Mode.HOLD); };
   gamepad.onpress["Y"] = function () { cdpr.setMode(Mode.TRACKING); };
+  gamepad.onpress["DPAD_LEFT"] = function (state) { cdpr.control_mode = ControlMode.VELOCITY; };
+  gamepad.onpress["DPAD_RIGHT"] = function (state) { cdpr.control_mode = ControlMode.POSITION; };
   gamepad.onchange["RT"] = function (state) { cdpr.send(`s${state ? 1 : 0}`); };
   gamepad.onchange["LT"] = function (state) { cdpr.send(`s${state ? 1 : 0}`); };
+  gamepad.onpress["RSTICK"] = function (state) { cdpr.estop(); };
   // start updates
   cdpr_interval = setInterval(function () { cdpr.update(1 / 150); }, 1000 / 150);
   animation_interval = setInterval(draw, 1000 / 30);
@@ -50,7 +53,7 @@ function draw_gamepad() {
   gamepad_ctx.save();
   if (gamepad_idx !== null) {
     gamepad.update(navigator.getGamepads()[gamepad_idx]);
-    cdpr.setControls(0.45 / Math.sqrt(2) * gamepad.joyleft.x, 0.45 / Math.sqrt(2) * gamepad.joyleft.y);
+    cdpr.setControls(SPEED / Math.sqrt(2) * gamepad.joyleft.x, SPEED / Math.sqrt(2) * gamepad.joyleft.y);
     drawing.update(cdpr.x, cdpr.y, gamepad.LT || gamepad.RT);
     gamepad_drawing.update(gamepad);
   } else {

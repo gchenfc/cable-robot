@@ -1,4 +1,5 @@
-const PAINT_DELAY_S = 0.5;
+// const PAINT_DELAY_S = 0.5;
+const PAINT_DELAY_S = 0.0;
 // const HOST = '192.168.0.15'
 // const HOST = '128.61.74.232'
 const HOST = 'localhost'
@@ -6,6 +7,7 @@ let connected = false;
 function try_connect() {
   if (!connected) {
     var websocket = new WebSocket('ws://' + HOST + ':5906');
+    // var websocket = new WebSocket('ws://' + HOST + ':5904');
 
     websocket.onerror = function (event) {
       console.log('WebSocket error: ', event);
@@ -39,14 +41,15 @@ function try_connect() {
       // cdpr.set_x = x;
       // cdpr.set_y = y;
       if (command == 'M') {
-        cdpr.set_queue.push([x, y, false]);
+        cdpr.add_to_queue(x, y, false);
         for (let i = 0; i < PAINT_DELAY_S * 150; i++) {
-          cdpr.set_queue.push([x, y, true]);
+          cdpr.add_to_queue(x, y, true);
         }
       } else if (command == 'L') {
-        cdpr.set_queue.push([x, y, true]);
+      // } else if (command == 'N') {
+        cdpr.add_to_queue(x, y, true);
       } else if (command == 'U') {
-        cdpr.set_queue.push([x, y, false]);
+        cdpr.add_to_queue(x, y, false);
         // TODO(gerry): make back-setting work
         // // back-set the past PAINT_DELAY seconds of paint to be false
         // const l = Math.min(cdpr.set_queue.length, Math.floor(PAINT_DELAY_S * 150));
@@ -56,7 +59,7 @@ function try_connect() {
         // forward set the next PAINT_DELAY seconds of paint to be false
         const l = 0;
         for (let i = l; i < Math.floor(PAINT_DELAY_S * 150); i++) {
-          cdpr.set_queue.push([x, y, false]);
+          cdpr.add_to_queue(x, y, false);
         }
       }
     }
