@@ -19,7 +19,7 @@ function try_connect() {
       console.log(event);
       connected = true;
       cdpr.control_mode = ControlMode.POSITION;
-      websocket.send('F' + [cdpr.frame.w, cdpr.frame.h]);
+      websocket.send('F' + [cdpr.frame.w - cdpr.ee.w, cdpr.frame.h - cdpr.ee.h]);
     }
 
     websocket.onclose = function (event) {
@@ -34,8 +34,9 @@ function try_connect() {
       let command = event.data[0];
       txy = event.data.slice(1).split(',')
       t = parseFloat(txy[0]);
-      x = parseFloat(txy[1]) * cdpr.frame.w
-      y = (0.64 - parseFloat(txy[2]) + 0.1) * cdpr.frame.w
+      let [w1, h1] = [cdpr.frame.w - cdpr.ee.w, cdpr.frame.h - cdpr.ee.h];
+      x = parseFloat(txy[1]) * w1
+      y = ((h1 / w1) - parseFloat(txy[2])) * w1
       console.log(command, x, y)
 
       // cdpr.set_x = x;

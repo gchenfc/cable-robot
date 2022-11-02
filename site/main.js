@@ -5,7 +5,7 @@ const gamepad_canvas = document.getElementById("gamepad_canvas");
 const gamepad_ctx = gamepad_canvas.getContext("2d");
 
 var gamepad_idx = null;
-const cdpr = new Cdpr(new Dims(3.0, 2.3), new Dims(0.2, 0.3));
+const cdpr = new Cdpr(new Dims(2.9, 2.3), new Dims(0.184, 0.122));
 const drawing = new Drawing();
 const gamepad = new MyGamepad();
 const gamepad_drawing = new GamepadDrawing();
