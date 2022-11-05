@@ -30,7 +30,7 @@ function Cdpr(frameDims, eeDims) {
   this.vy = 0;
   // this.set_x = this.x;
   // this.set_y = this.y;
-  this.set_queue = [[this.x * 1, this.y * 1, false]];
+  this.set_queue = [[this.x * 1, this.y * 1, false, false]];
   this.control_mode = ControlMode.VELOCITY;
   this.lastState = new CdprState(new ControllerState(null, null, new Pose2(this.x, this.y, 0), new Pose2(this.x, this.y, 0)), null, null);
   this.max_dt = 0.1;
@@ -122,7 +122,7 @@ Cdpr.prototype.update = function (dt) {
   } else if (this.control_mode == ControlMode.POSITION) {
     var next;
     do {
-      [set_x, set_y, spray] = this.set_queue[0];
+      [set_x, set_y, spray, force] = this.set_queue[0];
       this.spray(spray);
       let unreachable = ((set_x < this.ee.w / 2 + this.padding_w)
         || (set_x > this.frame.w - this.ee.w / 2 - this.padding_w)
@@ -138,6 +138,9 @@ Cdpr.prototype.update = function (dt) {
       next = (this.set_queue.length > 1) && (success || unreachable);
       if (next) {
         this.set_queue.shift();
+        if (force) {
+          break;
+        }
       }
     } while (next);
   }
@@ -148,11 +151,11 @@ Cdpr.prototype.update = function (dt) {
   }
 }
 
-Cdpr.prototype.add_to_queue = function(x, y, spray) {
-  [x2, y2, spray2] = this.set_queue[this.set_queue.length - 1];
-  if (dist(x, y, x2, y2) > 0.1) {
-    this.set_queue.push([x, y, spray]);
-  }
+Cdpr.prototype.add_to_queue = function(x, y, spray, force=false) {
+  // [x2, y2, spray2] = this.set_queue[this.set_queue.length - 1];
+  // if ((dist(x, y, x2, y2) > 0.025) || (!spray)) {
+    this.set_queue.push([x, y, spray, force]);
+  // }
 }
 
 /*********** CDPR CONTROL CODE ***************/

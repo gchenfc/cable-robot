@@ -1,5 +1,5 @@
 // const PAINT_DELAY_S = 0.5;
-const PAINT_DELAY_S = 0.0;
+const PAINT_DELAY_S = 0.5;
 // const HOST = '192.168.0.15'
 // const HOST = '128.61.74.232'
 const HOST = 'localhost'
@@ -44,7 +44,7 @@ function try_connect() {
       if (command == 'M') {
         cdpr.add_to_queue(x, y, false);
         for (let i = 0; i < PAINT_DELAY_S * 150; i++) {
-          cdpr.add_to_queue(x, y, true);
+          cdpr.add_to_queue(x, y, true, true);
         }
       } else if (command == 'L') {
       // } else if (command == 'N') {
