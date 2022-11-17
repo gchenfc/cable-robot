@@ -33,7 +33,8 @@ class ControllerTracking : public ControllerSimple {
   Metro setpointUpdateTimer_{1};
 
   void myUpdate() override {
-    if (state_ == HOLD_TRAJ_BEGIN) {
+    if ((state_ == HOLD_TRAJ_BEGIN) ||
+        ((state_ == RUNNING_TRAJ) && (prev_state_ != RUNNING_TRAJ))) {
       cur_ = state_estimator_->posEst();
       setpoint_ = cur_;
     }

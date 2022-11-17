@@ -134,22 +134,22 @@ class ControllerGouttefardeTracking : public ControllerTracking {
   virtual float calcTorque(float t, uint8_t winchnum) const override;
 
  public:
-  float pid_output_[4], feedback_force_[2], total_force_[2], torque_[4];
-  uint64_t last_save_ms = 0;
-  bool need_to_reset_pid_ = true;
-  void save_pid_output(const float (&in)[4]) {
+  mutable float pid_output_[4], feedback_force_[2], total_force_[2], torque_[4];
+  mutable uint64_t last_save_ms = 0;
+  mutable bool need_to_reset_pid_ = true;
+  void save_pid_output(const float (&in)[4]) const {
     std::copy(std::begin(in), std::end(in), std::begin(pid_output_));
     last_save_ms = millis();
   }
-  void save_feedback_force(const float (&in)[2]) {
+  void save_feedback_force(const float (&in)[2]) const {
     std::copy(std::begin(in), std::end(in), std::begin(feedback_force_));
     last_save_ms = millis();
   }
-  void save_total_force(const float (&in)[2]) {
+  void save_total_force(const float (&in)[2]) const {
     std::copy(std::begin(in), std::end(in), std::begin(total_force_));
     last_save_ms = millis();
   }
-  void save_torque(const float (&in)[4]) {
+  void save_torque(const float (&in)[4]) const {
     std::copy(std::begin(in), std::end(in), std::begin(torque_));
     last_save_ms = millis();
   }
@@ -158,8 +158,8 @@ class ControllerGouttefardeTracking : public ControllerTracking {
   float fs_ = 0., fv_ = 0., mu_ = 0.;
   float kp_ = kKp, ki_ = kKi, kd_ = kKd;
   float minTension_ = kTMin_N, midTension_ = kTMid_N, maxTension_ = kTMax_N;
-  Pid pid_[4]{Pid(kp_, ki_, kd_), Pid(kp_, ki_, kd_), Pid(kp_, ki_, kd_),
-              Pid(kp_, ki_, kd_)};
+  mutable Pid pid_[4]{Pid(kp_, ki_, kd_), Pid(kp_, ki_, kd_),
+                      Pid(kp_, ki_, kd_), Pid(kp_, ki_, kd_)};
 
  public:
   void setKp(float kp) {
@@ -251,7 +251,7 @@ float ControllerGouttefardeTracking::calcTorque(float t,
   float ff_force_N[2];
   // TODO(gerry): save previous vdes
   // const float(&vdes_prev)[3] = LQG_GAINS[k == 0 ? k : k - 1].vff;
-  static constexpr float kMass = 1.0;
+  // static constexpr float kMass = 1.0;
   ff_force_N[0] = 0;  //(vdes[0] - vdes_prev[0]) / dt * kMass;
   ff_force_N[1] = 0;  //(vdes[1] - vdes_prev[1]) / dt * kMass;
   float fc_N[2];

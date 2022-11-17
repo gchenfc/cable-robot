@@ -139,7 +139,7 @@ bool ControllerSimple::encoderMsgCallback(Odrive* odrive,
     case IDLE:
     case RUNNING_USER:
       // return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, 0.0f);
-      return odrive->send(winchnum, MSG_CO_HEARTBEAT_CMD);
+      return odrive->send(winchnum, MSG_CO_HEARTBEAT_CMD & 0b11111);
     case SETUP:
     case HOLDING_BAN_INPUT:
     case HOLDING_ALLOW_INPUT:
