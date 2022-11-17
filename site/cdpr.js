@@ -1,4 +1,4 @@
-const SPEED = 0.7;
+const SPEED = 0.5 * 2.3;
 
 function Dims(w, h) {
   this.w = w;
@@ -121,28 +121,33 @@ Cdpr.prototype.update = function (dt) {
     // this.y = this.lastState.controller.est.y + this.vy * this.max_dt * 2.0;
   } else if (this.control_mode == ControlMode.POSITION) {
     var next;
-    do {
-      [set_x, set_y, spray, force] = this.set_queue[0];
+    // do {
+      [this.x, this.y, spray, force] = this.set_queue[0];
       this.spray(spray);
-      let unreachable = ((set_x < this.ee.w / 2 + this.padding_w)
-        || (set_x > this.frame.w - this.ee.w / 2 - this.padding_w)
-        || (set_y < this.ee.h / 2 + this.padding_h)
-        || (set_y > this.frame.h - this.ee.h / 2 - this.padding_h));
 
-      [this.x, this.y, _] = towards(
-        this.lastState.controller.est.x, this.lastState.controller.est.y,
-        this.x, this.y, 
-        SPEED * this.max_dt * 1.5);
-      [this.x, this.y, success] = towards(this.x, this.y, set_x, set_y, SPEED * dt);
-
-      next = (this.set_queue.length > 1) && (success || unreachable);
-      if (next) {
+      if (this.set_queue.length > 1) {
         this.set_queue.shift();
-        if (force) {
-          break;
-        }
       }
-    } while (next);
+
+      // let unreachable = ((set_x < this.ee.w / 2 + this.padding_w)
+      //   || (set_x > this.frame.w - this.ee.w / 2 - this.padding_w)
+      //   || (set_y < this.ee.h / 2 + this.padding_h)
+      //   || (set_y > this.frame.h - this.ee.h / 2 - this.padding_h));
+
+      // [this.x, this.y, _] = towards(
+      //   this.lastState.controller.est.x, this.lastState.controller.est.y,
+      //   this.x, this.y, 
+      //   SPEED * this.max_dt * 1.5);
+      // [this.x, this.y, success] = towards(this.x, this.y, set_x, set_y, SPEED * dt);
+
+      // next = (this.set_queue.length > 1) && (success || unreachable);
+      // if (next) {
+      //   this.set_queue.shift();
+      //   if (force) {
+      //     break;
+      //   }
+      // }
+    // } while (next);
   }
   this.x = clamp(this.x, this.ee.w / 2 + this.padding_w, this.frame.w - this.ee.w / 2 - this.padding_w);
   this.y = clamp(this.y, this.ee.h / 2 + this.padding_h, this.frame.h - this.ee.h / 2 - this.padding_h);

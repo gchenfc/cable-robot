@@ -93,6 +93,7 @@ command | description
 `tu#`   | go to up by # meters
 `td#`   | go to down by # meters
 `ts#`   | set movement speed to # m/s
+`tA#`   | set movement acceleration to # m/s^2
 `tLu#`  | set upper limit to frame height - #
 `tLd#`  | set lower limit to #
 `tLl#`  | set left limit to #
