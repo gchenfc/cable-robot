@@ -5,8 +5,8 @@ const gamepad_canvas = document.getElementById("gamepad_canvas");
 const gamepad_ctx = gamepad_canvas.getContext("2d");
 
 var gamepad_idx = null;
-// const cdpr = new Cdpr(new Dims(2.9, 2.3), new Dims(0.184, 0.122));
-const cdpr = new Cdpr(new Dims(3.05, 2.34), new Dims(0.1778, 0.14));
+const cdpr = new Cdpr(new Dims(2.9, 2.3), new Dims(0.184, 0.122));
+// const cdpr = new Cdpr(new Dims(3.05, 2.34), new Dims(0.1778, 0.14));
 const drawing = new Drawing();
 const gamepad = new MyGamepad();
 const gamepad_drawing = new GamepadDrawing();
@@ -20,9 +20,11 @@ function init() {
   gamepad.onpress["Y"] = function () { cdpr.setMode(Mode.TRACKING); };
   gamepad.onpress["DPAD_LEFT"] = function (state) { cdpr.control_mode = ControlMode.VELOCITY; };
   gamepad.onpress["DPAD_RIGHT"] = function (state) { cdpr.control_mode = ControlMode.POSITION; };
-  gamepad.onchange["RT"] = function (state) { cdpr.send(`s${state ? 1 : 0}`); };
-  gamepad.onchange["LT"] = function (state) { cdpr.send(`s${state ? 1 : 0}`); };
+  gamepad.onchange["RT"] = function (state) { cdpr.spray(state); };
+  gamepad.onchange["LT"] = function (state) { cdpr.spray(state); };
   gamepad.onpress["RSTICK"] = function (state) { cdpr.estop(); };
+  gamepad.onpress["RB"] = function (state) { cdpr.next_color(); };
+  gamepad.onpress["LB"] = function (state) { cdpr.prev_color(); };
   // start updates
   cdpr_interval = setInterval(function () { cdpr.update(1 / 150); }, 1000 / 150);
   animation_interval = setInterval(draw, 1000 / 30);

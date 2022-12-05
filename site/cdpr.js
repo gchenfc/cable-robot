@@ -1,4 +1,5 @@
-const SPEED = 0.5 * 2.3;
+// const SPEED = 0.5 * 2.3;
+const SPEED = 0.1 * 2.3;
 
 function Dims(w, h) {
   this.w = w;
@@ -24,18 +25,25 @@ function Cdpr(frameDims, eeDims) {
   this.padding_w = 0.1;
   this.padding_h = 0.1;
   this.isSpray = false;
+  this.color = 0;
   this.x = this.frame.w / 2;
   this.y = this.frame.h / 2;
   this.vx = 0;
   this.vy = 0;
   // this.set_x = this.x;
   // this.set_y = this.y;
-  this.set_queue = [[this.x * 1, this.y * 1, false, false]];
+  this.set_queue = [[this.x * 1, this.y * 1, false, 0, false]];
   this.control_mode = ControlMode.VELOCITY;
   this.lastState = new CdprState(new ControllerState(null, null, new Pose2(this.x, this.y, 0), new Pose2(this.x, this.y, 0)), null, null);
   this.max_dt = 0.1;
   this.logBuffer = "";
   this.mode = Mode.IDLE;
+}
+
+Cdpr.prototype.sendStartupMessages = function () {
+  // Initializing Marker Changer parameters
+  this.send('ss2,50'); // Set color changing speed
+  this.send('ss1,750');
 }
 
 function zip(a, b) {
@@ -122,8 +130,8 @@ Cdpr.prototype.update = function (dt) {
   } else if (this.control_mode == ControlMode.POSITION) {
     var next;
     // do {
-      [this.x, this.y, spray, force] = this.set_queue[0];
-      this.spray(spray);
+      [this.x, this.y, spray, color, force] = this.set_queue[0];
+      this.spray(spray); // TODO: figure out how to queue spray/color commands in Teensy...
 
       if (this.set_queue.length > 1) {
         this.set_queue.shift();
@@ -159,7 +167,7 @@ Cdpr.prototype.update = function (dt) {
 Cdpr.prototype.add_to_queue = function(x, y, spray, force=false) {
   // [x2, y2, spray2] = this.set_queue[this.set_queue.length - 1];
   // if ((dist(x, y, x2, y2) > 0.025) || (!spray)) {
-    this.set_queue.push([x, y, spray, force]);
+    this.set_queue.push([x, y, spray, this.color, force]);
   // }
 }
 
@@ -186,9 +194,13 @@ Cdpr.prototype.setMode = function (mode) {
 Cdpr.prototype.spray = function (on, force = false) {
   if (!force && (this.isSpray != on)) {
     this.send(`s${on ? 1 : 0}`);
+    this.send(`sM1,${on ? 6000 : 0}`);
     this.isSpray = on;
   }
 }
+Cdpr.prototype.set_color = function (color) { this.color = color; this.send('sc' + color); }
+Cdpr.prototype.next_color = function () { this.set_color((this.color + 1) % 6); }
+Cdpr.prototype.prev_color = function () { this.set_color((this.color + 5) % 6); }
 
 /*********** CDPR CONTROL CODE ***************/
 

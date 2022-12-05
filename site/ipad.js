@@ -1,8 +1,18 @@
 // const PAINT_DELAY_S = 0.5;
-const PAINT_DELAY_S = 0.5;
+const PAINT_DELAY_S = 0;
 // const HOST = '192.168.0.15'
 // const HOST = '128.61.74.232'
 const HOST = 'localhost'
+
+COLORS = {
+  '#000000': 0, // black
+  '#ff0000': 1, // red
+  '#ffff00': 2, // yellow
+  '#008000': 3, // green
+  '#0000ff': 4, // blue
+  '#800080': 5  // purple
+}
+
 let connected = false;
 function try_connect() {
   if (!connected) {
@@ -62,6 +72,12 @@ function try_connect() {
         for (let i = l; i < Math.floor(PAINT_DELAY_S * 150); i++) {
           cdpr.add_to_queue(x, y, false);
         }
+      } else if (command == 'C') {
+        let c1 = COLORS[txy[1]];
+        console.log(event.data, c1);
+        cdpr.set_color(c1);
+        // cdpr.frame.w = parseFloat(txy[1]);
+        // cdpr.frame.h = parseFloat(txy[2]);
       }
     }
   }

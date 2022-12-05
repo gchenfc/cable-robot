@@ -44,6 +44,7 @@ async function connectSerialPort() {
   writableStreamClosed = textEncoder.readable.pipeTo(port.writable);
 
   writer = textEncoder.writable.getWriter();
+  cdpr.sendStartupMessages();
 }
 async function closeSerial() {
   writer.close();

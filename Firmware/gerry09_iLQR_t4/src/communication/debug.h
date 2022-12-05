@@ -310,19 +310,18 @@ bool parseMsgController(ControllerInterface* controller, Odrive& odrive,
 
 bool parseMsgSpray(Spray& spray, AsciiParser parser, Stream& serial) {
   UNWRAP_PARSE_CHECK(, parser.checkChar('s'));
-  UNWRAP_PARSE_CHECK(uint32_t cmd, parser.parseInt(&cmd));
-  switch (cmd) {
-    case 0:
-      serial.println("Spray off");
-      spray.setSpray(false);
-      return true;
-    case 1:
-      serial.println("Spray on");
-      spray.setSpray(true);
-      return true;
-    default:
-      serial.println("\n\nInvalid spray command code\n\n");
-      return false;
+  // First check for 0 and 1, for backwards compatibility.
+  if (parser.advanceOnMatchChar('0')) {
+    serial.println("Spray off");
+    spray.setSpray(false);
+    return true;
+  } else if (parser.advanceOnMatchChar('1')) {
+    serial.println("Spray on");
+    spray.setSpray(true);
+    return true;
+  } else { // Forward rest of args to spray paint MCU
+    spray.forward_msg(parser.get_buffer_cur(), parser.len());
+    return true;
   }
 }
 

@@ -19,8 +19,16 @@ class Spray {
     }
   }
 
+  void changeColor(int color) {
+    serial_.write('c');
+    serial_.println(color, DEC);
+  }
   void setSpray(bool on) { on_ = on; }
   bool spray() const { return on_; }
+
+  void forward_msg(char* buf, int len) {
+    serial_.write(buf, len);
+  }
 
  private:
   HardwareSerial& serial_;

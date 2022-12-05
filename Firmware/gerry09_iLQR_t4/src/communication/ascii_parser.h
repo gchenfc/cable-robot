@@ -78,6 +78,10 @@ struct AsciiParser {
   AsciiParser(char* buffer, int size)
       : buffer_cur_(buffer), buffer_end_(buffer + size) {}
 
+  char* get_buffer_cur() const { return buffer_cur_; }
+  char* get_buffer_end() const { return buffer_end_; }
+  int len() const { return buffer_end_ - buffer_cur_; }
+
   /// Checks that there is nothing left to parse in this string
   bool checkDone() const { return (buffer_cur_ == buffer_end_); }
 
@@ -94,7 +98,8 @@ struct AsciiParser {
   /// If the character matches, then advance to next.  Else, do nothing
   bool advanceOnMatchChar(char expected) {
     if (buffer_cur_ == buffer_end_) return false;
-    if (*buffer_cur_ == expected) buffer_cur_++;
+    if (*buffer_cur_ != expected) return false;
+    ++buffer_cur_;
     return true;
   }
 
