@@ -131,7 +131,7 @@ Cdpr.prototype.update = function (dt) {
     var next;
     // do {
       [this.x, this.y, spray, color, force] = this.set_queue[0];
-      this.spray(spray); // TODO: figure out how to queue spray/color commands in Teensy...
+      this.spray(spray); // TODO: figure out how to queue color commands in Teensy...
 
       if (this.set_queue.length > 1) {
         this.set_queue.shift();
@@ -198,7 +198,17 @@ Cdpr.prototype.spray = function (on, force = false) {
     this.isSpray = on;
   }
 }
-Cdpr.prototype.set_color = function (color) { this.color = color; this.send('sc' + color); }
+var color_timer = null;
+Cdpr.prototype.set_color = function (color, retry=false) {
+  if (!retry) { clearTimeout(color_timer); }
+  console.log(this.lastState.spray);
+  if (!this.lastState.spray) { // Don't allow changing colors when we are currently "spraying"
+    this.color = color;
+    this.send('sc' + color);
+  } else {
+    color_timer = setTimeout(() => this.set_color(color, true), 100); // Try again soon
+  }
+}
 Cdpr.prototype.next_color = function () { this.set_color((this.color + 1) % 6); }
 Cdpr.prototype.prev_color = function () { this.set_color((this.color + 5) % 6); }
 
