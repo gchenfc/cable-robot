@@ -42,8 +42,8 @@ function Cdpr(frameDims, eeDims) {
 
 Cdpr.prototype.sendStartupMessages = function () {
   // Initializing Marker Changer parameters
-  this.send('ss2,50'); // Set color changing speed
-  this.send('ss1,750');
+  this.send('ss2,10'); // Set color changing speed
+  // this.send('ss1,150');
 }
 
 function zip(a, b) {
@@ -116,6 +116,8 @@ function towards(x, y, newx, newy, thresh) {
   return [x + dx * thresh / d, y + dy * thresh / d, false];
 }
 
+let paint_out = false;
+let switching_spray = false;
 Cdpr.prototype.update = function (dt) {
   if ((this.mode != Mode.TRACKING) && (this.lastState.t_us !== null)) {
     this.x = this.lastState.controller.est.x;
@@ -131,10 +133,26 @@ Cdpr.prototype.update = function (dt) {
     var next;
     // do {
       [this.x, this.y, spray, color, force] = this.set_queue[0];
-      this.spray(spray); // TODO: figure out how to queue color commands in Teensy...
+
+      // this.spray(spray); // TODO: figure out how to queue color commands in Teensy...
+
+      // Logic to wait before moving to next setpoint
+      let cur_xy = this.lastState.controller.est;
+      let dist_to_goal = dist(this.x, this.y, cur_xy.x, cur_xy.y);
+      // [dummy1, dummy2, next_spray, next_color, dummy3] = this.set_queue[1];
+      console.log(spray, paint_out, dist_to_goal);
+      if (paint_out != spray) { // push marker in/out
+        if ((!switching_spray) && (dist_to_goal < 0.02)) { // wait until reaching position before spraying
+          switching_spray = true;
+          this.spray(spray);
+          setTimeout(() => { paint_out = spray; switching_spray = false; }, 2000);
+        }
+      }
 
       if (this.set_queue.length > 1) {
-        this.set_queue.shift();
+        if (paint_out == spray) {
+          this.set_queue.shift();
+        }
       }
 
       // let unreachable = ((set_x < this.ee.w / 2 + this.padding_w)
@@ -194,7 +212,7 @@ Cdpr.prototype.setMode = function (mode) {
 Cdpr.prototype.spray = function (on, force = false) {
   if (!force && (this.isSpray != on)) {
     this.send(`s${on ? 1 : 0}`);
-    this.send(`sM1,${on ? 6000 : 0}`);
+    this.send(`sM1,${on ? 3000 : 0}`);
     this.isSpray = on;
   }
 }
@@ -204,7 +222,9 @@ Cdpr.prototype.set_color = function (color, retry=false) {
   console.log(this.lastState.spray);
   if (!this.lastState.spray) { // Don't allow changing colors when we are currently "spraying"
     this.color = color;
+    // this.send('sM1,-150');
     this.send('sc' + color);
+    // this.send('sM1,0');
   } else {
     color_timer = setTimeout(() => this.set_color(color, true), 100); // Try again soon
   }
