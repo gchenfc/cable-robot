@@ -17,7 +17,9 @@ static constexpr size_t kUpdateInterval_ms = 1;
 class TrajectoryManager {
  private:
   using Vector2 = std::pair<float, float>;
-  CircularBuffer<Vector2, 1000> setpoints_;
+  using Color = int;  // -1 is no color, 0-6 are real colors
+  using Setpoint = std::pair<Vector2, Color>;
+  CircularBuffer<Setpoint, 1000> setpoints_;
   float max_speed_, max_accel_;
   float speed_;
   Vector2 x_;
@@ -37,7 +39,7 @@ class TrajectoryManager {
 
   void setMaxSpeed(float max_speed) { max_speed_ = max_speed; }
   void setMaxAccel(float max_accel) { max_accel_ = max_accel; }
-  bool pushSetpoint(Vector2 x);
+  bool pushSetpoint(Vector2 x, Color color = -1);
   bool dropSetpoint();
   bool translate(float dx, float dy);
 
@@ -157,12 +159,12 @@ bool ControllerTracking::readSerial(AsciiParser parser, Stream& serialOut) {
 
 /******************************************************************************/
 
-bool TrajectoryManager::pushSetpoint(Vector2 setpoint) {
-  const auto& last = setpoints_.back();
+bool TrajectoryManager::pushSetpoint(Vector2 setpoint, Color color) {
+  const auto& last = setpoints_.back().first;
   float dx[2] = {setpoint.first - last.first, setpoint.second - last.second};
   float d2 = norm2(dx);
   if (d2 < (0.001 * 0.001)) return false;
-  return setpoints_.push(setpoint);
+  return setpoints_.push({setpoint, color});
 }
 bool TrajectoryManager::dropSetpoint() { return setpoints_.drop(); }
 bool TrajectoryManager::translate(float dx, float dy) {
@@ -194,10 +196,11 @@ void TrajectoryManager::updateSpeed() {
 void TrajectoryManager::updateSetpoint() {
   float dist_to_go = 1e-3 * kUpdateInterval_ms * speed_;
   while (dist_to_go > 0) {
-    const Vector2& setpoint = setpoints_.front();
+    const Setpoint& setpoint = setpoints_.front();
+    const Vector2& setpoint_xy = setpoint.first;
     float d2 = towards(dist_to_go,                       //
                        x_.first, x_.second,              // current
-                       setpoint.first, setpoint.second,  // target
+                       setpoint_xy.first, setpoint_xy.second,  // target
                        &x_.first, &x_.second);           // new
     dist_to_go -= sqrt(d2);
     if (dist_to_go > 0) {           // reached setpoint
@@ -216,10 +219,12 @@ float TrajectoryManager::calcPathLength(float max) const {
   float dist = 0;
   auto tmp_setpoints = setpoints_.view();  // make a copy to iterate
   Vector2 prev_setpoint = x_, setpoint;
+  Setpoint setpoint_color;
   bool skip_next = true;
   float prev_dx[2] = {0, 0};
   // Loop through all the setpoints, accumulating the distances between them
-  while (tmp_setpoints.pop(setpoint)) {
+  while (tmp_setpoints.pop(setpoint_color)) {
+    setpoint = setpoint_color.first;
     float dx[2] = {setpoint.first - prev_setpoint.first,
                    setpoint.second - prev_setpoint.second};
     float to_add = normalize(dx);

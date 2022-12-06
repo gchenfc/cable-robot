@@ -17,7 +17,7 @@
 float kZeros[4] = {4.868, 4.672, 6.490, 7.980};  // these will get reset anyway
 static constexpr float kR = 0.0254 / 2;
 // static constexpr float kSprayDelay_s = 0.40;
-static constexpr float kSprayDelay_s = 0.0;
+static constexpr float kSprayDelay_s = 3.0;
 
 /******** Frame Geometry **********/
 /* NOTE: THESE ACTUALLY GET OVERWRITTEN BY EEPROM */
