@@ -64,6 +64,8 @@ class ControllerTracking : public ControllerSimple {
         cur_(kWidth / 2, kHeight / 2),
         trajectory_(kSpeed, kAccel, cur_) {}
 
+  static void print_name(Stream& serial) { serial.print("ControllerTracking"); }
+
   bool readSerial(AsciiParser parser, Stream& serialOut) override;
 
  protected:
@@ -90,7 +92,7 @@ class ControllerTracking : public ControllerSimple {
   }
 
   Vector2 desPos(float t) const override { return cur_; }
-  // Vector2 desVel(float t) const override { return cur_speed_; }
+  Vector2 desVel(float t) const override { return {0, 0}; }  // cur_speed_?
 };
 
 bool ControllerTracking::readSerial(AsciiParser parser, Stream& serialOut) {
@@ -198,10 +200,10 @@ void TrajectoryManager::updateSetpoint() {
   while (dist_to_go > 0) {
     const Setpoint& setpoint = setpoints_.front();
     const Vector2& setpoint_xy = setpoint.first;
-    float d2 = towards(dist_to_go,                       //
-                       x_.first, x_.second,              // current
+    float d2 = towards(dist_to_go,                             //
+                       x_.first, x_.second,                    // current
                        setpoint_xy.first, setpoint_xy.second,  // target
-                       &x_.first, &x_.second);           // new
+                       &x_.first, &x_.second);                 // new
     dist_to_go -= sqrt(d2);
     if (dist_to_go > 0) {           // reached setpoint
       if (setpoints_.size() > 1) {  // always keep at least 1 setpoint

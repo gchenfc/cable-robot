@@ -59,9 +59,9 @@ PolyCoeffs<Dim, std::max<int>(0, Degree - 1)> polyder(
 template <int MaxSegments, int Dims = 2, int Degree = 3>
 class PPoly {
  public:
-  using PPolyBreakpoints = PPolyBreakpoints<MaxSegments>;
-  using PolyCoeffs1d = PolyCoeffs1d<Degree>;
-  using PolyCoeffs = PolyCoeffs<Dims, Degree>;
+  using PPolyBreakpoints_ = PPolyBreakpoints<MaxSegments>;
+  using PolyCoeffs1d_ = PolyCoeffs1d<Degree>;
+  using PolyCoeffs_ = PolyCoeffs<Dims, Degree>;
   enum { XDeg = Degree };
   enum { VDeg = std::max<int>(0, Degree - 1) };
   enum { ADeg = std::max<int>(0, Degree - 2) };
@@ -75,7 +75,7 @@ class PPoly {
       "Dimensions other than 2 not implemented yet (see eval functions)");
 
  protected:
-  PPolyBreakpoints breakpoints_;  // First breakpoint should always be at 0!!!
+  PPolyBreakpoints_ breakpoints_;  // First breakpoint should always be at 0!!!
   PPolyCoeffs_ coeffs_;           // (segment, dimension, degree)
   PPolyCoeffsD coeffsd_;
   PPolyCoeffsDD coeffsdd_;
@@ -106,12 +106,13 @@ class PPoly {
     cur_segment_ = 0;
     breakpoints_[0] = 0;
   }
-  void add_segment(float tmax, PolyCoeffs coeffs) {
-    if (n_segments_ >= MaxSegments) return;
+  bool add_segment(float tmax, PolyCoeffs_ coeffs) {
+    if (n_segments_ >= MaxSegments) return false;
     coeffs_[n_segments_] = coeffs;
     coeffsd_[n_segments_] = polyder<Dims, XDeg>(coeffs);
     coeffsdd_[n_segments_] = polyder<Dims, VDeg>(coeffsd_[n_segments_]);
     breakpoints_[++n_segments_] = tmax;
+    return true;
   }
 };
 
