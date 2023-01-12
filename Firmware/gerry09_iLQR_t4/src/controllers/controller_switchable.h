@@ -1,48 +1,51 @@
 #pragma once
 
+#include <tuple>
+
 #include "controller_interface.h"
-#include "controller_gouttefarde_tracking.h"
-#include "controller_ilqr.h"
 
 /**
  * ControllerSwitchable enables dynamically switching between multiple
  * controllers.
+ * Usage:
+ * ```c++
+ * ControllerGouttefardeTracking<ControllerTracking>
+ * controller1(&state_estimator, robot);
+ * ControllerGouttefardeTracking<ControllerTrackingSpline>
+ * controller2(&state_estimator); ControllerIlqr controller3(&state_estimator,
+ * spray);
+ *
+ * ControllerSwitchable controller(controller1, controller2, controller3);
+ *
+ * main() {
+ *   controller.setup();
+ *   while (true) { controller.update(); }
+ * }
+ * ```
  */
+template <typename... Controllers>
 class ControllerSwitchable : public ControllerInterface {
+  template <int I, typename T = void>
+  using RECURSE =
+      typename std::enable_if<I + 1 < sizeof...(Controllers), T>::type;
+  template <int I, typename T = void>
+  using TERMINATE =
+      typename std::enable_if<I + 1 == sizeof...(Controllers), T>::type;
+
  public:
-  ControllerSwitchable(const StateEstimatorInterface* state_estimator,
-                       const Robot& robot, Spray& spray)
-      : controller_tracking_(state_estimator, robot),
-        controller_trajectory_(state_estimator, spray),
-        controller_active_(&controller_tracking_) {}
+  ControllerSwitchable(Controllers&... controllers)
+      : controllers_(controllers...),
+        controller_active_(&std::get<0>(controllers_)) {}
 
   // Common API
-  void setup() override {
-    controller_tracking_.setup();
-    controller_trajectory_.setup();
-  };
-  void update() override {
-    controller_tracking_.update();
-    controller_trajectory_.update();
-  };
+  void setup() override { setup_<0>(); }
+  void update() override { update_<0>(); }
 
   bool readSerial(AsciiParser parser, Stream& serialOut) override {
     AsciiParser parser_ = parser;
     if (parser_.checkChar('g') && parser_.checkChar('s')) {
       UNWRAP_PARSE_CHECK(uint8_t num, parser_.parseInt('\n', &num));
-      switch (num) {
-        case 0:
-          controller_active_->hold();
-          controller_active_ = &controller_tracking_;
-          serialOut.println("Switched to tracking controller");
-          return true;
-        case 1:
-          controller_active_->hold();
-          controller_active_ = &controller_trajectory_;
-          serialOut.println("Switched to trajectory controller");
-          return true;
-      }
-      return false;
+      if (try_activate(num, serialOut)) return true;
     }
 
     return controller_active_->readSerial(parser, serialOut);
@@ -85,7 +88,50 @@ class ControllerSwitchable : public ControllerInterface {
   }
 
  protected:
-  ControllerGouttefardeTracking controller_tracking_;
-  ControllerIlqr controller_trajectory_;
+  std::tuple<Controllers&...> controllers_;
   ControllerInterface* controller_active_;
+
+  // Template magic
+  // TODO(gerry): std::apply?
+  template <int I>
+  RECURSE<I, void> setup_() {
+    std::get<I>(controllers_).setup();
+    setup_<I + 1>();
+  };
+  template <int I>
+  TERMINATE<I, void> setup_() {
+    std::get<I>(controllers_).setup();
+  };
+
+  template <int I>
+  RECURSE<I, void> update_() {
+    std::get<I>(controllers_).update();
+    update_<I + 1>();
+  };
+  template <int I>
+  TERMINATE<I, void> update_() {
+    std::get<I>(controllers_).update();
+  };
+
+  template <int I = 0>
+  RECURSE<I, bool> try_activate(int i, Stream& serialOut) {
+    return try_activate_<I>(i, serialOut) && try_activate<I + 1>(i, serialOut);
+  }
+  template <int I = 0>
+  TERMINATE<I, bool> try_activate(int i, Stream& serialOut) {
+    return try_activate_<I>(i, serialOut);
+  }
+
+  template <int I>
+  bool try_activate_(int i, Stream& serialOut) {
+    if (i == I) {
+      controller_active_->hold();
+      controller_active_ = &std::get<I>(controllers_);
+      serialOut.print("Switched to controller ");
+      std::get<I>(controllers_).print_name(serialOut);
+      serialOut.println();
+      return true;
+    }
+    return false;
+  }
 };

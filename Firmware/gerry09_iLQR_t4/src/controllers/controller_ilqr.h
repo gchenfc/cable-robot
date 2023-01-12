@@ -28,6 +28,8 @@ class ControllerIlqr : public ControllerSimple {
   ControllerIlqr(const StateEstimatorInterface* state_estimator, Spray& spray)
       : ControllerSimple(state_estimator), spray_(spray) {}
 
+  static void print_name(Stream& serial) { serial.print("ControllerIlqr"); }
+
  protected:
   static constexpr float dt = 0.01;
   Spray& spray_;
