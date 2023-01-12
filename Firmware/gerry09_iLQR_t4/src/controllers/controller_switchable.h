@@ -44,6 +44,10 @@ class ControllerSwitchable : public ControllerInterface {
   bool readSerial(AsciiParser parser, Stream& serialOut) override {
     AsciiParser parser_ = parser;
     if (parser_.checkChar('g') && parser_.checkChar('s')) {
+      if ((!parser_.checkDone()) && (parser_.get_buffer_cur()[0] == '?')) {
+        print_options(serialOut);
+        return true;
+      }
       UNWRAP_PARSE_CHECK(uint8_t num, parser_.parseInt('\n', &num));
       if (try_activate(num, serialOut)) return true;
     }
@@ -115,7 +119,7 @@ class ControllerSwitchable : public ControllerInterface {
 
   template <int I = 0>
   RECURSE<I, bool> try_activate(int i, Stream& serialOut) {
-    return try_activate_<I>(i, serialOut) && try_activate<I + 1>(i, serialOut);
+    return try_activate_<I>(i, serialOut) || try_activate<I + 1>(i, serialOut);
   }
   template <int I = 0>
   TERMINATE<I, bool> try_activate(int i, Stream& serialOut) {
@@ -133,5 +137,19 @@ class ControllerSwitchable : public ControllerInterface {
       return true;
     }
     return false;
+  }
+
+  template <int I = 0>
+  RECURSE<I, void> print_options(Stream& serialOut) {
+    serialOut.printf("Option %d: ", I);
+    std::get<I>(controllers_).print_name(serialOut);
+    serialOut.println();
+    print_options<I + 1>(serialOut);
+  }
+  template <int I = 0>
+  TERMINATE<I, void> print_options(Stream& serialOut) {
+    serialOut.printf("Option %d: ", I);
+    std::get<I>(controllers_).print_name(serialOut);
+    serialOut.println();
   }
 };

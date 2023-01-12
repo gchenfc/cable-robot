@@ -7,15 +7,6 @@
 
 #include "spline.h"
 
-// TestPPoly is a thin wrapper around PPoly to access the protected variables
-template <int N = 100>
-class TestPPoly : public PPoly<N> {
- public:
-  float get_coeff(int segment, int dimension, int degree) {
-    return PPoly<N>::coeffs_[segment][dimension][degree];
-  }
-};
-
 #define EXPECT_XVA_EQUAL(T, tol, X_EXP, Y_EXP, VX_EXP, VY_EXP, AX_EXP, AY_EXP) \
   {                                                                            \
     std::array<float, 2> x_exp = {X_EXP, Y_EXP};                               \
@@ -58,7 +49,7 @@ TEST(spline, Spline) {
   // Test the PPoly class
   // Some python code was used to generate these tests.
   // See gerry05_toppra.ipynb in the art_skills repo (70ee034cc8400c4ae1b9d0bdb)
-  TestPPoly<100> spline;
+  PPoly<100> spline;
 
   // Test initialize to safe config
   EXPECT_DOUBLES_EQUAL(0, spline.duration(), 0);
@@ -74,15 +65,15 @@ TEST(spline, Spline) {
   // Test single-segment config
   spline.add_segment(0.1, {{{{1, 2, 3, 4}}, {{5, 6, 7, 8}}}});
   EXPECT_DOUBLES_EQUAL(0.1, spline.duration(), 1e-5);
-  EXPECT_DOUBLES_EQUAL(1.0, spline.get_coeff(0, 0, 0), 1e-5);
-  EXPECT_DOUBLES_EQUAL(2.0, spline.get_coeff(0, 0, 1), 1e-5);
-  EXPECT_DOUBLES_EQUAL(3.0, spline.get_coeff(0, 0, 2), 1e-5);
-  EXPECT_DOUBLES_EQUAL(4.0, spline.get_coeff(0, 0, 3), 1e-5);
-  EXPECT_DOUBLES_EQUAL(5.0, spline.get_coeff(0, 1, 0), 1e-5);
-  EXPECT_DOUBLES_EQUAL(6.0, spline.get_coeff(0, 1, 1), 1e-5);
-  EXPECT_DOUBLES_EQUAL(7.0, spline.get_coeff(0, 1, 2), 1e-5);
-  EXPECT_DOUBLES_EQUAL(8.0, spline.get_coeff(0, 1, 3), 1e-5);
-  EXPECT_DOUBLES_EQUAL(8.0, spline.get_coeff(0, 1, 3), 1e-5);
+  EXPECT_DOUBLES_EQUAL(1.0, spline.get_coeffs(0).at(0).at(0), 1e-5);
+  EXPECT_DOUBLES_EQUAL(2.0, spline.get_coeffs(0).at(0).at(1), 1e-5);
+  EXPECT_DOUBLES_EQUAL(3.0, spline.get_coeffs(0).at(0).at(2), 1e-5);
+  EXPECT_DOUBLES_EQUAL(4.0, spline.get_coeffs(0).at(0).at(3), 1e-5);
+  EXPECT_DOUBLES_EQUAL(5.0, spline.get_coeffs(0).at(1).at(0), 1e-5);
+  EXPECT_DOUBLES_EQUAL(6.0, spline.get_coeffs(0).at(1).at(1), 1e-5);
+  EXPECT_DOUBLES_EQUAL(7.0, spline.get_coeffs(0).at(1).at(2), 1e-5);
+  EXPECT_DOUBLES_EQUAL(8.0, spline.get_coeffs(0).at(1).at(3), 1e-5);
+  EXPECT_DOUBLES_EQUAL(8.0, spline.get_coeffs(0).at(1).at(3), 1e-5);
   EXPECT_XVA_EQUAL(0.05, 1e-6,            // t, tol
                    4.155125, 8.365625,    // x
                    3.207500, 7.637500,    // v

@@ -184,6 +184,7 @@ void TrajectoryManager::updateSpeed() {
   clamp(&speed_, min_new_speed, min(max_new_speed, max_speed_));
 
   // Debug print
+  return;
   if ((millis() % 100) == 0) {
     if (Serial.availableForWrite() > 400) {
       Serial.printf(
