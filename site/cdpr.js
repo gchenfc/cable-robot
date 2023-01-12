@@ -17,6 +17,7 @@ function ControllerState(t_us, state, est, set) { this.t_us = t_us; this.state =
 function CdprState(controller, motors, spray) { this.controller = controller; this.motors = motors; this.spray = spray; this.t = window.performance.now() / 1000; }
 
 const ControlMode = { POSITION: "position", VELOCITY: "velocity" };
+const SwitchableControllerMode = { TRACKING: "tracking", SPLINE: "spline", ILQR: "ilqr" };
 const Mode = { IDLE: "idle", HOLD: "hold", TRACKING: "tracking" };
 
 function Cdpr(frameDims, eeDims) {
@@ -34,6 +35,7 @@ function Cdpr(frameDims, eeDims) {
   // this.set_y = this.y;
   this.set_queue = [[this.x * 1, this.y * 1, false, 0, false]];
   this.control_mode = ControlMode.VELOCITY;
+  this.switchable_controller_mode = SwitchableControllerMode.TRACKING;
   this.lastState = new CdprState(new ControllerState(null, null, new Pose2(this.x, this.y, 0), new Pose2(this.x, this.y, 0)), null, null);
   this.max_dt = 0.1;
   this.logBuffer = "";
@@ -177,7 +179,7 @@ Cdpr.prototype.update = function (dt) {
   }
   this.x = clamp(this.x, this.ee.w / 2 + this.padding_w, this.frame.w - this.ee.w / 2 - this.padding_w);
   this.y = clamp(this.y, this.ee.h / 2 + this.padding_h, this.frame.h - this.ee.h / 2 - this.padding_h);
-  if (this.mode === Mode.TRACKING) {
+  if ((this.mode === Mode.TRACKING) && (this.switchable_controller_mode == SwitchableControllerMode.TRACKING)) {
     this.sendPosition();
   }
 }
@@ -208,6 +210,11 @@ Cdpr.prototype.setMode = function (mode) {
   const MSGS = { [Mode.IDLE]: 'g7', [Mode.HOLD]: `ta${pos.x},${pos.y};g6;g8`, [Mode.TRACKING]: `g1;g2` };
   this.send(MSGS[mode]);
   this.mode = mode;
+}
+Cdpr.prototype.setSwitchableControllerMode = function (mode) {
+  const LOOKUP_TABLE = { [SwitchableControllerMode.TRACKING]: 0, [SwitchableControllerMode.SPLINE]: 1, [SwitchableControllerMode.ILQR]: 2 };
+  this.send(`gs${LOOKUP_TABLE[mode]}`);
+  this.switchable_controller_mode = mode
 }
 Cdpr.prototype.spray = function (on, force = false) {
   if (!force && (this.isSpray != on)) {

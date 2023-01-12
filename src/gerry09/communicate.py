@@ -40,6 +40,12 @@ class CableRobot:
         HOLD = 1
         RELEASE = 2
         TRACKING = 3
+        TRACKING_SPLINE = 4
+
+    class ControllerMode(Enum):
+        TRACKING = 0
+        TRACKING_SPLINE = 1
+        ILQR = 2
 
     def __init__(self,
                  port='/dev/tty.usbmodem100994303',
@@ -64,6 +70,7 @@ class CableRobot:
         self.t_prev = time.time()
         self.state = CableRobot.State.UNKNOWN
         self.meas_state = CableRobot.State.UNKNOWN
+        self.controller_mode = CableRobot.ControllerMode.TRACKING
         self.cur_xy = None
         self.setpoint_xy = np.array([1.0, 0.9])
         self.vel_xy = np.array([0, 0])
@@ -127,6 +134,10 @@ class CableRobot:
         if update_setpoint and (self.cur_xy is not None):
             self.setpoint_xy = self.cur_xy
         self.state = CableRobot.State.TRACKING
+    
+    def set_mode_controller(self, controller_mode):
+        self.send(f'gs{controller_mode}')
+        self.controller_mode = controller_mode
 
     def reached_tracking_position(self, tol=0.03):
         dx = self.setpoint_xy - self.cur_xy
@@ -145,7 +156,9 @@ class CableRobot:
             print('(cablerobot) Error: cannot send tracking commands when not in tracking mode')
             return
         # self.cur_xy = towards(self.cur_xy, self.setpoint_xy, dt)
-        self.send('ta{:f},{:f}'.format(*self.setpoint_xy))
+
+        if self.controller_mode is not CableRobot.State.TRACKING_SPLINE:
+            self.send('ta{:f},{:f}'.format(*self.setpoint_xy))
 
     def send_tracking_position(self, x, y, relative=False):
         if self.state is not CableRobot.State.TRACKING:

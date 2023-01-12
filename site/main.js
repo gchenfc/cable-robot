@@ -20,6 +20,8 @@ function init() {
   gamepad.onpress["Y"] = function () { cdpr.setMode(Mode.TRACKING); };
   gamepad.onpress["DPAD_LEFT"] = function (state) { cdpr.control_mode = ControlMode.VELOCITY; };
   gamepad.onpress["DPAD_RIGHT"] = function (state) { cdpr.control_mode = ControlMode.POSITION; };
+  gamepad.onpress["DPAD_UP"] = function (state) { cdpr.setSwitchableControllerMode(SwitchableControllerMode.SPLINE); };
+  gamepad.onpress["DPAD_DOWN"] = function (state) { cdpr.setSwitchableControllerMode(SwitchableControllerMode.TRACKING); };
   gamepad.onchange["RT"] = function (state) { cdpr.spray(state); };
   gamepad.onchange["LT"] = function (state) { cdpr.spray(state); };
   gamepad.onpress["RSTICK"] = function (state) { cdpr.estop(); };
