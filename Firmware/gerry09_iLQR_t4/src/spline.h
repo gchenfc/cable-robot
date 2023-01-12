@@ -76,7 +76,7 @@ class PPoly {
 
  protected:
   PPolyBreakpoints_ breakpoints_;  // First breakpoint should always be at 0!!!
-  PPolyCoeffs_ coeffs_;           // (segment, dimension, degree)
+  PPolyCoeffs_ coeffs_;            // (segment, dimension, degree)
   PPolyCoeffsD coeffsd_;
   PPolyCoeffsDD coeffsdd_;
   int n_segments_, cur_segment_;
@@ -90,10 +90,12 @@ class PPoly {
   // Same as `reparameterize_dumb` except caches result
   std::pair<int, float> reparameterize(float t);
 
+  // Evaluate the `Deg`th derivative
   template <int Deg>
   X eval(float t, PPolyCoeffs<MaxSegments, Dims, Deg> coeffs,
          bool is_pos = true) const;
 
+  // Evaluate the pos, vel, acc
   X eval(float t) const { return eval<XDeg>(t, coeffs_, true); }
   X evald(float t) const { return eval<VDeg>(t, coeffsd_, false); }
   X evaldd(float t) const { return eval<ADeg>(t, coeffsdd_, false); }
@@ -114,6 +116,11 @@ class PPoly {
     breakpoints_[++n_segments_] = tmax;
     return true;
   }
+
+  // Getters
+  float get_breakpoint(int seg) const { return breakpoints_[seg]; }
+  int get_n_segments() const { return n_segments_; }
+  PolyCoeffs_ get_coeffs(int seg) const { return coeffs_[seg]; }
 };
 
 /************************** IMPLEMENTATION ************************************/

@@ -170,6 +170,8 @@ class CableRobot:
     def parse_buf(self):
         lines = self.ser_buf.split('\n')
         for line in lines[:-1]:
+            if line.startswith('Spline '):
+                print(line) # TODO(gerry): save this somehow
             cdata, mdata, _, controller_state, motor_states = parse_line(line, self.SERIAL_FMT)
             if cdata is None or mdata is None or controller_state is None or motor_states is None:
                 continue
@@ -210,7 +212,7 @@ def parse_line(line, serial_fmt=SERIAL_FMT):
     line = line.strip()
     chunks = line.split('|')
     if len(chunks) != 6:
-        print('not correct number of chunks!', chunks)
+        # print('not correct number of chunks!', chunks)
         return None, None, None, None, None
     cdata = serial_fmt['controller'].parse(chunks[0].strip())
     mdata = [serial_fmt['motor'].parse(chunk.strip()) for chunk in chunks[1:-1]]

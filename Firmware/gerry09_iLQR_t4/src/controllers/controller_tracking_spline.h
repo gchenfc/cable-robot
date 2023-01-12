@@ -15,7 +15,7 @@ class ControllerTrackingSpline : public ControllerSimple {
   bool readSerial(AsciiParser parser, Stream& serialOut) override;
 
  protected:
-  PPoly<300> spline_;
+  PPoly<750> spline_;
   float limit_left_ = 0.2, limit_right_ = 0.2, limit_up_ = 0.2,
         limit_down_ = 0.2;
   ControllerState prev_state_ = IDLE;
@@ -70,11 +70,38 @@ bool ControllerTrackingSpline::readSerial(AsciiParser parser, Stream& serialOut)
         serialOut.println("Error adding next segment of spline: out of space!");
       }
       break;
-    case '>':  // debug
+    case '-':
+      spline_.reset();
+      break;
+    case '#':  // debug - print number of total segments in the spline
+      serialOut.printf("Spline number of segments: %d\n",
+                       spline_.get_n_segments());
+      break;
+    case '*':  // debug - print trajectory from 0 to 1s
       for (float t = 0; t < 1; t += 0.1) {
         auto X = spline_.eval(t);
-        serialOut.printf("Debug Spline: %.1f, %.4f, %.4f\n", t, X[0], X[1]);
+        auto Xd = spline_.evald(t);
+        serialOut.printf("Spline Point: %.1f, %.4f, %.4f, %.4f, %.4f\n", t,
+                         X[0], X[1], Xd[0], Xd[1]);
       }
+    case '>': {  // debug - print interpolated X, Xdot at input time t
+      UNWRAP_PARSE_CHECK(float t, parser.parseFloat('\n', &t));
+      auto X = spline_.eval(t);
+      auto Xd = spline_.evald(t);
+      serialOut.printf("Spline Point: %.1f, %.4f, %.4f, %.4f, %.4f\n", t, X[0],
+                       X[1], Xd[0], Xd[1]);
+    }
+    case '<': {  // debug - print the spline coefficients for segment `i`
+      UNWRAP_PARSE_CHECK(int i, parser.parseInt('\n', &i));
+      auto C = spline_.get_coeffs(i);
+      serialOut.printf(
+          "Spline Segment Coeffs: %d, %.3f, %.3f,  %.3f, %.3f, %.3f, %.3f,  "
+          "%.3f, %.3f, %.3f, %.3f\n",
+          i, spline_.get_breakpoint(i), spline_.get_breakpoint(i + 1),  //
+          C[0][0], C[0][1], C[0][2], C[0][3], C[1][0], C[1][1], C[1][2],
+          C[1][3]);
+      break;
+    }
     case 'L': {  // limits
       UNWRAP_PARSE_CHECK(char dir, parser.getChar(&dir));
       UNWRAP_PARSE_CHECK(, parser.parseFloat('\n', &amt));
