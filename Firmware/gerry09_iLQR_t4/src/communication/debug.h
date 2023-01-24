@@ -74,7 +74,7 @@ class Debug {
   Metro print_timer_;
   bool print_raw_ = false;
 
-  void readSerial();
+  void readSerial(uint64_t timeout_us = 750);
   bool parseMsgDebug(AsciiParser parser);
 };
 
@@ -397,10 +397,11 @@ bool parseMsgCanPassthrough(Odrive& odrive, AsciiParser parser,
 }
 }  // namespace human_serial
 
-void Debug::readSerial() {
+void Debug::readSerial(uint64_t timeout_us) {
   static char buffer[1000];
   static int bufferi = 0;
-  while (serial_.available()) {
+  uint64_t t_start_ = micros();
+  while (serial_.available() && (micros() - t_start_ < timeout_us)) {
     char c = serial_.read();
     if (c == ';') c = '\n';
     buffer[bufferi] = c;
