@@ -311,15 +311,17 @@ bool parseMsgController(ControllerInterface* controller, Odrive& odrive,
 bool parseMsgSpray(Spray& spray, AsciiParser parser, Stream& serial) {
   UNWRAP_PARSE_CHECK(, parser.checkChar('s'));
   // First check for 0 and 1, for backwards compatibility.
-  if (parser.advanceOnMatchChar('0')) {
+  AsciiParser parser0 = parser, parser1 = parser;
+  if (parser0.checkChar('0') && parser0.checkChar('\n')) {
     serial.println("Spray off");
     spray.setSpray(false);
     return true;
-  } else if (parser.advanceOnMatchChar('1')) {
+  } else if (parser1.checkChar('1') && parser1.checkChar('\n')) {
     serial.println("Spray on");
     spray.setSpray(true);
     return true;
-  } else { // Forward rest of args to spray paint MCU
+  } else {
+    // Forward rest of args to spray paint MCU
     spray.forward_msg(parser.get_buffer_cur(), parser.len());
     return true;
   }

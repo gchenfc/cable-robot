@@ -98,8 +98,7 @@ struct AsciiParser {
   /// If the character matches, then advance to next.  Else, do nothing
   bool advanceOnMatchChar(char expected) {
     if (buffer_cur_ == buffer_end_) return false;
-    if (*buffer_cur_ != expected) return false;
-    ++buffer_cur_;
+    if (*buffer_cur_ == expected) ++buffer_cur_;
     return true;
   }
 
