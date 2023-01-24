@@ -98,6 +98,23 @@ TEST(AsciiParser, aoeu) {
   EXPECT(false);
 }
 
+TEST(AsciiParser, sprayTest) {
+  char s0[4] = "s0\n";
+  char s1[4] = "s1\n";
+  char sother[5] = "s01\n";
+  auto sprayCheck = [](AsciiParser parser) {
+    if (!parser.checkChar('s')) return -1;
+    AsciiParser parser0 = parser;
+    if (parser0.checkChar('0') && parser0.checkChar('\n')) return 0;
+    AsciiParser parser1 = parser;
+    if (parser1.checkChar('1') && parser1.checkChar('\n')) return 1;
+    return 2;
+  };
+  EXPECT_LONGS_EQUAL(0, sprayCheck(AsciiParser(s0, 4)));
+  EXPECT_LONGS_EQUAL(1, sprayCheck(AsciiParser(s1, 4)));
+  EXPECT_LONGS_EQUAL(2, sprayCheck(AsciiParser(sother, 5)));
+}
+
 int main() {
   TestResult tr;
   return TestRegistry::runAllTests(tr);
