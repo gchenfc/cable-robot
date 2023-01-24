@@ -1,5 +1,15 @@
 /* @brief Piecewise polynomial math utilities
  * @author Gerry
+ *
+ * Polynomials are represented as as std::array of coefficients, where the first
+ * element is the highest order term and the last element is the constant term.
+ * For example, the polynomial 3x^2 + 2x + 1 would be represented as {3, 2, 1}.
+ *
+ * Piecewise Polynomials (PPoly) are represented with synchronized breakpoints
+ * and polynomials.  The breakpoints are expressed as the independent variable
+ * (likely time), and the polynomials should be evaluated at the time minus the
+ * start time of that polynomial (reparameterize so that each polynomial starts
+ * at 0).
  */
 
 #pragma once
@@ -21,6 +31,23 @@ using CubicPolyCoeffs1d = PolyCoeffs1d<3>;
 using CubicPolyCoeffs = PolyCoeffs<3>;
 using CubicPPolyCoeffs = PPolyCoeffs<3>;
 
+/******************************* Constants ************************************/
+
+template <int DIMS>
+constexpr std::array<float, DIMS> kZero() {
+  std::array<float, DIMS> ret{};
+  ret.fill(0);
+  return ret;
+}
+template <int DIMS>
+constexpr std::array<float, DIMS> kDefaultPos() {
+  return kZero<DIMS>();
+}
+template <>
+constexpr std::array<float, 2> kDefaultPos<2>() {
+  return {1.5, 1.5};
+}
+
 /*************************** Polynomial Utils *********************************/
 template <int Degree>
 float polyval(float t, const PolyCoeffs1d<Degree>& coeffs) {
@@ -30,6 +57,14 @@ float polyval(float t, const PolyCoeffs1d<Degree>& coeffs) {
     y += coeffs[i];
   }
   return y;
+}
+template <int Dims, int Degree>
+std::array<float, Dims> polyval(float t,
+                                const PolyCoeffs<Dims, Degree>& coeffs) {
+  std::array<float, Dims> ret;
+  std::transform(std::begin(coeffs), std::end(coeffs), std::begin(ret),
+                 [&t](auto coeff) { return polyval<Degree>(t, coeff); });
+  return ret;
 }
 
 template <int Degree>
@@ -70,9 +105,6 @@ class PPoly {
   using PPolyCoeffsDD = PPolyCoeffs<MaxSegments, Dims, ADeg>;
 
   using X = std::array<float, Dims>;
-  static_assert(
-      Dims == 2,
-      "Dimensions other than 2 not implemented yet (see eval functions)");
 
  protected:
   PPolyBreakpoints_ breakpoints_;  // First breakpoint should always be at 0!!!
@@ -170,19 +202,16 @@ template <int Deg>
 typename PPoly<A, B, C>::X PPoly<A, B, C>::eval(float t,
                                                 PPolyCoeffs<A, B, Deg> coeffs,
                                                 bool is_pos) const {
-  using X = PPoly<A, B, C>::X;
-
   auto reparam = reparameterize_dumb(t);
   int& index = reparam.first;
   float& t_ = reparam.second;
-  if (index == -1) {                        // if before beginning
-    return is_pos ? X{1.5, 1.5} : X{0, 0};  // rest at center
-  } else if (index == n_segments_) {        // if after end
-    if (!is_pos) return {0, 0};             // 0 vel/acc
+  if (index == -1) {                                // if before beginning
+    return is_pos ? kDefaultPos<B>() : kZero<B>();  // default position/vel/acc
+  } else if (index == n_segments_) {                // if after end
+    if (!is_pos) return kZero<B>();                 // 0 vel/acc
     index = n_segments_ - 1;
     t_ = breakpoints_[n_segments_] - breakpoints_[index];  // stay at last pos
   }
 
-  return {polyval<Deg>(t_, coeffs[index][0]),
-          polyval<Deg>(t_, coeffs[index][1])};
+  return polyval<B, Deg>(t_, coeffs[index]);
 }

@@ -22,6 +22,12 @@
     EXPECT_DOUBLES_EQUAL(std::get<0>(a_exp), std::get<0>(a_act), tol)          \
     EXPECT_DOUBLES_EQUAL(std::get<1>(a_exp), std::get<1>(a_act), tol)          \
   }
+#define EXPECT_XVA_1D_EQUAL(T, tol, X_EXP, V_EXP, A_EXP)            \
+  {                                                                 \
+    EXPECT_DOUBLES_EQUAL(X_EXP, std::get<0>(spline.eval(T)), tol)   \
+    EXPECT_DOUBLES_EQUAL(V_EXP, std::get<0>(spline.evald(T)), tol)  \
+    EXPECT_DOUBLES_EQUAL(A_EXP, std::get<0>(spline.evaldd(T)), tol) \
+  }
 
 TEST(spline, polynomial) {
   // Test the polynomial utils
@@ -144,6 +150,23 @@ TEST(spline, Spline) {
                    0.513265, -0.177551,         // x
                    0.0, 0.0,                    // v
                    0.0, 0.0);                   // a
+}
+
+TEST(spline, LinearSpline) {
+  // Test the PPoly class with a different degree (degree 1)
+  PPoly<3, 1, 1> spline;
+  spline.add_segment(1, {{{{2, 3}}}});
+  spline.add_segment(3, {{{{4, 5}}}});
+  spline.add_segment(6, {{{{-1, 2}}}});
+  //                  t    tol   x    v    a
+  EXPECT_XVA_1D_EQUAL(0.0, 1e-5, 3.0, 2.0, 0.0);
+  EXPECT_XVA_1D_EQUAL(0.5, 1e-5, 4.0, 2.0, 0.0);
+  EXPECT_XVA_1D_EQUAL(1.1, 1e-5, 5.4, 4.0, 0.0);
+  EXPECT_XVA_1D_EQUAL(2.9, 1e-5, 12.6, 4.0, 0.0);
+  EXPECT_XVA_1D_EQUAL(3.1, 1e-5, 1.9, -1.0, 0.0);
+  EXPECT_XVA_1D_EQUAL(5.9, 1e-5, -.9, -1.0, 0.0);
+  EXPECT_XVA_1D_EQUAL(6.1, 1e-5, -1., 0.0, 0.0);
+  EXPECT_XVA_1D_EQUAL(169, 1e-5, -1., 0.0, 0.0);
 }
 
 int main() {
