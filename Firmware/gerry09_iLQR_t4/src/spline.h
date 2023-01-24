@@ -205,7 +205,7 @@ typename PPoly<A, B, C>::X PPoly<A, B, C>::eval(float t,
   auto reparam = reparameterize_dumb(t);
   int& index = reparam.first;
   float& t_ = reparam.second;
-  if (index == -1) {                                // if before beginning
+  if ((index == -1) || (n_segments_ == 0)) {        // if before beginning
     return is_pos ? kDefaultPos<B>() : kZero<B>();  // default position/vel/acc
   } else if (index == n_segments_) {                // if after end
     if (!is_pos) return kZero<B>();                 // 0 vel/acc
