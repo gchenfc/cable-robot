@@ -2,10 +2,18 @@
 
 #include "controller_simple.h"
 #include "../spline.h"
+#include "../Vector.h"
 
 /// @brief ControllerTracking takes setpoints/waypoints as Serial input and
 /// updates desPos and desVel accordingly
 class ControllerTrackingSpline : public ControllerSimple {
+ protected:
+  enum SplineExecutingState {
+    NOMINAL_ON_PATH,  // Continue normally
+    RETURN_TO_PATH,   // We're too far away from the setpoint: slowly move
+                      // towards it
+  };
+
  public:
   ControllerTrackingSpline(const StateEstimatorInterface* state_estimator)
       : ControllerSimple(state_estimator), spline_() {}
@@ -19,12 +27,22 @@ class ControllerTrackingSpline : public ControllerSimple {
   float limit_left_ = 0.2, limit_right_ = 0.2, limit_up_ = 0.2,
         limit_down_ = 0.2;
   ControllerState prev_state_ = IDLE;
+  SplineExecutingState spline_exec_state_ = RETURN_TO_PATH;
+  PPoly<2, 2, 1> spline_return_;
 
   void myUpdate() override {
     if ((state_ == HOLD_TRAJ_BEGIN) ||
         ((state_ == RUNNING_TRAJ) && (prev_state_ != RUNNING_TRAJ))) {
-      // TODO(gerry): figure out how to safely move to the start position of the
-      // trajectory
+      setReturnToPath();
+    }
+    if ((state_ == RUNNING_TRAJ) && (spline_exec_state_ == RETURN_TO_PATH)) {
+      if (trajTime_s() > spline_return_.duration()) {
+        // Hackily re-set time to 0
+        state_ = HOLD_TRAJ_BEGIN;
+        startTraj();  // TODO(gerry): this might mess up if we pause while
+                      // returning to path.
+        spline_exec_state_ = NOMINAL_ON_PATH;
+      }
     }
     prev_state_ = state_;
   }
@@ -36,14 +54,38 @@ class ControllerTrackingSpline : public ControllerSimple {
     return {std::get<0>(x), std::get<1>(x)};
   }
 
+  // Set a path from current position to the next setpoint
+  void setReturnToPath() { setReturnToPath(trajTime_s()); }
+  void setReturnToPath(float t) {
+    setReturnToPath(t, makeVector(state_estimator_->posEst()), spline_.eval(t));
+  }
+  void setReturnToPath(float t, Vector<2> x_cur, Vector<2> x_des) {
+    static constexpr float kReturnSpeed = 0.1;
+    auto dx = x_des - x_cur;
+    float tmax = norm(dx) / kReturnSpeed;
+    auto m = dx / tmax;
+
+    spline_return_.reset();
+    spline_return_.add_segment(t, {{{{0, std::get<0>(x_cur)}},  // Dummy segment
+                                    {{0, std::get<1>(x_cur)}}}});
+    spline_return_.add_segment(t + tmax,
+                               {{{{std::get<0>(m), std::get<0>(x_cur)}},
+                                 {{std::get<1>(m), std::get<1>(x_cur)}}}});
+    spline_exec_state_ = RETURN_TO_PATH;
+  }
+
   Vector2 desPos(float t) const override {
-    Vector2 x = tuple2vector<2>(spline_.eval(t));
+    Vector2 x = tuple2vector<2>((spline_exec_state_ == RETURN_TO_PATH)
+                                    ? spline_return_.eval(t)
+                                    : spline_.eval(t));
     clamp(&x.first, limit_left_, kWidth - limit_right_);
     clamp(&x.second, limit_down_, kHeight - limit_up_);
     return x;
   }
   Vector2 desVel(float t) const override {
-    return tuple2vector<2>(spline_.evald(t));
+    return tuple2vector<2>(spline_exec_state_ == RETURN_TO_PATH
+                               ? spline_return_.evald(t)
+                               : spline_.evald(t));
   }
 };
 
@@ -100,6 +142,18 @@ bool ControllerTrackingSpline::readSerial(AsciiParser parser, Stream& serialOut)
           i, spline_.get_breakpoint(i), spline_.get_breakpoint(i + 1),  //
           C[0][0], C[0][1], C[0][2], C[0][3], C[1][0], C[1][1], C[1][2],
           C[1][3]);
+      break;
+    }
+    case '%': {  // debug - compute and print spline_return_ trajectory
+      setReturnToPath();
+      float t1 = spline_return_.get_breakpoint(1),
+            t2 = spline_return_.get_breakpoint(2);
+      float dt = (t2 - t1) / 10;
+      for (float t = t1; t < (t2 + dt); t += dt) {
+        auto X = spline_return_.eval(t);
+        serialOut.printf("Spline Return Point: %.2f, %.4f, %.4f\n", t, X[0],
+                         X[1]);
+      }
       break;
     }
     case 'L': {  // limits
