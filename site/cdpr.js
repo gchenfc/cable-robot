@@ -211,6 +211,7 @@ Cdpr.prototype.setMode = function (mode) {
   this.send(MSGS[mode]);
   this.mode = mode;
 }
+Cdpr.prototype.resetTraj = function () { this.send('g3;g4'); };
 Cdpr.prototype.setSwitchableControllerMode = function (mode) {
   const LOOKUP_TABLE = { [SwitchableControllerMode.TRACKING]: 0, [SwitchableControllerMode.SPLINE]: 1, [SwitchableControllerMode.ILQR]: 2 };
   this.send(`gs${LOOKUP_TABLE[mode]}`);
