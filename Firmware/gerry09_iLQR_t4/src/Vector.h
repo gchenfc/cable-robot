@@ -8,7 +8,7 @@
 #include <numeric>
 
 // Define a Vector class
-template <unsigned long N>
+template <size_t N>
 using Vector = std::array<float, N>;
 
 // "Constructors" / adapters
@@ -21,13 +21,13 @@ std::pair<float, float> makePair(const Vector<2> &x) {
 
 // Convenience functions to wrap std::transform
 namespace detail {
-template <unsigned long N, typename UNARY_OP>
+template <size_t N, typename UNARY_OP>
 Vector<N> transform(const Vector<N> &a, UNARY_OP f) {
   Vector<N> ret;
   std::transform(std::begin(a), std::end(a), std::begin(ret), f);
   return ret;
 }
-template <unsigned long N, typename UNARY_OP>
+template <size_t N, typename UNARY_OP>
 Vector<N> transform(const Vector<N> &a, const Vector<N> &b, UNARY_OP f) {
   Vector<N> ret;
   std::transform(std::begin(a), std::end(a), std::begin(b), std::begin(ret), f);
@@ -36,46 +36,46 @@ Vector<N> transform(const Vector<N> &a, const Vector<N> &b, UNARY_OP f) {
 }  // namespace detail
 
 // Elementwise Addition
-template <unsigned long N>
+template <size_t N>
 Vector<N> operator+(const Vector<N> &a, const Vector<N> &b) {
   return detail::transform(a, b, std::plus<float>());
 }
 
 // Elementwise Subtraction
-template <unsigned long N>
+template <size_t N>
 Vector<N> operator-(const Vector<N> &a, const Vector<N> &b) {
   return detail::transform(a, b, std::minus<float>());
 }
 
 // Elementwise Multiplication
-template <unsigned long N>
+template <size_t N>
 Vector<N> operator*(const Vector<N> &a, const Vector<N> &b) {
   return detail::transform(a, b, std::multiplies<float>());
 }
 
 // Scalar Multiplication
-template <unsigned long N>
+template <size_t N>
 Vector<N> operator*(const Vector<N> &a, float b) {
   return detail::transform(a, [&b](float x) { return x * b; });
 }
-template <unsigned long N>
+template <size_t N>
 Vector<N> operator*(float b, const Vector<N> &a) {
   return a * b;
 }
 
 // Scalar Division
-template <unsigned long N>
+template <size_t N>
 Vector<N> operator/(const Vector<N> &a, float b) {
   return a * (1 / b);
 }
 // Scalar Division
-template <unsigned long N>
+template <size_t N>
 Vector<N> operator/(float b, const Vector<N> &a) {
   return detail::transform(a, [&b](float x) { return b / x; });
 }
 
 // Dot Product
-template <unsigned long N>
+template <size_t N>
 float dot(const Vector<N> &a, const Vector<N> &b) {
   return std::inner_product(std::begin(a), std::end(a), std::begin(b), 0.0f);
 }
@@ -90,15 +90,15 @@ float cross(const Vector<2> &a, const Vector<2> &b) {
 }
 
 // Norm
-template <unsigned long N>
+template <size_t N>
 float norm2(const Vector<N> &a) {
   return dot(a, a);
 }
-template <unsigned long N>
+template <size_t N>
 float norm(const Vector<N> &a) {
   return sqrt(norm2(a));
 }
-template <unsigned long N>
+template <size_t N>
 Vector<N> normalized(const Vector<N> &a) {
   return a / norm(a);
 }
