@@ -18,6 +18,7 @@ function init() {
   gamepad.onpress["A"] = function () { cdpr.clearErrors(); };
   gamepad.onpress["X"] = function () { cdpr.setMode(Mode.HOLD); };
   gamepad.onpress["Y"] = function () { cdpr.setMode(Mode.TRACKING); };
+  gamepad.onpress["B"] = function () { cdpr.resetTraj(); };
   gamepad.onpress["DPAD_LEFT"] = function (state) { cdpr.control_mode = ControlMode.VELOCITY; };
   gamepad.onpress["DPAD_RIGHT"] = function (state) { cdpr.control_mode = ControlMode.POSITION; };
   gamepad.onpress["DPAD_UP"] = function (state) { cdpr.setSwitchableControllerMode(SwitchableControllerMode.SPLINE); };
