@@ -2,7 +2,8 @@
 
 namespace human_serial {
 
-bool until(char** buffer_start, char* buffer_end, char delim = '\255') {
+bool until(char** buffer_start, char* buffer_end, char delim = '\255',
+           char* value_displaced = nullptr) {
   if (*buffer_start == buffer_end) return false;
   if (**buffer_start == delim) return false;
   if (delim == '\n' && (std::find(*buffer_start, buffer_end, '\n') >
@@ -17,6 +18,7 @@ bool until(char** buffer_start, char* buffer_end, char delim = '\255') {
     *buffer_start = std::find(*buffer_start, buffer_end, delim);
   }
   if (*buffer_start == buffer_end) return false;
+  if (value_displaced) *value_displaced = **buffer_start;
   *((*buffer_start)++) = 0;  // null terminate the number and advance to next
   return true;
 }
@@ -50,19 +52,21 @@ bool valid_float(char* buffer, char* end) {
 template <typename T>
 bool parseInt(char** buffer_start, char* buffer_end, char delim, T* value) {
   char* original_start = *buffer_start;
+  char displaced;
   if (!valid_int(original_start, buffer_end)) return false;
-  if (!until(buffer_start, buffer_end, delim)) return false;
+  if (!until(buffer_start, buffer_end, delim, &displaced)) return false;
   *value = atoi(original_start);
-  *(*buffer_start - 1) = delim;
+  *(*buffer_start - 1) = displaced;
   return true;
 }
 template <typename T>
 bool parseFloat(char** buffer_start, char* buffer_end, char delim, T* value) {
   char* original_start = *buffer_start;
+  char displaced;
   if (!valid_float(original_start, buffer_end)) return false;
-  if (!until(buffer_start, buffer_end, delim)) return false;
+  if (!until(buffer_start, buffer_end, delim, &displaced)) return false;
   *value = atof(original_start);
-  *(*buffer_start - 1) = delim;
+  *(*buffer_start - 1) = displaced;
   return true;
 }
 
