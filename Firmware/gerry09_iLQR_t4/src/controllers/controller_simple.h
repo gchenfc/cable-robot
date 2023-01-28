@@ -39,12 +39,30 @@ class ControllerSimple : public ControllerInterface {
   Vector2 setpointVel() const override { return desVel(trajTime_s()); }
   float setpointThetaDot() const override { return desThetaDot(trajTime_s()); }
 
+  // Read serial
+  bool readSerial(AsciiParser parser, Stream& serialOut) override {
+    if (ControllerInterface::readSerial(parser, serialOut)) return true;
+
+    UNWRAP_PARSE_CHECK(, parser.checkChar('g'));
+    UNWRAP_PARSE_CHECK(uint32_t cmd, parser.parseInt(&cmd));
+    switch (cmd) {
+      case 10: {  // Set hold torque
+        UNWRAP_PARSE_CHECK(float t, parser.parseFloat('\n', &t));
+        hold_torque_Nm = t;
+        serialOut.printf("Hold torque set to %f\n", hold_torque_Nm);
+        return true;
+      }
+    }
+    return false;
+  }
+
  protected:
   using Vector2 = std::pair<float, float>;
 
   Metro updateTimer{10};
   const StateEstimatorInterface* state_estimator_;
   uint64_t tstart_us_, tpause_us_, tmin_us_;
+  float hold_torque_Nm = 0.15f;
 
   // To override
   virtual Vector2 desPos(float t) const;
@@ -143,7 +161,7 @@ bool ControllerSimple::encoderMsgCallback(Odrive* odrive,
     case SETUP:
     case HOLDING_BAN_INPUT:
     case HOLDING_ALLOW_INPUT:
-      return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, 0.2f);
+      return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, hold_torque_Nm);
     case HOLD_TRAJ_BEGIN: {
       float torque = calcTorque(tpause_us_ / static_cast<float>(1e6f), winchnum);
       return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, torque);

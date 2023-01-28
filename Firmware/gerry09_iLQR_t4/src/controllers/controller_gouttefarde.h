@@ -26,6 +26,8 @@ class ControllerGouttefarde : public ControllerSimple {
   }
 
   bool readSerial(AsciiParser parser, Stream& serialOut) override {
+    if (ControllerSimple::readSerial(parser, serialOut)) return true;
+
     UNWRAP_PARSE_CHECK(,parser.checkChar('K'));
     UNWRAP_PARSE_CHECK(char c, parser.getChar(&c));
     UNWRAP_PARSE_CHECK(float a, parser.parseFloat('\n', &a));

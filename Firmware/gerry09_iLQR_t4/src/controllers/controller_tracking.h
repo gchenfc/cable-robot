@@ -96,6 +96,8 @@ class ControllerTracking : public ControllerSimple {
 };
 
 bool ControllerTracking::readSerial(AsciiParser parser, Stream& serialOut) {
+  if (ControllerSimple::readSerial(parser, serialOut)) return true;
+
   UNWRAP_PARSE_CHECK(, parser.checkChar('t'));
   UNWRAP_PARSE_CHECK(char cmd, parser.getChar(&cmd));
 
