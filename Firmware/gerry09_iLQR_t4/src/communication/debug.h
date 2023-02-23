@@ -384,6 +384,16 @@ bool parseMsgCanPassthrough(Odrive& odrive, AsciiParser parser,
       UNWRAP_PARSE_CHECK(, parser.parse(&f1));
       odrive.send(node, cmd, f1);
       break;
+    case MSG_SET_POS_GAIN:
+      // TODO(gerry): reflash ODrive firmware to read this!!!
+      UNWRAP_PARSE_CHECK(, parser.parse(&f1));
+      odrive.send(node, cmd, f1);
+      break;
+    case MSG_SET_VEL_GAINS:
+      // TODO(gerry): reflash ODrive firmware to read this!!!
+      UNWRAP_PARSE_CHECK(, parser.parse(&f1, &f2));
+      odrive.send(node, cmd, f1, f2);
+      break;
     default:
       serial.println("Command not recognized!");
       serial.print(node);
