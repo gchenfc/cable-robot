@@ -1,3 +1,5 @@
 .DS_Store
 Firmware/gerry09_iLQR_t4/build
 **/__pycache__
+src/apriltag/tags
+src/apriltag/tagStandard41h12
