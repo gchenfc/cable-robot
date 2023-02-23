@@ -47,6 +47,10 @@ template <>
 constexpr std::array<float, 2> kDefaultPos<2>() {
   return {1.5, 1.5};
 }
+template <>
+constexpr std::array<float, 3> kDefaultPos<3>() {
+  return {1.5, 1.5, 0};
+}
 
 /*************************** Polynomial Utils *********************************/
 template <int Degree>

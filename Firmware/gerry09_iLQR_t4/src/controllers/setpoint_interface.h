@@ -3,8 +3,6 @@
 #include "../communication/ascii_parser.h"
 #include "../Vector.h"
 
-class Odrive;
-
 /**
  * SetpointInterface defines the common interface that feeds the setpoint
  * pos/vel/acc to a TrackerInterface.
@@ -36,25 +34,19 @@ class SetpointInterface {
   virtual void update(){};        // Called every loop
   virtual bool initialize() = 0;  // Must call this when "UNINITIALIZED" status
 
-  virtual bool readSerial(AsciiParser parser, Stream& serialOut) {
+  virtual bool readSerial(__attribute__((unused)) AsciiParser parser,
+                          __attribute__((unused)) Stream& serialOut) {
     return false;
   }
-  virtual void writeSerial(Stream& serialOut) {}  // called by Debug
+  virtual void writeSerial(__attribute__((unused)) Stream& serialOut) {
+  }  // called by Debug
 
   /**************************** State Control API ****************************/
-  // State transition requests
-  virtual bool setupFor(ControllerState state) = 0;  // prep for next state
-  // TODO: figure out what functions this interface should provide
-  virtual bool startIntermediate() = 0;
-  virtual bool startAll() = 0;
-
-  virtual bool goToStartTraj() = 0;  // go and stay at the first setpoint
-  virtual bool startTraj() = 0;      // start (or resume) trajectory
-  virtual bool stopTraj() = 0;       // pause trajectory
-  virtual bool resetTraj() = 0;      // reset back to beginning of trajectory
-  virtual bool setToTrajIndex(uint64_t) = 0;
-  virtual bool hold() = 0;     // rigidly stay at a point
-  virtual bool release() = 0;  // let go and go to IDLE state
+  virtual bool travel() = 0;
+  virtual bool start() = 0;
+  virtual bool stop() = 0;
+  virtual bool pause() = 0;
+  virtual bool advanceTo(float time_s) = 0;
 
   /******************************* Setpoint API *******************************/
   virtual X setpointPos() = 0;
@@ -62,10 +54,10 @@ class SetpointInterface {
   virtual A setpointAcc() = 0;
 
   /*************** Implementations that you don't need to touch ***************/
-  State getState() const { return state_; }
+  Status getStatus() const { return status_; }
   State getState() const { return state_; }
 
  protected:
-  Status status_ = INVALID;
-  State state_ = HOLD;
+  Status status_ = Status::UNINITIALIZED;
+  State state_ = State::HOLD;
 };

@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <numeric>
 
+#include "utils.h"
+
 // Define a Vector class
 template <size_t N>
 using Vector = std::array<float, N>;
@@ -101,4 +103,18 @@ float norm(const Vector<N> &a) {
 template <size_t N>
 Vector<N> normalized(const Vector<N> &a) {
   return a / norm(a);
+}
+
+// Clamp (inplace!!!)
+template <size_t N>
+void clamp_(Vector<N> &a, const Vector<N> &min, const Vector<N> &max) {
+  for (int i = 0; i < static_cast<int>(N); ++i) {
+    clamp(&a[i], min[i], max[i]);
+  }
+}
+// Clamp (functional)
+template <size_t N>
+Vector<N> clamp(Vector<N> a, const Vector<N> &min, const Vector<N> &max) {
+  clamp_(a, min, max);
+  return a;
 }
