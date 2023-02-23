@@ -1,5 +1,5 @@
 // const SPEED = 0.5 * 2.3;
-const CDPR_SPEED = 0.5;
+const CDPR_SPEED = 0.05;
 const SPEED = CDPR_SPEED * 2.3;
 const BRUSH_WAIT_DELAY_MS = 1500;
 
@@ -269,15 +269,17 @@ Cdpr.prototype.update = function (dt) {
       // this.spray(spray); // TODO: figure out how to queue color commands in Teensy...
 
       // Logic to wait before moving to next setpoint
+      // let cur_xy = this.lastState.controller.est;
       let cur_xy = this.lastState.controller.est;
-      let dist_to_goal = dist(this.x, this.y, cur_xy.x, cur_xy.y);
+      let set_xy = this.lastState.controller.set;
+      let dist_to_goal = dist(this.x, this.y, set_xy.x, set_xy.y);
       // [dummy1, dummy2, next_spray, next_color, dummy3] = this.set_queue[1];
       console.log(spray, paint_out, dist_to_goal);
       if (paint_out != spray) { // push marker in/out
-        if ((!switching_spray) && (dist_to_goal < 0.02)) { // wait until reaching position before spraying
+        if ((!switching_spray) && (dist_to_goal < 0.01)) { // wait until reaching position before spraying
           switching_spray = true;
           this.spray(spray);
-          setTimeout(() => { paint_out = spray; switching_spray = false; }, 2000);
+          setTimeout(() => { paint_out = spray; switching_spray = false; }, 4000);
         }
       }
 
@@ -372,8 +374,7 @@ Cdpr.prototype.setSwitchableControllerMode = function (mode) {
 Cdpr.prototype.spray = function (on, force = false) {
   if (!force && this.isSpray != on) {
     this.send(`s${on ? 1 : 0}`);
-    // this.send(`sM1,${on ? 7500 : 3000}`);
-    this.send(`sM1,${on ? 2000 : 0}`);
+    this.send(`sM1,${on ? 8000 : 0}`);
     this.isSpray = on;
   }
 };
