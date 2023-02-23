@@ -14,6 +14,7 @@
 #include "odrive_can.h"
 #include "../spray.h"
 #include "ascii_parser.h"
+#include "cdpr_serial_commands.h"
 
 bool default_callback(AsciiParser parser) { return false; }
 
@@ -90,7 +91,7 @@ bool parseMountPoints(const Robot& robot, uint8_t winchi, AsciiParser& parser,
 
 bool parseMsgCalibration(Robot& robot, Odrive& odrive, AsciiParser parser,
                          Stream& serial) {
-  UNWRAP_PARSE_CHECK(, parser.checkChar('c'));
+  UNWRAP_PARSE_CHECK(, parser.checkChar(SerialPrefixes::CALIBRATION));
   UNWRAP_PARSE_CHECK(uint32_t cmd, parser.parseInt(&cmd));
 
   switch (cmd) {
@@ -260,7 +261,7 @@ bool parseMountPoints(const Robot& robot, uint8_t winchi, AsciiParser& parser,
 
 bool parseMsgController(ControllerInterface* controller, Odrive& odrive,
                         AsciiParser parser, Stream& serial) {
-  UNWRAP_PARSE_CHECK(, parser.checkChar('g'));
+  UNWRAP_PARSE_CHECK(, parser.checkChar(SerialPrefixes::CONTROLLER));
   UNWRAP_PARSE_CHECK(uint32_t cmd, parser.parseInt(&cmd));
   switch (cmd) {
     case 0:
@@ -309,7 +310,7 @@ bool parseMsgController(ControllerInterface* controller, Odrive& odrive,
 }
 
 bool parseMsgSpray(Spray& spray, AsciiParser parser, Stream& serial) {
-  UNWRAP_PARSE_CHECK(, parser.checkChar('s'));
+  UNWRAP_PARSE_CHECK(, parser.checkChar(SerialPrefixes::SPRAY));
   // First check for 0 and 1, for backwards compatibility.
   AsciiParser parser0 = parser, parser1 = parser;
   if (parser0.checkChar('0') && parser0.checkChar('\n')) {
@@ -435,7 +436,7 @@ void Debug::readSerial(uint64_t timeout_us) {
 }
 
 bool Debug::parseMsgDebug(AsciiParser parser) {
-  UNWRAP_PARSE_CHECK(, parser.checkChar('d'));
+  UNWRAP_PARSE_CHECK(, parser.checkChar(SerialPrefixes::DEBUG));
   UNWRAP_PARSE_CHECK(uint32_t cmd, parser.parseInt(&cmd));
 
   switch (cmd) {
