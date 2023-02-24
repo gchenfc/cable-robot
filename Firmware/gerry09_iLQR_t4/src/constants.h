@@ -7,8 +7,9 @@
 #define btSerial Serial5
 
 // Select which robot:
-#define KLAUS
+#define KLAUSx
 #define DFLx
+#define AIR
 #define HYDROPONICSx
 
 #ifndef DEBUG_CONSTANTS
@@ -28,6 +29,10 @@ static constexpr float kCarriageWidth = 0.187, kCarriageHeight = 0.122;
 #ifdef DFL
 static constexpr float kFrameWidth = 3.05, kFrameHeight = 2.44;
 static constexpr float kCarriageWidth = 0.187, kCarriageHeight = 0.122;
+#endif
+#ifdef AIR
+static constexpr float kFrameWidth = 6.17, kFrameHeight = 2.64;
+static constexpr float kCarriageWidth = 0.228, kCarriageHeight = 0.228;
 #endif
 #ifdef HYDROPONICS
 static constexpr float kFrameWidth = 2.20, kFrameHeight = 2.00;

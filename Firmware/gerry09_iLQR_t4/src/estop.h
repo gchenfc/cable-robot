@@ -8,7 +8,7 @@
 #include "controllers/controller_interface.h"
 #include "spray.h"
 
-#if defined(KLAUS) || defined(DFL)
+#if defined(KLAUS) || defined(DFL) || defined(AIR)
 static constexpr uint64_t kEstopDebounceTime_us = 0;
 #endif
 #ifdef HYDROPONICS

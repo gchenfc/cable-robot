@@ -16,6 +16,9 @@ static constexpr uint64_t kEepromStartAddress = 0;
 #ifdef DFL
 static constexpr uint64_t kEepromStartAddress = 4 << 5;
 #endif
+#ifdef AIR
+static constexpr uint64_t kEepromStartAddress = 12 << 5;
+#endif
 #ifdef HYDROPONICS
 static constexpr uint64_t kEepromStartAddress = 8 << 5;
 #endif
