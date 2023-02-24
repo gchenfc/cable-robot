@@ -32,7 +32,7 @@ class TrackerInterface {
   TrackerInterface(Robot& robot, Odrive& odrive, SetpointInterface* setpoint)
       : robot_(robot), odrive_(odrive), setpoint_(setpoint) {}
 
-  // Common API
+  /******************************** Common API ********************************/
   virtual void setup(){};
   virtual void update() {
     if (!update_timer_.check()) return;
@@ -47,13 +47,15 @@ class TrackerInterface {
   virtual void writeSerial(Stream&) {}
 
   /****************************** Controller API ******************************/
-
   // Returns true if a CAN message was sent, false otherwise (to know whether or
   // not caller should service the watchdog)
-  virtual float calcTension_N(uint8_t winchnum) = 0;
   bool encoderMsgCallback(Odrive* odrive, uint8_t winchnum);
 
-  /******* Implementations that you don't need to touch *******/
+  /****************************** IMPLEMENT THIS ******************************/
+  virtual float calcTension_N(uint8_t winchnum) = 0;
+  virtual bool initialize() { return true; };  // e.g. init PID state (optional)
+
+  /*************** Implementations that you don't need to touch ***************/
   State getState() const { return state_; }
   bool setState(const State& state);
 
@@ -113,8 +115,8 @@ bool TrackerInterface::setState(const State& state) {
       }
       break;
     case POSITION_CONTROL:
-      setpoint_->initialize();
-      break;
+      if (setpoint_->initialize() && initialize()) break;
+      return false;
     default:
       return false;
   }

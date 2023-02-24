@@ -66,5 +66,7 @@ enum : char {
   SET_MAX_DISTANCE_TO_SETPOINT = 'd',
   SET_MAX_VEL_SETPOINT = 'v',
   SET_MAX_ACC_SETPOINT = 'a',
+
+  SET_GAINS = 'K',
 };
 }  // namespace TrackingCommands
