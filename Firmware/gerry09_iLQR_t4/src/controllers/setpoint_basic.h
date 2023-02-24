@@ -81,7 +81,6 @@ class SetpointBasic : public SetpointInterface {
   X desPosSafe(float t) { return clamp(desPos(t), limits_min_, limits_max_); }
   static PPoly<2, 2, 1> calcTravelSpline(const X& start, const X& end,
                                          float speed = 0.1);
-
   static Vector<3> appendZeroTheta(const Vector<2>& x);
 };
 
@@ -207,6 +206,7 @@ bool SetpointBasic::readSerial(AsciiParser parser, Stream& serialOut) {
 }
 
 void SetpointBasic::update() {
+  if (!update_timer_.check()) return;
   if (status_ == Status::NOMINAL) {
     switch (state_) {
       case State::HOLD:
@@ -228,11 +228,11 @@ void SetpointBasic::update() {
 bool SetpointBasic::initialize() {
   if (status_ == Status::UNINITIALIZED) {
     hold_pos_ = estimatedCurPos();
-    if (!setState(State::HOLD)) return false;
     status_ = Status::NOMINAL;
-    t_start_us_ = 0;
-    t_travel_start_us_ = 0;
-    t_paused_us_ = 0;
+    if (!setState(State::HOLD)) {
+      status_ = Status::UNINITIALIZED;
+      return false;
+    }
     return true;
   } else {
     return false;
@@ -251,8 +251,8 @@ bool SetpointBasic::start() {
 
 bool SetpointBasic::stop() {
   status_ = Status::UNINITIALIZED;  // Dummy, just to get initialize() to run
-  initialize();
-  return true;
+  t_paused_us_ = 0;
+  return initialize();
 }
 
 bool SetpointBasic::pause() {
@@ -285,6 +285,7 @@ uint64_t SetpointBasic::time_us() const {
 }
 
 bool SetpointBasic::setState(State state) {
+  if (status_ != Status::NOMINAL) return false;
   switch (state) {
     case State::HOLD:
       hold_pos_ = estimatedCurPos();

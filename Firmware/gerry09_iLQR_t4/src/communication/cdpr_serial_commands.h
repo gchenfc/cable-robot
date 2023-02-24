@@ -1,7 +1,8 @@
 #pragma once
 
 // These are the first characters of the serial commands sent to the controller
-enum SerialPrefixes : char {
+namespace SerialPrefixes {
+enum : char {
   CALIBRATION = 'c',
   CONTROLLER = 'g',
   SPRAY = 's',
@@ -11,9 +12,11 @@ enum SerialPrefixes : char {
   SETPOINT = 'x',
   TRACKING = 'k'
 };
+}  // namespace SerialPrefixes
 
 // These are the commands for the "setpoint" manager
-enum SetpointCommands : char {
+namespace SetpointCommands {
+enum : char {
   // State control
   STOP0 = '0',
   STOP1 = '6',
@@ -48,6 +51,20 @@ enum SetpointCommands : char {
   // Waypoint
   WAYPOINT_SET = 'w',
 };
+}  // namespace SetpointCommands
 
 // These are the commands for the "tracking" controller manager
-enum TrackingCommands {};
+namespace TrackingCommands {
+enum : char {
+  IDLE = '0',
+  GRAVITY_COMP = '1',
+  POSITION_CONTROL = '2',
+
+  POLL_STATUS = '?',
+
+  SET_HOLDING_TORQUE = 'h',
+  SET_MAX_DISTANCE_TO_SETPOINT = 'd',
+  SET_MAX_VEL_SETPOINT = 'v',
+  SET_MAX_ACC_SETPOINT = 'a',
+};
+}  // namespace TrackingCommands

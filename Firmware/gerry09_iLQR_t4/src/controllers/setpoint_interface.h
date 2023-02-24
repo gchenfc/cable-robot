@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Metro.h>
+
 #include "../communication/ascii_parser.h"
 #include "../Vector.h"
 
@@ -56,4 +58,5 @@ class SetpointInterface {
  protected:
   Status status_ = Status::UNINITIALIZED;
   State state_ = State::HOLD;
+  Metro update_timer_{10};
 };
