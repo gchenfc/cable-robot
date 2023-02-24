@@ -96,5 +96,12 @@
         "stop_token": "cpp",
         "cinttypes": "cpp",
         "ranges": "cpp"
-    }
+    },
+    "cSpell.words": [
+        "coeffs",
+        "evald",
+        "evaldd",
+        "Setpoint",
+        "Xdot"
+    ]
 }

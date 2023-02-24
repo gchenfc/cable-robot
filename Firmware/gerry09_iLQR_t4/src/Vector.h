@@ -107,14 +107,26 @@ Vector<N> normalized(const Vector<N> &a) {
 
 // Clamp (inplace!!!)
 template <size_t N>
-void clamp_(Vector<N> &a, const Vector<N> &min, const Vector<N> &max) {
+void clamp_(Vector<N> &a, const Vector<N> &min, const Vector<N> &max,
+            float tol = 0.0f) {
   for (int i = 0; i < static_cast<int>(N); ++i) {
-    clamp(&a[i], min[i], max[i]);
+    clamp(&a.at(i), min.at(i) - tol, max.at(i) + tol);
   }
 }
 // Clamp (functional)
 template <size_t N>
-Vector<N> clamp(Vector<N> a, const Vector<N> &min, const Vector<N> &max) {
-  clamp_(a, min, max);
+Vector<N> clamp(Vector<N> a, const Vector<N> &min, const Vector<N> &max,
+                float tol = 0.0f) {
+  clamp_(a, min, max, tol);
   return a;
+}
+// Checks if within limits (i.e. would clamp do anything?).True if within limits
+template <size_t N>
+bool inLimits(Vector<N> a, const Vector<N> &min, const Vector<N> &max,
+              float tol = 0.0f) {
+  for (int i = 0; i < static_cast<int>(N); ++i) {
+    if (a.at(i) < (min.at(i) - tol) || a.at(i) > (max.at(i) + tol))
+      return false;
+  }
+  return true;
 }

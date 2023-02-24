@@ -25,6 +25,7 @@ class SetpointTest : public SetpointBasic {
   X desPos(float t) override { return {t * t, t, 0}; }  // TODO: try non-0 theta
   V desVel(float t) override { return {2 * t, 1, 0}; }
   A desAcc(__attribute__((unused)) float t) override { return {2, 0, 0}; }
+  bool isDone(__attribute__((unused)) float t) override { return false; }
 
   void setTravelSpeed(float speed) { travel_speed_ = speed; }
   void setLimits(const X& min, const X& max) {
@@ -153,6 +154,51 @@ TEST(SetpointBasic, state_control) {
                  static_cast<uint64_t>(1'000'000UL * norm(dx)) + 1);
   EXPECT_LONGS_EQUAL(SetpointBasic::State::RUNNING, setpoint.getState());
   EXPECT_VECTOR3_EQUAL(25, 5, 0, setpoint.setpointPos(), 1e-4);
+}
+
+TEST(SetpointBasic, clamp_limits) {
+  StateEstimatorDummy state_estimator;
+  state_estimator.setPos(1.5, 1.7);
+  SetpointTest setpoint(&state_estimator);
+
+  setpoint.setTravelSpeed(1.0);
+  setpoint.setLimits({0, 0, 0}, {1, 1, 1});
+
+  auto update_time_us = [&setpoint](uint64_t time_us) {
+    setpoint.update();
+    set_time_us(time_us);
+    setpoint.update();
+  };
+
+  // If we are currently at 1.5, 1.7, during travel stroke not succeed
+  setpoint.initialize();
+  EXPECT_LONGS_EQUAL(SetpointBasic::Status::UNINITIALIZED,
+                     setpoint.getStatus());
+  setpoint.travel();
+  EXPECT_LONGS_EQUAL(SetpointBasic::Status::UNINITIALIZED,
+                     setpoint.getStatus());
+  state_estimator.setPos(0.5, 0.7);
+  setpoint.initialize();
+  update_time_us(10);
+  setpoint.travel();
+  update_time_us(10);
+  EXPECT_LONGS_EQUAL(SetpointBasic::Status::NOMINAL, setpoint.getStatus());
+  EXPECT_LONGS_EQUAL(SetpointBasic::State::INTERMEDIATE_TRAVEL,
+                     setpoint.getState());
+  EXPECT_VECTOR3_EQUAL(0.5, 0.7, 0, setpoint.setpointPos(), 1e-4);
+  update_time_us(20);
+  // When we finish traveling, we should stay there
+  uint64_t tnow = 20;
+  while (setpoint.getState() == SetpointBasic::State::INTERMEDIATE_TRAVEL) {
+    auto setpos = setpoint.setpointPos();
+    state_estimator.setPos(std::get<0>(setpos),
+                           std::get<1>(setpos));  // assume controller works
+    update_time_us(tnow += 100);
+  }
+  update_time_us(1'000'000'000);
+  EXPECT_LONGS_EQUAL(SetpointBasic::Status::NOMINAL, setpoint.getStatus());
+  EXPECT_LONGS_EQUAL(SetpointBasic::State::HOLD, setpoint.getState());
+  EXPECT_VECTOR3_EQUAL(0., 0., 0, setpoint.setpointPos(), 1e-4);
 }
 
 int main() {
