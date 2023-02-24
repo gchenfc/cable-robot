@@ -13,6 +13,8 @@ class Odrive;
  * SetpointBasic defines some boilerplate code for SetpointInterface.  It could
  * be included in SetpointInterface, but figured it's just easier to read to
  * have it separate.
+ *
+ * SetpointBasic handles start/stop, timing, and travel strokes.
  */
 class SetpointBasic : public SetpointInterface {
  public:
@@ -34,9 +36,12 @@ class SetpointBasic : public SetpointInterface {
   virtual bool stop() override;
   virtual bool pause() override;
   virtual bool advanceTo(float time_s) override;
-  virtual uint64_t time_us();
-  float time_s() { return time_s(time_us()); }
-  float time_s(uint64_t us) { return static_cast<float>(us) / 1e6; };
+  virtual uint64_t time_us() const;
+  float time_s() const { return time_s(time_us()); }
+  float time_s(uint64_t us) const { return static_cast<float>(us) / 1e6; }
+  bool isInLimits(const X& x, float tol = 0.0f) const {
+    return inLimits(x, limits_min_, limits_max_, tol);
+  }
 
   /**************************** Setpoint wrappers ****************************/
   virtual X setpointPos() override;
@@ -46,6 +51,7 @@ class SetpointBasic : public SetpointInterface {
   virtual X desPos(float t) = 0;
   virtual V desVel(float t) = 0;
   virtual A desAcc(float t) = 0;
+  virtual bool isDone(float t) = 0;
 
   /*************************** Protected Variables ***************************/
  protected:
@@ -67,32 +73,17 @@ class SetpointBasic : public SetpointInterface {
   float travel_speed_ = 0.1;
   X limits_min_ = {mountPoints[3][0] + 0.3f, mountPoints[3][1] + 0.3f, 0.};
   X limits_max_ = {mountPoints[1][0] - 0.3f, mountPoints[1][1] - 0.3f, 0.};
+  float limit_tol_ = 0.05;  // When deciding to fault, how much to relax limits
 
   // Convenience functions
   virtual X estimatedCurPos() const;
   virtual bool setState(State state);  // prep for next state
+  X desPosSafe(float t) { return clamp(desPos(t), limits_min_, limits_max_); }
   static PPoly<2, 2, 1> calcTravelSpline(const X& start, const X& end,
                                          float speed = 0.1);
 
   static Vector<3> appendZeroTheta(const Vector<2>& x);
 };
-
-void SetpointBasic::update() {
-  if (status_ == Status::NOMINAL) {
-    switch (state_) {
-      case State::HOLD:
-        break;
-      case State::RUNNING:
-        break;
-      case State::INTERMEDIATE_TRAVEL:
-        if (time_s() >= travel_spline_.duration()) {
-          setState(auto_advance_ ? State::RUNNING : State::HOLD);
-          auto_advance_ = true;
-        }
-        break;
-    }
-  }
-}
 
 bool SetpointBasic::readSerial(AsciiParser parser, Stream& serialOut) {
   if (SetpointInterface::readSerial(parser, serialOut)) return true;
@@ -132,9 +123,12 @@ bool SetpointBasic::readSerial(AsciiParser parser, Stream& serialOut) {
       advanceTo(t);
       return true;
     }
+    case SetpointCommands::POLL_STATUS:
+      serialOut.printf("setpoint: STATUS: %.3f %d %d %d\n", time_s(), state_,
+                       status_, isDone(time_s()));
     case SetpointCommands::DEBUG_COMPUTE_AND_PRINT_TRAVEL_SPLINE_SAMPLED: {
       travel_spline_ = calcTravelSpline(
-          estimatedCurPos(), desPos(time_s(t_paused_us_)), travel_speed_);
+          estimatedCurPos(), desPosSafe(time_s(t_paused_us_)), travel_speed_);
       float t1 = travel_spline_.get_breakpoint(1),
             t2 = travel_spline_.get_breakpoint(2);
       float dt = (t2 - t1) / 10;
@@ -202,10 +196,29 @@ bool SetpointBasic::readSerial(AsciiParser parser, Stream& serialOut) {
   }
 }
 
+void SetpointBasic::update() {
+  if (status_ == Status::NOMINAL) {
+    switch (state_) {
+      case State::HOLD:
+        break;
+      case State::RUNNING:
+        if (isDone(time_s())) stop();
+        break;
+      case State::INTERMEDIATE_TRAVEL:
+        if (time_s() >= travel_spline_.duration()) {
+          if (setState(auto_advance_ ? State::RUNNING : State::HOLD)) {
+            auto_advance_ = true;
+          }
+        }
+        break;
+    }
+  }
+}
+
 bool SetpointBasic::initialize() {
   if (status_ == Status::UNINITIALIZED) {
     hold_pos_ = estimatedCurPos();
-    setState(State::HOLD);
+    if (!setState(State::HOLD)) return false;
     status_ = Status::NOMINAL;
     t_start_us_ = 0;
     t_travel_start_us_ = 0;
@@ -232,13 +245,16 @@ bool SetpointBasic::stop() {
   return true;
 }
 
-bool SetpointBasic::pause() { return setState(State::HOLD); }
+bool SetpointBasic::pause() {
+  t_paused_us_ = time_us();
+  return setState(State::HOLD);
+}
 
 bool SetpointBasic::advanceTo(float time_s) {
   if (state_ == State::RUNNING) {
-    setState(State::HOLD);
+    if (!setState(State::HOLD)) return false;
     t_paused_us_ = time_s * 1e6;
-    setState(State::INTERMEDIATE_TRAVEL);
+    if (!setState(State::INTERMEDIATE_TRAVEL)) return false;
     return true;
   } else {  // state is HOLD or INTERMEDIATE_TRAVEL
     t_paused_us_ = time_s * 1e6;
@@ -246,7 +262,7 @@ bool SetpointBasic::advanceTo(float time_s) {
   }
 }
 
-uint64_t SetpointBasic::time_us() {
+uint64_t SetpointBasic::time_us() const {
   switch (state_) {
     case State::HOLD:
       return t_paused_us_;
@@ -262,22 +278,29 @@ bool SetpointBasic::setState(State state) {
   switch (state) {
     case State::HOLD:
       hold_pos_ = estimatedCurPos();
-      if (state_ == State::RUNNING) {
-        t_paused_us_ = time_us();
+      if (!isInLimits(hold_pos_, limit_tol_)) {
+        status_ = Status::UNINITIALIZED;
+        return false;
       }
       break;
     case State::RUNNING:
-      if (norm(estimatedCurPos() - desPos(time_s(t_paused_us_))) >
+      if (norm(estimatedCurPos() - desPosSafe(time_s(t_paused_us_))) >
           switch_to_run_threshold_) {
         return false;
       }
       t_start_us_ = micros() - t_paused_us_;
       break;
-    case State::INTERMEDIATE_TRAVEL:
-      travel_spline_ = calcTravelSpline(
-          estimatedCurPos(), desPos(time_s(t_paused_us_)), travel_speed_);
+    case State::INTERMEDIATE_TRAVEL: {
+      X cur = estimatedCurPos();
+      if (!isInLimits(cur, limit_tol_)) {
+        status_ = Status::UNINITIALIZED;
+        return false;
+      }
+      travel_spline_ = calcTravelSpline(cur, desPosSafe(time_s(t_paused_us_)),
+                                        travel_speed_);
       t_travel_start_us_ = micros();
       break;
+    }
     default:
       return false;
   }
@@ -312,7 +335,7 @@ SetpointInterface::X SetpointBasic::setpointPos() {
     case State::HOLD:
       return hold_pos_;
     case State::RUNNING:
-      return clamp(desPos(time_s()), limits_min_, limits_max_);
+      return desPosSafe(time_s());
     case State::INTERMEDIATE_TRAVEL:
       return appendZeroTheta(travel_spline_.eval(time_s()));
   }
