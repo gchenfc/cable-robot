@@ -4,12 +4,10 @@
 
 class StateEstimatorDummy : public StateEstimatorInterface {
  public:
-  std::pair<float, float> posEst(__attribute__((unused))
-                                 uint64_t time_us = micros()) const override {
+  std::pair<float, float> posEst(uint64_t /*t_us*/ = micros()) const override {
     return last_pos_;
   }
-  std::pair<float, float> velEst(__attribute__((unused))
-                                 uint64_t time_us = micros()) const override {
+  std::pair<float, float> velEst(uint64_t /*t_us*/ = micros()) const override {
     return last_vel_;
   }
 
