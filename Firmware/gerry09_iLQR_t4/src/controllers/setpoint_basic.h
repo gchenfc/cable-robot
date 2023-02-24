@@ -139,6 +139,16 @@ bool SetpointBasic::readSerial(AsciiParser parser, Stream& serialOut) {
       }
       return true;
     }
+    case SetpointCommands::SET_SWITCH_TO_RUN_THRESHOLD: {
+      UNWRAP_PARSE_CHECK(float threshold, parser.parseFloat('\n', &threshold));
+      switch_to_run_threshold_ = threshold;
+      return true;
+    }
+    case SetpointCommands::SET_TRAVEL_SPEED: {
+      UNWRAP_PARSE_CHECK(float speed, parser.parseFloat('\n', &speed));
+      travel_speed_ = speed;
+      return true;
+    }
     case SetpointCommands::SET_WORKSPACE_LIMITS_ABS: {
       UNWRAP_PARSE_CHECK(char dir, parser.getChar(&dir));
       UNWRAP_PARSE_CHECK(float amt, parser.parseFloat('\n', &amt));
