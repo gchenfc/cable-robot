@@ -23,8 +23,8 @@ const Mode = { IDLE: "idle", HOLD: "hold", TRACKING: "tracking" };
 function Cdpr(frameDims, eeDims) {
   this.frame = frameDims;
   this.ee = eeDims;
-  this.padding_w = 0.1;
-  this.padding_h = 0.1;
+  this.padding_w = 0.3;
+  this.padding_h = 0.3;
   this.isSpray = false;
   this.color = 0;
   this.x = this.frame.w / 2;
@@ -207,11 +207,12 @@ Cdpr.prototype.estop = function () {
 }
 Cdpr.prototype.setMode = function (mode) {
   const pos = (this.lastState.t_us !== null) ? this.lastState.controller.est : new Pose2(this.x, this.y, 0);
-  const MSGS = { [Mode.IDLE]: 'g7', [Mode.HOLD]: `ta${pos.x},${pos.y};g6;g8`, [Mode.TRACKING]: `g1;g2` };
+  const MSGS = { [Mode.IDLE]: 'k0', [Mode.HOLD]: `xw${pos.x},${pos.y},0;k1;g8`, [Mode.TRACKING]: `k2;x2` };
+  // const MSGS = { [Mode.IDLE]: 'g7', [Mode.HOLD]: `ta${pos.x},${pos.y};g6;g8`, [Mode.TRACKING]: `g1;g2` };
   this.send(MSGS[mode]);
   this.mode = mode;
 }
-Cdpr.prototype.resetTraj = function () { this.send('g3;g4'); };
+Cdpr.prototype.resetTraj = function () { this.send('x4'); };
 Cdpr.prototype.setSwitchableControllerMode = function (mode) {
   const LOOKUP_TABLE = { [SwitchableControllerMode.TRACKING]: 0, [SwitchableControllerMode.SPLINE]: 1, [SwitchableControllerMode.ILQR]: 2 };
   this.send(`gs${LOOKUP_TABLE[mode]}`);
@@ -244,7 +245,7 @@ Cdpr.prototype.prev_color = function () { this.set_color((this.color + 5) % 6); 
 
 /*********** SERIAL SENDING CODE ***************/
 Cdpr.prototype.sendPosition = function () {
-  toSend = `ta${this.x},${this.y}`;
+  toSend = `xw${this.x},${this.y},0`;
   writer.write(toSend + '\n');
   println(toSend, 1);
 }
@@ -296,7 +297,7 @@ function parseLine(line) {
 }
 
 var lastMatch = null;
-Cdpr.prototype.parseLogString = function (logString) {
+Cdpr.prototype.parseLogString = function (logString, printToTerminal_cb) {
   this.logBuffer += logString;
   if (this.logBuffer.includes("\n")) {
     const lines = this.logBuffer.split("\n");
@@ -304,11 +305,22 @@ Cdpr.prototype.parseLogString = function (logString) {
     for (const line of lines) {
       const result = parseLine(line);
       if (result) {
+        printToTerminal_cb(line + '\n');
         this.max_dt = (result.controller.t_us - this.lastState.controller.t_us) / 1e6;
         while (this.max_dt < 0) { this.max_dt += 10; }
         this.lastState = result;
         // console.log(result.controller.est, result.controller.set, this.max_dt);
         // [this.x, this.y, met] = towards(result.controller.est.x, result.controller.est.y, this.x, this.y, SPEED * 1.5 / 10);
+      } else {
+        if (line.toLowerCase().startsWith("setpoint")) {
+          printlnSetpoint(line);
+        } else if (line.toLowerCase().startsWith("tracking")) {
+          printlnTracker(line);
+        } else if (line.toLowerCase().startsWith("waypoint")) {
+          printlnWaypoint(line);
+        } else {
+          printToTerminal_cb(line + '\n');
+        }
       }
     }
   }

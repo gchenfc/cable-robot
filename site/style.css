@@ -25,6 +25,8 @@ canvas.gamepad {
   padding: 5px 10px;
   overflow-y: scroll;
   height: 250px;
+  margin-top: 5px;
+  margin-bottom: 5px;
 }
 .serialinput {
   width: 100%;
