@@ -72,6 +72,18 @@ TEST(Winch, valid) {
   EXPECT(!winch.isThetaValid());
 }
 
+TEST(Winch, torque_tension) {
+  Winch_ winch(1.23, 0.0127);
+
+  EXPECT_DOUBLES_EQUAL(0.635, winch.torque_Nm(50), 1e-6);
+  EXPECT_DOUBLES_EQUAL(78.7401574803, winch.tension_N(1.0), 1e-6);
+
+  float new_len_correction_params[3] = {0.1, 0.5, 3.0};  // ax^2 + bx + c
+  winch.setLenCorrectionParams(new_len_correction_params);
+  EXPECT_DOUBLES_EQUAL(0.3299649992, winch.torque_Nm(50), 1e-6);
+  EXPECT_DOUBLES_EQUAL(50, winch.tension_N(0.3299649992), 1e-5);
+}
+
 int main() {
   TestResult tr;
   return TestRegistry::runAllTests(tr);
