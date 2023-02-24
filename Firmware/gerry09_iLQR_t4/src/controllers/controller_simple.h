@@ -8,7 +8,7 @@
 #include "../utils.h"
 #include "../communication/can_simple.h"
 
-extern Odrive odrive;
+extern Odrive odrive;  // Stupid hack - this is used in setupFor
 
 class ControllerSimple : public ControllerInterface {
  public:

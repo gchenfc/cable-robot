@@ -6,6 +6,8 @@
 
 #include "../../CppUnitLite/TestHarness.h"
 
+Odrive odrive;
+
 class TrackerBasic : public TrackerInterface {
   using TrackerInterface::TrackerInterface;
   float calcTension_N(uint8_t) override { return 0; }

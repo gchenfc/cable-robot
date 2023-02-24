@@ -12,10 +12,9 @@
  */
 class TrackerSafe : public TrackerInterface {
  public:
-  TrackerSafe(Robot& robot, Odrive& odrive, SetpointInterface* setpoint,
+  TrackerSafe(Robot& robot, SetpointInterface* setpoint,
               StateEstimatorInterface* state_estimator)
-      : TrackerInterface(robot, odrive, setpoint),
-        state_estimator_(state_estimator) {}
+      : TrackerInterface(robot, setpoint), state_estimator_(state_estimator) {}
 
   virtual bool readSerial(AsciiParser parser, Stream& serial_out) override;
 

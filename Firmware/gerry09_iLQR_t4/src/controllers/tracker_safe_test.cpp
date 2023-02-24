@@ -11,6 +11,9 @@
 class TrackerTest : public TrackerSafe {
  public:
   using TrackerSafe::TrackerSafe;
+  static void print_name(Stream& serialOut) {
+    serialOut.print("TrackerTest");
+  }
   float calcTension_N(uint8_t) override { return 0; };
 };
 
@@ -20,7 +23,7 @@ Odrive odrive;
 SetpointPurePursuit setpoint(&state_estimator);
 
 TEST(TrackerSafe, compile_checker) {
-  TrackerTest tracker(robot, odrive, &setpoint, &state_estimator);
+  TrackerTest tracker(robot, &setpoint, &state_estimator);
 
   EXPECT(true);
 }

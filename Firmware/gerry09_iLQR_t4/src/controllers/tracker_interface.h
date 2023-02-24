@@ -9,7 +9,7 @@
 #include "../communication/can_simple.h"
 #include "../robot.h"
 
-class Odrive;
+extern Odrive odrive;  // Stupid hack - used to send the very initial torque
 
 /**
  * TrackerInterface defines the common interface for a controller that, given an
@@ -29,8 +29,8 @@ class TrackerInterface {
     POSITION_CONTROL,
   };
 
-  TrackerInterface(Robot& robot, Odrive& odrive, SetpointInterface* setpoint)
-      : robot_(robot), odrive_(odrive), setpoint_(setpoint) {}
+  TrackerInterface(Robot& robot, SetpointInterface* setpoint)
+      : robot_(robot), setpoint_(setpoint) {}
 
   /******************************** Common API ********************************/
   virtual void setup(){};
@@ -53,7 +53,7 @@ class TrackerInterface {
 
   /****************************** IMPLEMENT THIS ******************************/
   virtual float calcTension_N(uint8_t winchnum) = 0;
-  virtual bool initialize() { return true; };  // e.g. init PID state (optional)
+  virtual bool initialize() { return true; }  // e.g. init PID state (optional)
 
   /*************** Implementations that you don't need to touch ***************/
   State getState() const { return state_; }
@@ -63,7 +63,6 @@ class TrackerInterface {
   State state_ = IDLE;
   Metro update_timer_{10};
   Robot& robot_;
-  Odrive& odrive_;
 
   // Tunable parameters
   float hold_torque_Nm_ = 0.2;
@@ -109,6 +108,9 @@ bool TrackerInterface::setState(const State& state) {
   // First validate transition, and change setpoint states if necessary
   switch (state) {
     case IDLE:
+      // don't check truthy-ness of setpoint->pause(), always allow IDLE
+      if (state_ == POSITION_CONTROL) setpoint_->pause();
+      break;
     case GRAVITY_COMP:
       if (state_ == POSITION_CONTROL) {
         if (!setpoint_->pause()) return false;
@@ -125,12 +127,13 @@ bool TrackerInterface::setState(const State& state) {
   for (int i = 0; i < 3; i++) {
     switch (state) {
       case IDLE:
+        odrive.send(i, MSG_SET_INPUT_TORQUE, 0.0f);
         break;
       case GRAVITY_COMP:
-        odrive_.send(i, MSG_SET_INPUT_TORQUE, 0.2f);
+        odrive.send(i, MSG_SET_INPUT_TORQUE, 0.2f);
         break;
       case POSITION_CONTROL:
-        odrive_.send(i, MSG_SET_INPUT_TORQUE, 0.0f);
+        odrive.send(i, MSG_SET_INPUT_TORQUE, 0.0f);
         break;
       default:
         return false;

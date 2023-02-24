@@ -13,6 +13,10 @@ class SetpointPurePursuit : public SetpointBasic {
  public:
   using SetpointBasic::SetpointBasic;
 
+  static void print_name(Stream& serialOut) {
+    serialOut.print("SetpointPurePursuit");
+  }
+
   /******************************** Common API ********************************/
   virtual void setup() override {
     SetpointBasic::setup();

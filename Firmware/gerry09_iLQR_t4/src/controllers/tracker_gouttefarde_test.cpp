@@ -14,7 +14,7 @@ Odrive odrive;
 SetpointPurePursuit setpoint(&state_estimator);
 
 TEST(TrackerGouttefarde, compile_checker) {
-  TrackerGouttefarde tracker(robot, odrive, &setpoint, &state_estimator);
+  TrackerGouttefarde tracker(robot, &setpoint, &state_estimator);
   EXPECT(true);
 }
 
