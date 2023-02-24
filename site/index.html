@@ -16,7 +16,9 @@
 <body onload="init();">
   <div style="width:100%">
     <div style="width:calc(100% - 400px - 30px); float: left;">
-      <canvas class="cdpr" id="cdpr_canvas" width="300" height="230" style="aspect-ratio: 4/3;"></canvas>
+      <!-- <canvas class="cdpr" id="cdpr_canvas" width="300" height="230" style="aspect-ratio: 4/3;"></canvas> -->
+      <!-- <canvas class="cdpr" id="cdpr_canvas" width="617" height="264" style="aspect-ratio: 4/3;"></canvas> -->
+      <canvas class="cdpr" id="cdpr_canvas" width="617" height="264" style="aspect-ratio: 7/3;"></canvas>
       <canvas class="gamepad" id="gamepad_canvas" width="300" height="260" style="aspect-ratio: 300/260;"></canvas>
     </div>
     <div style="width: 400px; float: right;">
@@ -27,7 +29,10 @@
         <option value="1">1</option>
         <option value="2">2</option>
       </select>
-      <p class="serialoutput" id="output" style="height:calc((100vw - 400px - 30px) * 0.55 * 3 / 4 - 70px);"></p>
+      <p class="serialoutput" id="output" style="height:calc((100vw - 400px - 30px) * 0.55 * 3 / 4 - 70px - 150px-35px);"></p>
+      <p class="serialoutput" id="setpointOut" style="height:calc(75px - 20px);"></p>
+      <p class="serialoutput" id="trackerOut" style="height:calc(75px - 20px);"></p>
+      <p class="serialoutput" id="waypointOut" style="height:calc(35px - 20px);"></p>
     </div>
   </div>
   <div style="clear: both;"></div>

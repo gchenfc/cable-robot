@@ -5,13 +5,14 @@ const gamepad_canvas = document.getElementById("gamepad_canvas");
 const gamepad_ctx = gamepad_canvas.getContext("2d");
 
 var gamepad_idx = null;
-const cdpr = new Cdpr(new Dims(2.9, 2.3), new Dims(0.184, 0.122));
+// const cdpr = new Cdpr(new Dims(2.9, 2.3), new Dims(0.184, 0.122));
 // const cdpr = new Cdpr(new Dims(3.05, 2.34), new Dims(0.1778, 0.14));
+const cdpr = new Cdpr(new Dims(6.17, 2.64), new Dims(0.184, 0.122));
 const drawing = new Drawing();
 const gamepad = new MyGamepad();
 const gamepad_drawing = new GamepadDrawing();
 
-var animation_interval, cdpr_interval, serial_interval;
+var animation_interval, cdpr_interval, serial_interval, cdpr_poll_interval;
 
 function init() {
   // register callbacks
@@ -30,7 +31,9 @@ function init() {
   gamepad.onpress["LB"] = function (state) { cdpr.prev_color(); };
   // start updates
   cdpr_interval = setInterval(function () { cdpr.update(1 / 150); }, 1000 / 150);
+  // cdpr_interval = setInterval(function () { cdpr.update(1 / 50); }, 1000 / 50);
   animation_interval = setInterval(draw, 1000 / 30);
+  cdpr_poll_interval = setInterval(function() { cdpr.send("x?;k?"); }, 300);
   // Connect serial
   attemptAutoconnect();
   // initial draw
