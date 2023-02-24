@@ -56,8 +56,8 @@ bool TrackerGouttefarde::readSerial(AsciiParser parser, Stream& serial_out) {
   UNWRAP_PARSE_CHECK(, parser.checkChar(SerialPrefixes::TRACKING));
   UNWRAP_PARSE_CHECK(char cmd, parser.getChar(&cmd));
 
-  AsciiParser parser_gains = parser;
-  if (parser_gains.checkChar(TrackingCommands::SET_GAINS)) {
+  if (cmd == TrackingCommands::SET_GAINS) {
+    AsciiParser parser_gains = parser;
     UNWRAP_PARSE_CHECK(char c, parser_gains.getChar(&c));
     UNWRAP_PARSE_CHECK(float a, parser_gains.parseFloat('\n', &a));
     switch (c) {
