@@ -6,6 +6,9 @@
 #if defined(KLAUS) || defined(DFL)
 static constexpr float kSpeed = 1.0;
 #endif
+#if defined(AIR)
+static constexpr float kSpeed = 0.04;
+#endif
 #ifdef HYDROPONICS
 static constexpr float kSpeed = 0.1;
 #endif

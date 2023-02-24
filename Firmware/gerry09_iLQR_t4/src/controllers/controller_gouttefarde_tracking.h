@@ -12,6 +12,10 @@
 static constexpr float kKp = 15000, kKi = 15, kKd = 30,  // gains
     kTMin_N = 8, kTMid_N = 54, kTMax_N = 100;            // tensions
 #endif
+#if defined(AIR)
+static constexpr float kKp = 10000, kKi = 10, kKd = 100,  // gains
+    kTMin_N = 8, kTMid_N = 54, kTMax_N = 100;            // tensions
+#endif
 #ifdef HYDROPONICS
 static constexpr float kKp = 30000, kKi = 50, kKd = 50,  // gains
     kTMin_N = 5, kTMid_N = 50, kTMax_N = 140;            // tensions
