@@ -34,12 +34,8 @@ class SetpointInterface {
   virtual void update(){};        // Called every loop
   virtual bool initialize() = 0;  // Must call this when "UNINITIALIZED" status
 
-  virtual bool readSerial(__attribute__((unused)) AsciiParser parser,
-                          __attribute__((unused)) Stream& serialOut) {
-    return false;
-  }
-  virtual void writeSerial(__attribute__((unused)) Stream& serialOut) {
-  }  // called by Debug
+  virtual bool readSerial(AsciiParser, Stream&) { return false; }
+  virtual void writeSerial(Stream&) {}  // called by Debug
 
   /**************************** State Control API ****************************/
   virtual bool travel() = 0;

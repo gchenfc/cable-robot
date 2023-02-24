@@ -24,8 +24,8 @@ class SetpointTest : public SetpointBasic {
 
   X desPos(float t) override { return {t * t, t, 0}; }  // TODO: try non-0 theta
   V desVel(float t) override { return {2 * t, 1, 0}; }
-  A desAcc(__attribute__((unused)) float t) override { return {2, 0, 0}; }
-  bool isDone(__attribute__((unused)) float t) override { return false; }
+  A desAcc(float) override { return {2, 0, 0}; }
+  bool isDone(float) override { return false; }
 
   void setTravelSpeed(float speed) { travel_speed_ = speed; }
   void setLimits(const X& min, const X& max) {
