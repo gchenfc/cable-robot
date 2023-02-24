@@ -125,6 +125,7 @@ bool SetpointBasic::readSerial(AsciiParser parser, Stream& serialOut) {
     case SetpointCommands::POLL_STATUS:
       serialOut.printf("setpoint: STATUS: %.3f %d %d %d\n", time_s(), state_,
                        status_, isDone(time_s()));
+      return true;
     case SetpointCommands::DEBUG_COMPUTE_AND_PRINT_TRAVEL_SPLINE_SAMPLED: {
       travel_spline_ = calcTravelSpline(
           estimatedCurPos(), desPosSafe(time_s(t_paused_us_)), travel_speed_);
@@ -235,7 +236,7 @@ bool SetpointBasic::initialize() {
     }
     return true;
   } else {
-    return false;
+    return true;
   }
 }
 

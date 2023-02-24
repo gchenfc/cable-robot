@@ -68,6 +68,10 @@ SetpointInterface::X TrackerSafe::setpointPos() {
   SetpointInterface::X des = setpoint_->setpointPos();
   if (norm(cur - des) > max_distance_to_setpoint_) {
     if (state_ == POSITION_CONTROL) {
+      SerialD.printf(
+          "TrackerSafe: distance to setpoint too large: %.3f %.3f -> %.3f "
+          "%.3f, switching to GRAVITY_COMP\n",
+          cur[0], cur[1], des[0], des[1]);
       setState(GRAVITY_COMP);
     }
     return cur;
@@ -80,6 +84,10 @@ SetpointInterface::V TrackerSafe::setpointVel() {
   auto des = setpoint_->setpointVel();
   if (norm(des) > max_vel_setpoint_) {
     if (state_ == POSITION_CONTROL) {
+      SerialD.printf(
+          "TrackerSafe: velocity to setpoint too large: %.3f %.3f, switching "
+          "to GRAVITY_COMP\n",
+          des[0], des[1]);
       setState(GRAVITY_COMP);
     }
     return SetpointInterface::V{0, 0, 0};
@@ -92,6 +100,10 @@ SetpointInterface::A TrackerSafe::setpointAcc() {
   auto des = setpoint_->setpointAcc();
   if (norm(des) > max_acc_setpoint_) {
     if (state_ == POSITION_CONTROL) {
+      SerialD.printf(
+          "TrackerSafe: acceleration to setpoint too large: %.3f %.3f, "
+          "switching to GRAVITY_COMP\n",
+          des[0], des[1]);
       setState(GRAVITY_COMP);
     }
     return SetpointInterface::A{0, 0, 0};

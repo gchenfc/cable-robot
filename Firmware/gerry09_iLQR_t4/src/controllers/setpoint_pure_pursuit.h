@@ -50,7 +50,15 @@ bool SetpointPurePursuit::readSerial(AsciiParser parser, Stream& serialOut) {
                        theta);
       setpoint_ = X{x, y, theta};
       // Need to reset the travel stroke calculator
-      setState(State::INTERMEDIATE_TRAVEL);
+      if (state_ == State::INTERMEDIATE_TRAVEL) {
+        // we need to set cur manually (else we could use setState)
+        X cur = pad_zeros<3>(travel_spline_.eval(time_s()));
+        travel_spline_ = calcTravelSpline(cur, desPosSafe(time_s(t_paused_us_)),
+                                          travel_speed_);
+        t_travel_start_us_ = micros();
+      } else {
+        setState(State::INTERMEDIATE_TRAVEL);
+      }
       break;
     default:
       return false;

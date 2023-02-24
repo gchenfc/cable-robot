@@ -10,7 +10,7 @@ enum : char {
   // CAN_PASSTHROUGH = ? // TODO(gerry)
   LEGACY_TRACKING_CONTROLLER = 't',
   SETPOINT = 'x',
-  TRACKING = 'k'
+  TRACKING = 'k',
 };
 }  // namespace SerialPrefixes
 
@@ -29,7 +29,7 @@ enum : char {
 
   // Retrieve info
   POLL_STATUS = '?',
-  POLL_SPLINE_STATUS = 's',
+  POLL_SPLINE_STATUS = '!',
   DEBUG_COMPUTE_AND_PRINT_TRAVEL_SPLINE_SAMPLED = '%',
   SPLINE_DEBUG_PRINT_NUM_SEGMENTS = '#',
   SPLINE_DEBUG_SAMPLE_1S = '*',  // Print spline from 0s to 1s, every 0.1s
@@ -41,8 +41,8 @@ enum : char {
       't',  // If we are not within this threshold to the first setpoint, don't
             // switch to "RUN" mode
   SET_TRAVEL_SPEED = 's',          // e.g. `xs0.5` sets travel speed to 0.5 m/s
-  SET_WORKSPACE_LIMITS_REL = 'l',  // e.g. xLu0.5 sets upper lim to 0.5 (udlrcw)
-  SET_WORKSPACE_LIMITS_ABS = 'L',  // e.g. xLu0.5 sets upper lim to height-0.5
+  SET_WORKSPACE_LIMITS_REL = 'l',  // e.g. xLu0.5 sets upper lim to height-0.5
+  SET_WORKSPACE_LIMITS_ABS = 'L',  // e.g. xlu0.5 sets upper lim to 0.5 (udlrcw)
 
   // Spline editing
   SPLINE_RESET = '-',

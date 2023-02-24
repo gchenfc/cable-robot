@@ -117,7 +117,7 @@ bool TrackerInterface::setState(const State& state) {
       }
       break;
     case POSITION_CONTROL:
-      if (setpoint_->initialize() && initialize()) break;
+      if (setpoint_->initialize() && initialize()) break;  // continue
       return false;
     default:
       return false;
@@ -138,7 +138,10 @@ bool TrackerInterface::setState(const State& state) {
       default:
         return false;
     }
+    odrive.send(i, MSG_SET_CONTROLLER_MODES, static_cast<int32_t>(1),
+                static_cast<int32_t>(1));
   }
+
   state_ = state;
   return true;
 }
