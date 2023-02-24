@@ -21,6 +21,40 @@ std::pair<float, float> makePair(const Vector<2> &x) {
   return {std::get<0>(x), std::get<1>(x)};
 }
 
+// head, tail, mid, padding
+template <size_t NEW_DIM, size_t OLD_DIM>
+Vector<NEW_DIM> head(const Vector<OLD_DIM> &x) {
+  static_assert(NEW_DIM <= OLD_DIM, "New dimension must be <= old dimension");
+  Vector<NEW_DIM> ret;
+  std::copy(std::begin(x), std::begin(x) + NEW_DIM, std::begin(ret));
+  return ret;
+}
+template <size_t NEW_DIM, size_t OLD_DIM>
+Vector<NEW_DIM> tail(const Vector<OLD_DIM> &x) {
+  static_assert(NEW_DIM <= OLD_DIM, "New dimension must be <= old dimension");
+  Vector<NEW_DIM> ret;
+  std::copy(std::end(x) - NEW_DIM, std::end(x), std::begin(ret));
+  return ret;
+}
+template <size_t START, size_t LEN, size_t OLD_DIM>
+Vector<LEN> mid(const Vector<OLD_DIM> &x) {
+  static_assert(LEN <= OLD_DIM, "New dimension must be <= old dimension");
+  static_assert(START + LEN <= OLD_DIM,
+                "New dimension must be <= old dimension");
+  Vector<LEN> ret;
+  std::copy(std::begin(x) + START, std::begin(x) + START + LEN,
+            std::begin(ret));
+  return ret;
+}
+template <size_t NEW_DIM, size_t OLD_DIM>
+Vector<NEW_DIM> pad_zeros(const Vector<OLD_DIM> &x) {
+  static_assert(NEW_DIM >= OLD_DIM, "New dimension must be >= old dimension");
+  Vector<NEW_DIM> ret;
+  std::fill(std::begin(ret) + OLD_DIM, std::end(ret), 0);
+  std::copy(std::begin(x), std::end(x), std::begin(ret));
+  return ret;
+}
+
 // Convenience functions to wrap std::transform
 namespace detail {
 template <size_t N, typename UNARY_OP>

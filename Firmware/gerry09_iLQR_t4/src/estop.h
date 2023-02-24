@@ -27,10 +27,10 @@ class Estop {
     bool on = digitalRead(PIN);
     if (on) {
       if ((micros() - t_last_off_us_) >= kEstopDebounceTime_us) {
-        odrive.send(0, MSG_ODRIVE_ESTOP);
-        odrive.send(3, MSG_ODRIVE_ESTOP);
-        odrive.send(1, MSG_ODRIVE_ESTOP);
-        odrive.send(2, MSG_ODRIVE_ESTOP);
+        odrive_.send(0, MSG_ODRIVE_ESTOP);
+        odrive_.send(3, MSG_ODRIVE_ESTOP);
+        odrive_.send(1, MSG_ODRIVE_ESTOP);
+        odrive_.send(2, MSG_ODRIVE_ESTOP);
         controller_->release();
         spray_.setSpray(false);
       }

@@ -22,6 +22,8 @@ class SetpointTest : public SetpointBasic {
  public:
   using SetpointBasic::SetpointBasic;
 
+  static void print_name(Stream& serialOut) { serialOut.print("SetpointTest"); }
+
   X desPos(float t) override { return {t * t, t, 0}; }  // TODO: try non-0 theta
   V desVel(float t) override { return {2 * t, 1, 0}; }
   A desAcc(float) override { return {2, 0, 0}; }

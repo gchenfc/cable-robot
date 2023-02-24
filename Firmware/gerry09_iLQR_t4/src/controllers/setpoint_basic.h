@@ -71,8 +71,8 @@ class SetpointBasic : public SetpointInterface {
   // Tunable parameters
   float switch_to_run_threshold_ = 0.1;
   float travel_speed_ = 0.1;
-  X limits_min_ = {mountPoints[3][0] + 0.3f, mountPoints[3][1] + 0.3f, 0.};
-  X limits_max_ = {mountPoints[1][0] - 0.3f, mountPoints[1][1] - 0.3f, 0.};
+  X limits_min_ = {{mountPoints[3][0] + 0.3f, mountPoints[3][1] + 0.3f, 0.}};
+  X limits_max_ = {{mountPoints[1][0] - 0.3f, mountPoints[1][1] - 0.3f, 0.}};
   float limit_tol_ = 0.05;  // When deciding to fault, how much to relax limits
 
   // Convenience functions

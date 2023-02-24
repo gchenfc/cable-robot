@@ -12,6 +12,10 @@ class SetpointSpline : public SetpointBasic {
  public:
   using SetpointBasic::SetpointBasic;
 
+  static void print_name(Stream& serialOut) {
+    serialOut.print("SetpointSpline");
+  }
+
   /******************************** Common API ********************************/
   virtual void setup() override {
     SetpointBasic::setup();

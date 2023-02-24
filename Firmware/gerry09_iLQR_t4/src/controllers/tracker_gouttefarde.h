@@ -26,10 +26,13 @@ static constexpr float kKp = 30000, kKi = 50, kKd = 50,  // gains
  */
 class TrackerGouttefarde : public TrackerSafe {
  public:
-  TrackerGouttefarde(Robot& robot, Odrive& odrive, SetpointInterface* setpoint,
+  TrackerGouttefarde(Robot& robot, SetpointInterface* setpoint,
                      StateEstimatorInterface* state_estimator)
-      : TrackerSafe(robot, odrive, setpoint, state_estimator),
-        kinematics_(robot) {}
+      : TrackerSafe(robot, setpoint, state_estimator), kinematics_(robot) {}
+
+  static void print_name(Stream& serialOut) {
+    serialOut.print("TrackerGouttefarde");
+  }
 
   virtual bool readSerial(AsciiParser parser, Stream& serial_out) override;
   virtual float calcTension_N(uint8_t winchnum) override;

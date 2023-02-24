@@ -16,6 +16,18 @@
     EXPECT_DOUBLES_EQUAL(y, act[1], tol);          \
     EXPECT_DOUBLES_EQUAL(z, act[2], tol);          \
   }
+#define COMMA ,
+
+TEST(Vector, head_tail_and_stuff) {
+  Vector<5> v{1, 2, 3, 4, 5};
+  EXPECT_VECTOR3_EQUAL(1, 2, 3, head<3>(v), 1e-12);
+  EXPECT_VECTOR3_EQUAL(3, 4, 5, tail<3>(v), 1e-12);
+  EXPECT_VECTOR3_EQUAL(2, 3, 4, mid<1 COMMA 3>(v), 1e-12);
+  EXPECT_VECTOR3_EQUAL(3, 0, 0, tail<3>(pad_zeros<5>(head<3>(v))), 1e-12);
+  EXPECT_VECTOR3_EQUAL(3, 2, 0, pad_zeros<3>(Vector<2>{3 COMMA 2}), 1e-12);
+  EXPECT_VECTOR3_EQUAL(3, 2, 1, pad_zeros<3>(Vector<3>{3 COMMA 2 COMMA 1}),
+                       1e-12);
+}
 
 TEST(Vector, math) {
   Vector<3> v1{1, 2, 3};
@@ -58,7 +70,7 @@ TEST(Vector, math) {
   EXPECT_DOUBLES_EQUAL(9, y[4], 1e-12);
   EXPECT_DOUBLES_EQUAL(8.9, y[5], 1e-6);
   EXPECT_DOUBLES_EQUAL(-1, x[0], 1e-12);  // (don't modify x)
-  clamp_(x, min, max);  // inplace
+  clamp_(x, min, max);                    // inplace
   EXPECT_DOUBLES_EQUAL(0, x[0], 1e-12);
   EXPECT_DOUBLES_EQUAL(1, x[1], 1e-12);
   EXPECT_DOUBLES_EQUAL(3, x[2], 1e-12);
