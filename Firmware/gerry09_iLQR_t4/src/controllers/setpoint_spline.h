@@ -10,8 +10,7 @@
  */
 class SetpointSpline : public SetpointBasic {
  public:
-  SetpointSpline(StateEstimatorInterface* state_estimator)
-      : SetpointBasic(state_estimator) {}
+  using SetpointBasic::SetpointBasic;
 
   /******************************** Common API ********************************/
   virtual void setup() override {
@@ -103,4 +102,4 @@ bool SetpointSpline::readSerial(AsciiParser parser, Stream& serialOut) {
       return false;
   }
   return true;
-}
+};

@@ -34,12 +34,19 @@ enum SetpointCommands : char {
   SPLINE_QUERY_COEFFS = '<',     // `x<3` would print coeffs for segment 3
 
   // Set parameters
+  SET_SWITCH_TO_RUN_THRESHOLD =
+      't',  // If we are not within this threshold to the first setpoint, don't
+            // switch to "RUN" mode
+  SET_TRAVEL_SPEED = 's',          // e.g. `xs0.5` sets travel speed to 0.5 m/s
   SET_WORKSPACE_LIMITS_REL = 'l',  // e.g. xLu0.5 sets upper lim to 0.5 (udlrcw)
   SET_WORKSPACE_LIMITS_ABS = 'L',  // e.g. xLu0.5 sets upper lim to height-0.5
 
   // Spline editing
   SPLINE_RESET = '-',
   SPLINE_ADD_SEGMENT = '+',
+
+  // Waypoint
+  WAYPOINT_SET = 'w',
 };
 
 // These are the commands for the "tracking" controller manager
