@@ -164,3 +164,18 @@ bool inLimits(Vector<N> a, const Vector<N> &min, const Vector<N> &max,
   }
   return true;
 }
+
+/******************************************************************************/
+template <size_t N>
+float towards(const float maxD, const Vector<N> &start, const Vector<N> &end,
+              Vector<N> *next) {
+  Vector<N> dx = end - start;
+  float d2 = norm2(dx);
+  if (d2 > (maxD * maxD)) {
+    float scale = maxD / sqrt(d2);
+    if (next) *next = start + dx * scale;
+  } else {
+    if (next) *next = end;
+    return d2;
+  }
+}

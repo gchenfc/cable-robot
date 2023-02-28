@@ -33,7 +33,7 @@ function init() {
   cdpr_interval = setInterval(function () { cdpr.update(1 / 150); }, 1000 / 150);
   // cdpr_interval = setInterval(function () { cdpr.update(1 / 50); }, 1000 / 50);
   animation_interval = setInterval(draw, 1000 / 30);
-  cdpr_poll_interval = setInterval(function() { cdpr.send("x?;k?"); }, 300);
+  cdpr_poll_interval = setInterval(function() { cdpr.send("x?;k?", false); }, 100);
   // Connect serial
   attemptAutoconnect();
   // initial draw

@@ -45,11 +45,11 @@ constexpr std::array<float, DIMS> kDefaultPos() {
 }
 template <>
 constexpr std::array<float, 2> kDefaultPos<2>() {
-  return {1.5, 1.5};
+  return {kWidth / 2, kHeight / 2};
 }
 template <>
 constexpr std::array<float, 3> kDefaultPos<3>() {
-  return {1.5, 1.5, 0};
+  return {kWidth / 2, kHeight / 2, 0};
 }
 
 /*************************** Polynomial Utils *********************************/
