@@ -28,15 +28,19 @@ function try_connect() {
       console.log("Connected to ipad!!!");
       console.log(event);
       connected = true;
-      cdpr.control_mode = ControlMode.POSITION;
+      // cdpr.control_mode = ControlMode.POSITION;
+      cdpr.setSwitchableControllerMode(SwitchableControllerMode.SPLINE);
       websocket.send('F' + [cdpr.frame.w - cdpr.ee.w, cdpr.frame.h - cdpr.ee.h]);
     }
-
+    
     websocket.onclose = function (event) {
-      console.log("Disconnected from ipad!!!");
-      console.log(event);
-      connected = false;
-      cdpr.control_mode = ControlMode.VELOCITY;
+      if (connected) {
+        console.log("Disconnected from ipad!!!");
+        console.log(event);
+        connected = false;
+        // cdpr.control_mode = ControlMode.VELOCITY;
+        cdpr.setSwitchableControllerMode(SwitchableControllerMode.TRACKING);
+      }
     }
 
     websocket.onmessage = function (event) {

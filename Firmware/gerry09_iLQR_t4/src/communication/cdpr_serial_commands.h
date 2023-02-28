@@ -35,6 +35,8 @@ enum : char {
   SPLINE_DEBUG_SAMPLE_1S = '*',  // Print spline from 0s to 1s, every 0.1s
   SPLINE_QUERY_AT_TIME = '>',    // `x>0.5` would print x, xdot at time 0.5
   SPLINE_QUERY_COEFFS = '<',     // `x<3` would print coeffs for segment 3
+  WAYPOINTS_PRINT_NUM_WAYPOINTS = '@',
+  WAYPOINTS_PRINT_WAYPOINT = '$',
 
   // Set parameters
   SET_SWITCH_TO_RUN_THRESHOLD =
@@ -43,6 +45,8 @@ enum : char {
   SET_TRAVEL_SPEED = 's',          // e.g. `xs0.5` sets travel speed to 0.5 m/s
   SET_WORKSPACE_LIMITS_REL = 'l',  // e.g. xLu0.5 sets upper lim to height-0.5
   SET_WORKSPACE_LIMITS_ABS = 'L',  // e.g. xlu0.5 sets upper lim to 0.5 (udlrcw)
+  SET_WAYPOINT_SPEED = 'S',
+  SET_WAYPOINT_ACCEL = 'A',
 
   // Spline editing
   SPLINE_RESET = '-',
@@ -50,6 +54,8 @@ enum : char {
 
   // Waypoint
   WAYPOINT_SET = 'w',
+  WAYPOINT_ADD = 'n',
+  WAYPOINT_CLEAR = 'c',
 };
 }  // namespace SetpointCommands
 

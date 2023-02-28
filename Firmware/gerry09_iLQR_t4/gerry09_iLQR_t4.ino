@@ -42,6 +42,7 @@
 #include "src/controllers/controller_gouttefarde_tracking.h"
 #else
 #include "src/controllers/setpoint_pure_pursuit.h"
+#include "src/controllers/setpoint_waypoints.h"
 #include "src/controllers/setpoint_spline.h"
 #include "src/controllers/tracker_gouttefarde.h"
 #include "src/controllers/controller_tracker_setpoint.h"
@@ -73,18 +74,23 @@ ControllerSwitchable<ControllerGouttefardeTracking<ControllerTracking>,
 
 #else
 SetpointPurePursuit setpoint1(&state_estimator);
-SetpointSpline setpoint2(&state_estimator);
+SetpointWaypoints setpoint2(&state_estimator);
+SetpointSpline setpoint3(&state_estimator);
 TrackerGouttefarde tracker1(robot, &setpoint1, &state_estimator);
 TrackerGouttefarde tracker2(robot, &setpoint2, &state_estimator);
+TrackerGouttefarde tracker3(robot, &setpoint3, &state_estimator);
 ControllerTrackerSetpoint<SetpointPurePursuit, TrackerGouttefarde> controller1(
     setpoint1, tracker1);
-ControllerTrackerSetpoint<SetpointSpline, TrackerGouttefarde> controller2(
+ControllerTrackerSetpoint<SetpointWaypoints, TrackerGouttefarde> controller2(
     setpoint2, tracker2);
+ControllerTrackerSetpoint<SetpointSpline, TrackerGouttefarde> controller3(
+    setpoint3, tracker3);
 
 ControllerSwitchable<
     ControllerTrackerSetpoint<SetpointPurePursuit, TrackerGouttefarde>,
+    ControllerTrackerSetpoint<SetpointWaypoints, TrackerGouttefarde>,
     ControllerTrackerSetpoint<SetpointSpline, TrackerGouttefarde>>
-    controller(controller1, controller2);
+    controller(controller1, controller2, controller3);
 #endif
 
 Odrive odrive(robot, controller);
