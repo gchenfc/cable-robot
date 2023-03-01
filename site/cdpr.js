@@ -1,5 +1,6 @@
 // const SPEED = 0.5 * 2.3;
-const SPEED = 0.1 * 2.3;
+const CDPR_SPEED = 0.2;
+const SPEED = CDPR_SPEED * 2.3;
 
 function Dims(w, h) {
   this.w = w;
@@ -164,8 +165,16 @@ Cdpr.prototype.update = function (dt) {
     return;
   }
   if (this.control_mode == ControlMode.VELOCITY) {
+    if (this.vx == 0 && this.vy == 0) return;
     this.x += this.vx * dt;
     this.y += this.vy * dt;
+    [this.x, this.y] = towards(
+      this.lastState.controller.est.x,
+      this.lastState.controller.est.y,
+      this.x,
+      this.y,
+      CDPR_SPEED * 0.25 // max 0.25s worth of lead
+    );
     // this.x = this.lastState.controller.est.x + this.vx * this.max_dt * 2.0;
     // this.y = this.lastState.controller.est.y + this.vy * this.max_dt * 2.0;
 
@@ -362,7 +371,8 @@ Cdpr.prototype.setSwitchableControllerMode = function (mode) {
 Cdpr.prototype.spray = function (on, force = false) {
   if (!force && this.isSpray != on) {
     this.send(`s${on ? 1 : 0}`);
-    this.send(`sM1,${on ? 7500 : 3000}`);
+    // this.send(`sM1,${on ? 7500 : 3000}`);
+    this.send(`sM1,${on ? 2000 : 0}`);
     this.isSpray = on;
   }
 };
