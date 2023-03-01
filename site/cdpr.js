@@ -1,6 +1,7 @@
 // const SPEED = 0.5 * 2.3;
-const CDPR_SPEED = 0.2;
+const CDPR_SPEED = 0.5;
 const SPEED = CDPR_SPEED * 2.3;
+const BRUSH_WAIT_DELAY_MS = 1500;
 
 function Dims(w, h) {
   this.w = w;
@@ -223,7 +224,7 @@ Cdpr.prototype.update = function (dt) {
           setTimeout(() => {
             this.status = Status.DRAWING;
           }, 100); // give enough time for poll to respond
-        }, 3000);
+        }, BRUSH_WAIT_DELAY_MS);
         return;
       }
     }
@@ -235,7 +236,7 @@ Cdpr.prototype.update = function (dt) {
         setTimeout(() => {
           this.status = Status.IDLE;
           this.send("x?"); // poll status
-        }, 3000);
+        }, BRUSH_WAIT_DELAY_MS);
         return;
       }
     }
