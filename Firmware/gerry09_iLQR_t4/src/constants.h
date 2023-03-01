@@ -60,7 +60,7 @@ static constexpr float kTau = 2 * 3.1415926535897932384626433832795;
 
 #endif
 
-#define CALIBRATION 
+#define CALIBRATIONx
 #ifdef CALIBRATION
 static constexpr bool kUseLenCorrectionParamsFromEeprom = false;
 static constexpr bool kUseMountPointsFromEeprom = false;
