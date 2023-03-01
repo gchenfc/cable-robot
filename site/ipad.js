@@ -57,9 +57,9 @@ function try_connect() {
       // cdpr.set_y = y;
       if (command == 'M') {
         cdpr.add_to_queue(x, y, false);
-        for (let i = 0; i < PAINT_DELAY_S * 150; i++) {
-          cdpr.add_to_queue(x, y, true, true);
-        }
+        // for (let i = 0; i < PAINT_DELAY_S * 150; i++) {
+        //   cdpr.add_to_queue(x, y, true, true);
+        // }
       } else if (command == 'L') {
       // } else if (command == 'N') {
         cdpr.add_to_queue(x, y, true);
@@ -72,10 +72,10 @@ function try_connect() {
         //   cdpr.set_queue[i][2] = false;
         // }
         // forward set the next PAINT_DELAY seconds of paint to be false
-        const l = 0;
-        for (let i = l; i < Math.floor(PAINT_DELAY_S * 150); i++) {
-          cdpr.add_to_queue(x, y, false);
-        }
+        // const l = 0;
+        // for (let i = l; i < Math.floor(PAINT_DELAY_S * 150); i++) {
+        //   cdpr.add_to_queue(x, y, false);
+        // }
       } else if (command == 'C') {
         let c1 = COLORS[txy[1]];
         console.log(event.data, c1);
