@@ -18,6 +18,7 @@
 #include "../../trajectories/2022-05-12_catherine/ATL_output.h"
 #include "../../trajectories/2022-05-12_catherine/ATL_output_controller.h"
 
+
 static_assert((sizeof(painton) / sizeof(painton[0]) - 1) ==
                   (sizeof(xffs) / sizeof(xffs[0])),
               "Trajectories are not the same length");
