@@ -325,7 +325,7 @@ PPoly<2, 2, 1> SetpointBasic::calcTravelSpline(const X& start, const X& end,
   Vector<3> dx_ = end - start;
   Vector<2> dx = {std::get<0>(dx_), std::get<1>(dx_)};
   float tmax = norm(dx) / speed;
-  auto m = dx / tmax;
+  auto m = dx / std::max(tmax, 1e-6f);
 
   PPoly<2, 2, 1> spline;
   spline.reset();
