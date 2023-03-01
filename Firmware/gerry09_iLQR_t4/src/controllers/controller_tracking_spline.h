@@ -12,6 +12,7 @@ class ControllerTrackingSpline : public ControllerSimple {
     NOMINAL_ON_PATH,  // Continue normally
     RETURN_TO_PATH,   // We're too far away from the setpoint: slowly move
                       // towards it
+    HOLD_AT_DONE,     // We finished the spline, so just hold position
   };
 
  public:
@@ -116,6 +117,10 @@ bool ControllerTrackingSpline::readSerial(AsciiParser parser, Stream& serialOut)
       break;
     case '-':
       spline_.reset();
+      break;
+    case '?':  // poll status
+      serialOut.printf("Spline Status: %d %.3f %.3f\n", spline_exec_state_,
+                       trajTime_s(), spline_.duration());
       break;
     case '#':  // debug - print number of total segments in the spline
       serialOut.printf("Spline number of segments: %d\n",

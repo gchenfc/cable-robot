@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <numeric>
 
+#include "utils.h"
+
 // Define a Vector class
 template <size_t N>
 using Vector = std::array<float, N>;
@@ -17,6 +19,40 @@ Vector<2> makeVector(const std::pair<float, float> &x) {
 }
 std::pair<float, float> makePair(const Vector<2> &x) {
   return {std::get<0>(x), std::get<1>(x)};
+}
+
+// head, tail, mid, padding
+template <size_t NEW_DIM, size_t OLD_DIM>
+Vector<NEW_DIM> head(const Vector<OLD_DIM> &x) {
+  static_assert(NEW_DIM <= OLD_DIM, "New dimension must be <= old dimension");
+  Vector<NEW_DIM> ret;
+  std::copy(std::begin(x), std::begin(x) + NEW_DIM, std::begin(ret));
+  return ret;
+}
+template <size_t NEW_DIM, size_t OLD_DIM>
+Vector<NEW_DIM> tail(const Vector<OLD_DIM> &x) {
+  static_assert(NEW_DIM <= OLD_DIM, "New dimension must be <= old dimension");
+  Vector<NEW_DIM> ret;
+  std::copy(std::end(x) - NEW_DIM, std::end(x), std::begin(ret));
+  return ret;
+}
+template <size_t START, size_t LEN, size_t OLD_DIM>
+Vector<LEN> mid(const Vector<OLD_DIM> &x) {
+  static_assert(LEN <= OLD_DIM, "New dimension must be <= old dimension");
+  static_assert(START + LEN <= OLD_DIM,
+                "New dimension must be <= old dimension");
+  Vector<LEN> ret;
+  std::copy(std::begin(x) + START, std::begin(x) + START + LEN,
+            std::begin(ret));
+  return ret;
+}
+template <size_t NEW_DIM, size_t OLD_DIM>
+Vector<NEW_DIM> pad_zeros(const Vector<OLD_DIM> &x) {
+  static_assert(NEW_DIM >= OLD_DIM, "New dimension must be >= old dimension");
+  Vector<NEW_DIM> ret;
+  std::fill(std::begin(ret) + OLD_DIM, std::end(ret), 0);
+  std::copy(std::begin(x), std::end(x), std::begin(ret));
+  return ret;
 }
 
 // Convenience functions to wrap std::transform
@@ -101,4 +137,45 @@ float norm(const Vector<N> &a) {
 template <size_t N>
 Vector<N> normalized(const Vector<N> &a) {
   return a / norm(a);
+}
+
+// Clamp (inplace!!!)
+template <size_t N>
+void clamp_(Vector<N> &a, const Vector<N> &min, const Vector<N> &max,
+            float tol = 0.0f) {
+  for (int i = 0; i < static_cast<int>(N); ++i) {
+    clamp(&a.at(i), min.at(i) - tol, max.at(i) + tol);
+  }
+}
+// Clamp (functional)
+template <size_t N>
+Vector<N> clamp(Vector<N> a, const Vector<N> &min, const Vector<N> &max,
+                float tol = 0.0f) {
+  clamp_(a, min, max, tol);
+  return a;
+}
+// Checks if within limits (i.e. would clamp do anything?).True if within limits
+template <size_t N>
+bool inLimits(Vector<N> a, const Vector<N> &min, const Vector<N> &max,
+              float tol = 0.0f) {
+  for (int i = 0; i < static_cast<int>(N); ++i) {
+    if (a.at(i) < (min.at(i) - tol) || a.at(i) > (max.at(i) + tol))
+      return false;
+  }
+  return true;
+}
+
+/******************************************************************************/
+template <size_t N>
+float towards(const float maxD, const Vector<N> &start, const Vector<N> &end,
+              Vector<N> *next) {
+  Vector<N> dx = end - start;
+  float d2 = norm2(dx);
+  if (d2 > (maxD * maxD)) {
+    float scale = maxD / sqrt(d2);
+    if (next) *next = start + dx * scale;
+  } else {
+    if (next) *next = end;
+    return d2;
+  }
 }

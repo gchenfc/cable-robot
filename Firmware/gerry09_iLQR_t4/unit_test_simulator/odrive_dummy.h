@@ -1,6 +1,11 @@
 #ifndef ODRIVE_CAN_H
 #define ODRIVE_CAN_H
 
+#include <array>
+#include <cmath>
+#include <functional>
+#include <tuple>
+
 class Odrive {
  public:
   using Message = std::tuple<uint8_t, uint8_t, std::array<uint8_t, 8>, bool>;

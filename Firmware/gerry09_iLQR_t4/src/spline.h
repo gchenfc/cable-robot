@@ -45,7 +45,11 @@ constexpr std::array<float, DIMS> kDefaultPos() {
 }
 template <>
 constexpr std::array<float, 2> kDefaultPos<2>() {
-  return {1.5, 1.5};
+  return {kWidth / 2, kHeight / 2};
+}
+template <>
+constexpr std::array<float, 3> kDefaultPos<3>() {
+  return {kWidth / 2, kHeight / 2, 0};
 }
 
 /*************************** Polynomial Utils *********************************/
@@ -77,8 +81,7 @@ PolyCoeffs1d<std::max<int>(0, Degree - 1)> polyder(
   return ret;
 }
 template <>
-PolyCoeffs1d<0> polyder<0>(const PolyCoeffs1d<0>& coeffs
-                           __attribute__((unused))) {
+PolyCoeffs1d<0> polyder<0>(const PolyCoeffs1d<0>&) {
   return {0};
 }
 template <int Dim, int Degree>
