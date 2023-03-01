@@ -35,8 +35,9 @@ MyGamepad.prototype.update = function (gamepad) {
   for (const [BUTTON, index] of Object.entries(buttons)) {
     this[BUTTON] = gamepad.buttons[index].pressed;
   }
-  this.joyleft = { x: gamepad.axes[JOYSTICKS.LHORIZ], y: -gamepad.axes[JOYSTICKS.LVERT] };
-  this.joyright = { x: gamepad.axes[JOYSTICKS.RHORIZ], y: -gamepad.axes[JOYSTICKS.RVERT] };
+  db = (x) => (Math.abs(x) < 0.005) ? 0.0 : x;  // deadband
+  this.joyleft = { x: db(gamepad.axes[JOYSTICKS.LHORIZ]), y: db(-gamepad.axes[JOYSTICKS.LVERT]) };
+  this.joyright = { x: db(gamepad.axes[JOYSTICKS.RHORIZ]), y: db(-gamepad.axes[JOYSTICKS.RVERT]) };
 
   this.handleCallbacks(prevButtons);
 }
