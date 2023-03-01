@@ -101,6 +101,8 @@
         "coeffs",
         "evald",
         "evaldd",
+        "Gouttefarde",
+        "odrive",
         "Setpoint",
         "Xdot"
     ]
