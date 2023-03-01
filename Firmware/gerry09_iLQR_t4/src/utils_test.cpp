@@ -62,6 +62,33 @@ TEST(utils, matmul) {
   EXPECT_DOUBLES_EQUAL(12, C[1][0], 1e-12);
 }
 
+TEST(utils, matadd) {
+  float A[2][3] = {{1, 2, 3},  //
+                   {4, 5, 6}};
+  float B[2][3] = {{7, 8, 9},  //
+                   {10, 11, 12}};
+  float C[2][3];
+  matadd<2, 3>(A, B, C);
+  float C_expected[2][3] = {{8, 10, 12},  //
+                            {14, 16, 18}};
+  for (int ri = 0; ri < 2; ++ri) {
+    for (int ci = 0; ci < 3; ++ci) {
+      EXPECT_DOUBLES_EQUAL(C_expected[ri][ci], C[ri][ci], 1e-12);
+    }
+  }
+}
+
+TEST(utils, vecadd) {
+  float A[3] = {1, 2, 3};
+  float B[3] = {7, 8, 9};
+  float C[3];
+  matadd<3>(A, B, C);
+  float C_expected[3] = {8, 10, 12};
+  for (int ri = 0; ri < 3; ++ri) {
+    EXPECT_DOUBLES_EQUAL(C_expected[ri], C[ri], 1e-12);
+  }
+}
+
 TEST(utils, towards) {
   float nx, ny;
   towards(1, 0, 0, 1, 1, &nx, &ny);
@@ -111,6 +138,74 @@ TEST(utils, Timestamped) {
   getMicros() = 123456L + 5000L;
   EXPECT(!f.isValid());
   EXPECT_DOUBLES_EQUAL(8.23, f, 1e-5);
+}
+
+TEST(utils, CircularBuffer) {
+  using Vector2 = std::pair<float, float>;
+  Vector2 a;
+
+  CircularBuffer<Vector2, 3> cb;
+  EXPECT(cb.empty());
+  EXPECT(!cb.full());
+  EXPECT(!cb.pop(a));
+  // Populate buffer
+  EXPECT_LONGS_EQUAL(0, cb.size());
+  EXPECT(cb.push(Vector2(1., 2.)));
+  EXPECT_LONGS_EQUAL(1, cb.size());
+  EXPECT(cb.push(Vector2(3., 4.)));
+  EXPECT_LONGS_EQUAL(2, cb.size());
+  EXPECT(cb.push(Vector2(5., 6.)));
+  EXPECT_LONGS_EQUAL(3, cb.size());
+  EXPECT(cb.full());
+  // attempt to over-populate buffer
+  EXPECT(!cb.push(Vector2(7., 8.)));
+  EXPECT_LONGS_EQUAL(3, cb.size());
+  EXPECT(cb.full());
+  // pop twice
+  EXPECT(cb.pop(a));
+  EXPECT_LONGS_EQUAL(2, cb.size());
+  EXPECT_DOUBLES_EQUAL(1., a.first, 1e-5);
+  EXPECT_DOUBLES_EQUAL(2., a.second, 1e-5);
+  EXPECT(cb.pop(a));
+  EXPECT_LONGS_EQUAL(1, cb.size());
+  EXPECT_DOUBLES_EQUAL(3., a.first, 1e-5);
+  EXPECT_DOUBLES_EQUAL(4., a.second, 1e-5);
+  // push again thrice
+  EXPECT(cb.push(Vector2(9., 10.)));
+  EXPECT_LONGS_EQUAL(2, cb.size());
+  EXPECT(cb.push(Vector2(11., 12.)));
+  EXPECT_LONGS_EQUAL(3, cb.size());
+  EXPECT(!cb.push(Vector2(13., 14.)));  // over-populate
+  EXPECT_LONGS_EQUAL(3, cb.size());
+  // test mutable peek
+  cb.front().first += 10;  // 5 + 10 = 15
+  // View/copy
+  auto view = cb.view();
+  // pop everything off copy
+  EXPECT(view.pop(a));
+  EXPECT_DOUBLES_EQUAL(15., a.first, 1e-5);
+  EXPECT_DOUBLES_EQUAL(6., a.second, 1e-5);
+  EXPECT(view.pop(a));
+  EXPECT_DOUBLES_EQUAL(9., a.first, 1e-5);
+  EXPECT_DOUBLES_EQUAL(10., a.second, 1e-5);
+  EXPECT(view.pop(a));
+  EXPECT_DOUBLES_EQUAL(11., a.first, 1e-5);
+  EXPECT_DOUBLES_EQUAL(12., a.second, 1e-5);
+  EXPECT(view.empty());
+  // pop everything off original
+  EXPECT(cb.pop(a));
+  EXPECT_DOUBLES_EQUAL(15., a.first, 1e-5);
+  EXPECT_DOUBLES_EQUAL(6., a.second, 1e-5);
+  EXPECT(cb.pop(a));
+  EXPECT_DOUBLES_EQUAL(9., a.first, 1e-5);
+  EXPECT_DOUBLES_EQUAL(10., a.second, 1e-5);
+  EXPECT(cb.pop(a));
+  EXPECT_DOUBLES_EQUAL(11., a.first, 1e-5);
+  EXPECT_DOUBLES_EQUAL(12., a.second, 1e-5);
+  EXPECT(cb.empty());
+  // try to pop too much
+  EXPECT(!cb.pop(a));
+  EXPECT(cb.empty());
 }
 
 int main() {

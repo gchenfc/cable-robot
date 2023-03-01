@@ -9,21 +9,32 @@
 #include <Metro.h>
 
 #include "../controllers/controller_interface.h"
-#include "../controllers/controller_simple.h"
 #include "../robot.h"
 #include "../state_estimators/state_estimator_interface.h"
 #include "odrive_can.h"
+#include "../spray.h"
+#include "ascii_parser.h"
+
+bool default_callback(AsciiParser parser) { return false; }
 
 class Debug {
  public:
   Debug(Stream& serial, Robot& robot, ControllerInterface* controller,
-        StateEstimatorInterface* estimator, Odrive& odrive, Spray& spray)
+        StateEstimatorInterface* estimator, Odrive& odrive, Spray& spray,
+        int delay = 250)
+      : Debug(serial, robot, controller, estimator, odrive, spray,
+              default_callback, delay) {}
+  Debug(Stream& serial, Robot& robot, ControllerInterface* controller,
+        StateEstimatorInterface* estimator, Odrive& odrive, Spray& spray,
+        bool (*custom_callback)(AsciiParser), int delay = 250)
       : serial_(serial),
         robot_(robot),
         controller_(controller),
         estimator_(estimator),
         odrive_(odrive),
-        spray_(spray) {}
+        spray_(spray),
+        custom_callback_(custom_callback),
+        print_timer_(delay) {}
 
   // Common API
   void setup() {}
@@ -31,16 +42,23 @@ class Debug {
     if (print_timer_.check() && (serial_.availableForWrite() > 200)) {
       auto est_pos = estimator_->posEst();
       auto des_pos = controller_->setpointPos();
-      serial_.printf("%d: %.4f %.4f - %.4f %.4f\t|\t", controller_->getState(),
-                     est_pos.first, est_pos.second,  //
-                     des_pos.first, des_pos.second);
+      serial_.printf("%7u - %d: %.4f %.4f %.4f - %.4f %.4f %.4f\t|\t",       //
+                     micros() % 10000000,                                    //
+                     controller_->getState(),                                //
+                     estimator_->thetaEst(), est_pos.first, est_pos.second,  //
+                     controller_->setpointTheta(), des_pos.first,
+                     des_pos.second);
       for (int i = 0; i < 4; ++i) {
         const Winch& winch = robot_.winches.at(i);
         serial_.printf("%d %d %.4f %.4f\t|\t",  //
-                       winch.error(), winch.state(), winch.len(),
-                       winch.lenDot());
+                       winch.error(), winch.state(),
+                       print_raw_ ? winch.lenRaw() : winch.len(),
+                       print_raw_ ? winch.lenDotRaw() : winch.lenDot());
       }
       serial_.println(spray_.spray());
+    }
+    if (serial_.availableForWrite() > 500) {
+      controller_->writeSerial(serial_);
     }
     readSerial();
   }
@@ -52,50 +70,35 @@ class Debug {
   StateEstimatorInterface* estimator_;
   Odrive& odrive_;
   Spray& spray_;
-  Metro print_timer_ = Metro(10);
+  bool (*custom_callback_)(AsciiParser);
+  Metro print_timer_;
+  bool print_raw_ = false;
 
   void readSerial();
+  bool parseMsgDebug(AsciiParser parser);
 };
 
 namespace human_serial {
+// TODO(gerry): move these functions into their respective classes
 
-bool until(char** buffer_start, char* buffer_end, char delim) {
-  *buffer_start = std::find(*buffer_start, buffer_end, delim);
-  if (*buffer_start == buffer_end) return false;
-  *((*buffer_start)++) =
-      0;  // null terminate the number and advance to next one
-  return true;
-}
-template <typename T>
-bool parseInt(char** buffer_start, char* buffer_end, char delim, T* value) {
-  char* original_start = *buffer_start;
-  if (!until(buffer_start, buffer_end, delim)) return false;
-  *value = atoi(original_start);
-  return true;
-}
-template <typename T>
-bool parseFloat(char** buffer_start, char* buffer_end, char delim, T* value) {
-  char* original_start = *buffer_start;
-  if (!until(buffer_start, buffer_end, delim)) return false;
-  *value = atof(original_start);
-  return true;
-}
+bool parseWinchZeroFromCurrentLength(Robot& robot, uint8_t winchi,
+                                     AsciiParser& parser, Stream& serial);
+bool parseLengthCorrectionParams(const Robot& robot, uint8_t winchi,
+                                 AsciiParser& parser, Stream& serial);
+bool parseMountPoints(const Robot& robot, uint8_t winchi, AsciiParser& parser,
+                      Stream& serial);
 
-bool parseMsgRobot(Robot& robot, Odrive& odrive, char* buffer, int size,
-                   Stream& serial) {
-  if (size == 0) return false;
-  char* parse_cur = buffer;
-  char* parse_end = buffer + size;
-  uint32_t cmd;
-  if (parse_cur[0] != 'c') return false;
-  ++parse_cur;
-  if (!parseInt(&parse_cur, parse_end, '\n', &cmd)) return false;
+bool parseMsgCalibration(Robot& robot, Odrive& odrive, AsciiParser parser,
+                         Stream& serial) {
+  UNWRAP_PARSE_CHECK(, parser.checkChar('c'));
+  UNWRAP_PARSE_CHECK(uint32_t cmd, parser.parseInt(&cmd));
 
   switch (cmd) {
     case 0:
     case 1:
     case 2:
     case 3: {
+      UNWRAP_PARSE_CHECK(, parser.checkDone());
       if (robot.winches.at(cmd).state() != 1) {
         serial.printf(
             "\n\nERROR: Winch %d is not in IDLE state - cannot calibrate\n\n");
@@ -106,6 +109,7 @@ bool parseMsgRobot(Robot& robot, Odrive& odrive, char* buffer, int size,
       return true;
     }
     case 4: {
+      UNWRAP_PARSE_CHECK(, parser.checkDone());
       serial.println("Calibrating all winches...");
       for (int i = 0; i < 4; ++i) {
         if (robot.winches.at(i).state() != 1) {
@@ -123,6 +127,7 @@ bool parseMsgRobot(Robot& robot, Odrive& odrive, char* buffer, int size,
     case 11:
     case 12:
     case 13: {
+      UNWRAP_PARSE_CHECK(, parser.checkDone());
       uint8_t winchi = cmd - 10;
       serial.printf("Setting winch %d to zero and saving to EEPROM!\n", winchi);
       robot.setZero(winchi);
@@ -132,6 +137,7 @@ bool parseMsgRobot(Robot& robot, Odrive& odrive, char* buffer, int size,
       return true;
     }
     case 14: {
+      UNWRAP_PARSE_CHECK(, parser.checkDone());
       serial.println("Setting all winches to zero and saving to EEPROM!");
       robot.setZeroAll();
       robot.saveZeros();
@@ -140,6 +146,7 @@ bool parseMsgRobot(Robot& robot, Odrive& odrive, char* buffer, int size,
       return true;
     }
     case 15: {
+      UNWRAP_PARSE_CHECK(, parser.checkDone());
       serial.printf("Zeros:\nfloat kZeros[4] = {%.3f, %.3f, %.3f, %.3f};\n",
                     robot.zero(0), robot.zero(1), robot.zero(2), robot.zero(3));
       return true;
@@ -148,6 +155,7 @@ bool parseMsgRobot(Robot& robot, Odrive& odrive, char* buffer, int size,
     case 21:
     case 22:
     case 23: {
+      UNWRAP_PARSE_CHECK(, parser.checkDone());
       uint8_t winchi = cmd - 20;
       serial.printf("Restoring winch %d zero from EEPROM!\n", winchi);
       robot.restoreZero(winchi);
@@ -156,28 +164,104 @@ bool parseMsgRobot(Robot& robot, Odrive& odrive, char* buffer, int size,
       return true;
     }
     case 24: {
+      UNWRAP_PARSE_CHECK(, parser.checkDone());
       serial.println("Restoring all winch zeros from EEPROM!");
       robot.restoreZeros();
       serial.printf("New zeros:\nfloat kZeros[4] = {%.3f, %.3f, %.3f, %.3f};\n",
                     robot.zero(0), robot.zero(1), robot.zero(2), robot.zero(3));
       return true;
     }
-    default:
-      serial.println("\n\nInvalid calibration command code\n\n");
-      return false;
+    case 30:  // Set zero to current location
+    case 31:
+    case 32:
+    case 33: {
+      UNWRAP_PARSE_CHECK(float a, parser.peek(&a));
+      return parseWinchZeroFromCurrentLength(robot, cmd - 30, parser, serial) &&
+             parser.checkDone();
+    }
+    case 34: {
+      UNWRAP_PARSE_CHECK(float a, parser.peek(&a, &a, &a, &a));
+      for (int winchi = 0; winchi < 4; ++winchi) {
+        if (!parseWinchZeroFromCurrentLength(robot, winchi, parser, serial))
+          return false;
+      }
+      return parser.checkDone();
+    }
+    case 40:  // Set length correction parameters
+    case 41:
+    case 42:
+    case 43: {
+      UNWRAP_PARSE_CHECK(float a, parser.peek(&a, &a, &a));
+      return parseLengthCorrectionParams(robot, cmd - 40, parser, serial);
+    }
+    case 44: {
+      UNWRAP_PARSE_CHECK(
+          float a, parser.peek(&a, &a, &a, &a, &a, &a, &a, &a, &a, &a, &a, &a));
+      for (int winchi = 0; winchi < 4; ++winchi) {
+        if (!parseLengthCorrectionParams(robot, winchi, parser, serial))
+          return false;
+      }
+      return true;
+    }
+    case 50:  // Set mount points
+    case 51:
+    case 52:
+    case 53: {
+      UNWRAP_PARSE_CHECK(float a, parser.peek(&a, &a));
+      return parseMountPoints(robot, cmd - 50, parser, serial);
+    }
+    case 54: {
+      UNWRAP_PARSE_CHECK(float a, parser.peek(&a, &a, &a, &a, &a, &a, &a, &a));
+      for (int winchi = 0; winchi < 4; ++winchi) {
+        if (!parseMountPoints(robot, winchi, parser, serial)) return false;
+      }
+      return true;
+    }
   }
+  return false;
+}
+
+bool parseWinchZeroFromCurrentLength(Robot& robot, uint8_t winchi,
+                                     AsciiParser& parser, Stream& serial) {
+  UNWRAP_PARSE_CHECK(float cur_length, parser.parseFloat(&cur_length));
+  serial.printf("Setting winch %d zero such that the current length is %.3f\n",
+                winchi, cur_length);
+  Winch& winch = robot.winches[winchi];
+  winch.setZeroFromCurrentLength(cur_length);
+  robot.saveZero(winchi);
+  return true;
+}
+
+bool parseLengthCorrectionParams(const Robot& robot, uint8_t winchi,
+                                 AsciiParser& parser, Stream& serial) {
+  UNWRAP_PARSE_CHECK(float a, parser.parseFloat(&a));
+  UNWRAP_PARSE_CHECK(float b, parser.parseFloat(&b));
+  UNWRAP_PARSE_CHECK(float c, parser.parseFloat(&c));
+  serial.printf(
+      "Setting winch %d length correction parameters to {%.3f, %.3f, %.3f}\n",
+      winchi, a, b, c);
+  lenCorrectionParamsAll[winchi][0] = a;
+  lenCorrectionParamsAll[winchi][1] = b;
+  lenCorrectionParamsAll[winchi][2] = c;
+  robot.saveLenCorrectionParams(winchi);
+  return true;
+}
+
+bool parseMountPoints(const Robot& robot, uint8_t winchi, AsciiParser& parser,
+                      Stream& serial) {
+  UNWRAP_PARSE_CHECK(float x, parser.parseFloat(&x));
+  UNWRAP_PARSE_CHECK(float y, parser.parseFloat(&y));
+  serial.printf("Setting winch %d mount point to {%.3f, %.3f}\n", winchi, x, y);
+  mountPoints[winchi][0] = x;
+  mountPoints[winchi][1] = y;
+  robot.saveMountPoint(winchi);
+  return true;
 }
 
 bool parseMsgController(ControllerInterface* controller, Odrive& odrive,
-                        char* buffer, int size, Stream& serial) {
-  if (size == 0) return false;
-  char* parse_cur = buffer;
-  char* parse_end = buffer + size;
-  uint32_t cmd;
-  if (parse_cur[0] != 'g') return false;
-  ++parse_cur;
-  if (!parseInt(&parse_cur, parse_end, '\n', &cmd)) return false;
-
+                        AsciiParser parser, Stream& serial) {
+  UNWRAP_PARSE_CHECK(, parser.checkChar('g'));
+  UNWRAP_PARSE_CHECK(uint32_t cmd, parser.parseInt(&cmd));
   switch (cmd) {
     case 0:
       serial.println("CLEAR ERRORS");
@@ -224,37 +308,27 @@ bool parseMsgController(ControllerInterface* controller, Odrive& odrive,
   }
 }
 
-bool parseMsgSpray(Spray& spray, char* buffer, int size, Stream& serial) {
-  if (size == 0) return false;
-  char* parse_cur = buffer;
-  char* parse_end = buffer + size;
-  uint32_t cmd;
-  if (parse_cur[0] != 's') return false;
-  ++parse_cur;
-  if (!parseInt(&parse_cur, parse_end, '\n', &cmd)) return false;
-
-  switch (cmd) {
-    case 0:
-      serial.println("Spray off");
-      spray.setSpray(false);
-      return true;
-    case 1:
-      serial.println("Spray on");
-      spray.setSpray(true);
-      return true;
-    default:
-      serial.println("\n\nInvalid controller command code\n\n");
-      return false;
+bool parseMsgSpray(Spray& spray, AsciiParser parser, Stream& serial) {
+  UNWRAP_PARSE_CHECK(, parser.checkChar('s'));
+  // First check for 0 and 1, for backwards compatibility.
+  if (parser.advanceOnMatchChar('0')) {
+    serial.println("Spray off");
+    spray.setSpray(false);
+    return true;
+  } else if (parser.advanceOnMatchChar('1')) {
+    serial.println("Spray on");
+    spray.setSpray(true);
+    return true;
+  } else { // Forward rest of args to spray paint MCU
+    spray.forward_msg(parser.get_buffer_cur(), parser.len());
+    return true;
   }
 }
 
-bool parseMsgCanPassthrough(Odrive& odrive, char* buffer, int size,
+bool parseMsgCanPassthrough(Odrive& odrive, AsciiParser parser,
                             Stream& serial) {
-  char* parse_cur = buffer;
-  char* parse_end = buffer + size;
-  uint8_t node, cmd;
-  if (!parseInt(&parse_cur, parse_end, 'n', &node)) return false;
-  if (!parseInt(&parse_cur, parse_end, 'c', &cmd)) return false;
+  UNWRAP_PARSE_CHECK(uint8_t node, parser.parseInt('n', &node))
+  UNWRAP_PARSE_CHECK(uint8_t cmd, parser.parseInt('c', &cmd)) // THIS WAS A TYPO AND MIGHT BE 'n'
 
   int32_t i1, i2;
   float f1, f2;
@@ -282,34 +356,30 @@ bool parseMsgCanPassthrough(Odrive& odrive, char* buffer, int size,
     case MSG_SET_AXIS_NODE_ID:
     case MSG_SET_AXIS_REQUESTED_STATE:
     case MSG_SET_LINEAR_COUNT:
-      if (!parseInt(&parse_cur, parse_end, '\n', &i1)) return false;
+      UNWRAP_PARSE_CHECK(, parser.parse(&i1));
       odrive.send(node, cmd, i1);
       break;
     case MSG_SET_AXIS_STARTUP_CONFIG:
       serial.println("Not yet implemented!");
       break;
     case MSG_SET_CONTROLLER_MODES:
-      if (!parseInt(&parse_cur, parse_end, ',', &i1)) return false;
-      if (!parseInt(&parse_cur, parse_end, '\n', &i2)) return false;
+      UNWRAP_PARSE_CHECK(, parser.parse(&i1, &i2));
       odrive.send(node, cmd, i1, i2);
       break;
     case MSG_SET_INPUT_POS:
-      if (!parseFloat(&parse_cur, parse_end, ',', &f1)) return false;
-      if (!parseInt(&parse_cur, parse_end, ',', &i1)) return false;
-      if (!parseInt(&parse_cur, parse_end, '\n', &i2)) return false;
+      UNWRAP_PARSE_CHECK(, parser.parse(&f1, &i1, &i2));
       odrive.send(node, cmd, f1, i1, i2);
       break;
     case MSG_SET_INPUT_VEL:
     case MSG_SET_TRAJ_ACCEL_LIMITS:
-      if (!parseFloat(&parse_cur, parse_end, ',', &f1)) return false;
-      if (!parseFloat(&parse_cur, parse_end, '\n', &f2)) return false;
+      UNWRAP_PARSE_CHECK(, parser.parse(&f1, &f2));
       odrive.send(node, cmd, f1, f2);
       break;
     case MSG_SET_INPUT_TORQUE:
     case MSG_SET_VEL_LIMIT:
     case MSG_SET_TRAJ_VEL_LIMIT:
     case MSG_SET_TRAJ_INERTIA:
-      if (!parseFloat(&parse_cur, parse_end, '\n', &f1)) return false;
+      UNWRAP_PARSE_CHECK(, parser.parse(&f1));
       odrive.send(node, cmd, f1);
       break;
     default:
@@ -323,7 +393,6 @@ bool parseMsgCanPassthrough(Odrive& odrive, char* buffer, int size,
   serial.println(COMMANDS[cmd]);
   return true;
 }
-
 }  // namespace human_serial
 
 void Debug::readSerial() {
@@ -335,16 +404,40 @@ void Debug::readSerial() {
     buffer[bufferi] = c;
     bufferi++;
     if (c == '\n') {
-      if ((!human_serial::parseMsgRobot(robot_, odrive_, buffer, bufferi,
-                                        serial_)) &&
-          (!human_serial::parseMsgController(controller_, odrive_, buffer,
-                                             bufferi, serial_)) &&
-          (!human_serial::parseMsgSpray(spray_, buffer, bufferi, serial_)) &&
-          (!human_serial::parseMsgCanPassthrough(odrive_, buffer, bufferi,
-                                                 serial_))) {
+      AsciiParser parser(buffer, bufferi);
+      if ((!parseMsgDebug(parser)) &&
+          (!human_serial::parseMsgCalibration(robot_, odrive_, parser,
+                                              serial_)) &&
+          (!human_serial::parseMsgController(controller_, odrive_, parser,
+                                             serial_)) &&
+          (!human_serial::parseMsgSpray(spray_, parser, serial_)) &&
+          (!human_serial::parseMsgCanPassthrough(odrive_, parser, serial_)) &&
+          (!custom_callback_(parser)) &&
+          (!controller_->readSerial(AsciiParser(buffer, bufferi), serial_))) {
         serial_.println("Parse Error");
       };
       bufferi = 0;
     }
   }
+}
+
+bool Debug::parseMsgDebug(AsciiParser parser) {
+  UNWRAP_PARSE_CHECK(, parser.checkChar('d'));
+  UNWRAP_PARSE_CHECK(uint32_t cmd, parser.parseInt(&cmd));
+
+  switch (cmd) {
+    case 0:
+    case 1:
+      print_raw_ = cmd;
+      return parser.checkDone();
+    case 10: {  // print interval
+      UNWRAP_PARSE_CHECK(int delay, parser.parseInt(&delay));
+      if (parser.checkDone()) {
+        print_timer_.interval(delay);
+        return true;
+      }
+    }
+  }
+
+  return false;
 }

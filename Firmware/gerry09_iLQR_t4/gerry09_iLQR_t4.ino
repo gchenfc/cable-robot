@@ -29,8 +29,14 @@
 #include "src/constants.h"
 #include "src/robot.h"
 #include "src/state_estimators/state_estimator_first_order.h"
+// #include "src/state_estimators/state_estimator_kf.h"
 // #include "src/controllers/controller_simple.h"
-#include "src/controllers/controller_ilqr.h"
+// #include "src/controllers/controller_tracking.h"
+// #include "src/controllers/controller_ilqr.h"
+// #include "src/controllers/controller_lqg.h"
+// #include "src/controllers/controller_gouttefarde.h"
+// #include "src/controllers/controller_gouttefarde_tracking.h"
+#include "src/controllers/controller_switchable.h"
 #include "src/communication/odrive_can.h"
 #include "src/spray.h"
 #include "src/estop.h"
@@ -40,10 +46,18 @@
 Spray spray(btSerial);
 Robot robot{};
 StateEstimatorFirstOrder state_estimator(robot);
-ControllerIlqr controller(&state_estimator, spray);
+// StateEstimatorKf state_estimator(robot);
+// ControllerSimple controller(&state_estimator);
+// ControllerTracking controller(&state_estimator);
+// ControllerIlqr controller(&state_estimator, spray);
+// ControllerLqg controller(&state_estimator);
+// ControllerGouttefardeTracking controller(&state_estimator, robot);
+ControllerSwitchable controller(&state_estimator, robot, spray);
 Odrive odrive(robot, controller);
 Estop<ESTOP> estop(odrive, &controller, spray);
 Debug debug(SerialD, robot, &controller, &state_estimator, odrive, spray);
+Debug computer(SerialComputer, robot, &controller, &state_estimator, odrive,
+               spray, 100);
 Slave slave(Serial);
 
 // -------------------------------------------------------------
@@ -55,6 +69,7 @@ void setup(void) {
   spray.setup();
   estop.setup();
   debug.setup();
+  computer.setup();
   slave.setup();
 }
 
@@ -68,4 +83,5 @@ void loop(void) {
   spray.update();
   slave.update();
   debug.update();
+  computer.update();
 }

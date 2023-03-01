@@ -8,7 +8,7 @@ FOREACH(script_src IN ITEMS ${script_srcs})
 	# Add executable
 	ADD_EXECUTABLE(${script_name} ${script_src} ${script_headers})
 	TARGET_LINK_LIBRARIES(${script_name} CppUnitLite ${linkLibraries})
-	TARGET_INCLUDE_DIRECTORIES(${script_name} PRIVATE ${CMAKE_SOURCE_DIR})
+	TARGET_INCLUDE_DIRECTORIES(${script_name} PRIVATE ${CMAKE_SOURCE_DIR} ${includeDirectories})
 
 	# Add target dependencies
 	ADD_TEST(NAME ${script_name} COMMAND ${script_name})

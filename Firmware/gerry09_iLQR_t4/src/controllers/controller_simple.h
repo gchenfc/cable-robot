@@ -34,10 +34,10 @@ class ControllerSimple : public ControllerInterface {
   bool release() override;
 
   // Datalogging
-  Vector2 setpointPos() const override {
-    return (state_ == RUNNING_TRAJ) ? desPos(trajTime_s())
-                                    : std::make_pair(0.0f, 0.0f);
-  }
+  Vector2 setpointPos() const override { return desPos(trajTime_s()); }
+  float setpointTheta() const override { return desTheta(trajTime_s()); }
+  Vector2 setpointVel() const override { return desVel(trajTime_s()); }
+  float setpointThetaDot() const override { return desThetaDot(trajTime_s()); }
 
  protected:
   using Vector2 = std::pair<float, float>;
@@ -46,22 +46,41 @@ class ControllerSimple : public ControllerInterface {
   const StateEstimatorInterface* state_estimator_;
   uint64_t tstart_us_, tpause_us_, tmin_us_;
 
+  // To override
   virtual Vector2 desPos(float t) const;
+  virtual float desTheta(float t) const { return 0.0; }
+  virtual Vector2 desVel(float t) const { return std::make_pair(0.0f, 0.0f); }
+  virtual float desThetaDot(float t) const { return 0.0; }
   virtual float calcTorque(float t, uint8_t winchnum) const;
+  // End to override
   virtual void updatePaint(float t) {}
   float trajTime_s() const {
-    if (tstart_us_ + tmin_us_ > micros()) {
-      return static_cast<float>(tmin_us_) / 1e6;
-    } else {
-      return static_cast<float>(micros() - tstart_us_) / 1e6;
+    switch (state_) {
+      case IDLE:
+      case RUNNING_USER:
+      case SETUP:
+        return 0.0;
+      case HOLDING_BAN_INPUT:
+      case HOLDING_ALLOW_INPUT:
+      case HOLD_TRAJ_BEGIN:
+        return static_cast<float>(tpause_us_) / 1e6f;
+      case RUNNING_TRAJ: {
+        // note: be careful with kSprayDelay_s
+        uint64_t t_us =
+            std::max<uint64_t>(micros(), tmin_us_ + tstart_us_) - tstart_us_;
+        return static_cast<float>(t_us) / 1e6;
+      }
+      default:
+        return 0.0;  // error
     }
   }
+  virtual void myUpdate() {};
 };
 
 /************* KEY FUNCTIONS **************/
 ControllerSimple::Vector2 ControllerSimple::desPos(float t) const {
-  return {1.5 + 0.5 * cosf(t * M_PI / 5),  //
-          1.1 + 0.5 * sinf(t * M_PI / 5)};
+  return {1.0 + 0.35 * cosf(t * M_PI / 5),  //
+          0.9 + 0.35 * sinf(t * M_PI / 5)};
 }
 float ControllerSimple::calcTorque(float t, uint8_t winchnum) const {
   const Vector2& pos = state_estimator_->posEst();
@@ -70,22 +89,23 @@ float ControllerSimple::calcTorque(float t, uint8_t winchnum) const {
   float error[2], bPa[2];
   error[0] = des_pos.first - pos.first;
   error[1] = des_pos.second - pos.second;
-  bPa[0] = kMountPoints[winchnum][0] - pos.first;
-  bPa[1] = kMountPoints[winchnum][1] - pos.second;
+  bPa[0] = mountPoints[winchnum][0] - pos.first;
+  bPa[1] = mountPoints[winchnum][1] - pos.second;
   normalize<2>(bPa);
   // Serial.printf("%.2f %.2f %.2f %.2f %.2f %.2f\n",   //
   //               error[0], error[1], bPa[0], bPa[1],  //
   //               dot<2>(error, bPa), dot<2>(error, bPa) * 2.0f + 0.7f);
-  static constexpr float gain = 10.0f;
-  static constexpr float middle = 0.5f;
+  static constexpr float gain = 20.0f;
+  static constexpr float middle = 0.7f;
   float torque = dot<2>(error, bPa) * gain + middle;
-  clamp(&torque, -0.1, 1.2);
+  clamp(&torque, 0.0, 1.4);
   return torque;
 }
 /************* END KEY FUNCTIONS **************/
 
 void ControllerSimple::setup() { state_ = IDLE; }
 void ControllerSimple::update() {
+  myUpdate();
   if (!updateTimer.check()) {
     return;
   }
@@ -118,7 +138,8 @@ bool ControllerSimple::encoderMsgCallback(Odrive* odrive,
   switch (state_) {
     case IDLE:
     case RUNNING_USER:
-      return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, 0.0f);
+      // return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, 0.0f);
+      return odrive->send(winchnum, MSG_CO_HEARTBEAT_CMD & 0b11111);
     case SETUP:
     case HOLDING_BAN_INPUT:
     case HOLDING_ALLOW_INPUT:
@@ -168,6 +189,7 @@ bool ControllerSimple::goToStartTraj() {
 }
 bool ControllerSimple::startTraj() {
   if (state_ == HOLD_TRAJ_BEGIN) {
+    // tpause_us_ = 0; // TODO(gerry): remove this later
     tstart_us_ = micros() - tpause_us_ + (kSprayDelay_s * 1e6);
     setupFor(RUNNING_TRAJ);
     state_ = RUNNING_TRAJ;

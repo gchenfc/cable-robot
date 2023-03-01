@@ -4,22 +4,21 @@
 
 #include "controller_simple.h"
 #include "../spray.h"
-// #include "../../trajectories/ATL_controller_1e4.h"
-// #include "../../trajectories/ATL.h"
 // #include "../../trajectories/ATL_filled_output_controller_1e4.h"
 // #include "../../trajectories/ATL_filled_output.h"
-// #include "../../trajectories/2022-05-12_catherine/ATL_output.h"
-// #include "../../trajectories/2022-05-12_catherine/ATL_output_controller.h"
-#include "../../trajectories/2022-05-12_catherine/buzz_output.h"
-#include "../../trajectories/2022-05-12_catherine/buzz_output_controller.h"
-// #include "../../trajectories/concentric_diamonds_output_1mps_controller_1e4.h"
-// #include "../../trajectories/concentric_diamonds_output_1mps.h"
+// #include "../../trajectories/ATL_filled_output_controller_1e4.h"
+// #include "../../trajectories/ATL_filled_output.h"
+// #include "../../trajectories/ATL_filled.h"
 // #include "../../trajectories/concentric_diamonds2_output_2mps_20mps2_controller_1e4.h"
 // #include "../../trajectories/concentric_diamonds2_output_2mps_20mps2.h"
-// #include "../../trajectories/ATL_filled.h"
-// #include "../../trajectories/concentric_rects_controller_1e4.h"
-// #include "/Users/gerry/Downloads/104494979_svg_output_3mps2_controller_full.h"
-// #include "/Users/gerry/Downloads/104494979_svg_output_3mps2.h"
+// #include "../../trajectories/Gs_5cm_10_08_04_04_output_controller_1e4.h"
+// #include "../../trajectories/Gs_5cm_10_08_04_04_output.h"
+// #include "../../trajectories/concentric_diamonds_output_1mps_controller_1e4.h"
+// #include "../../trajectories/concentric_diamonds_output_1mps.h"
+#include "../../trajectories/2022-05-12_catherine/ATL_output.h"
+#include "../../trajectories/2022-05-12_catherine/ATL_output_controller.h"
+
+
 static_assert((sizeof(painton) / sizeof(painton[0]) - 1) ==
                   (sizeof(xffs) / sizeof(xffs[0])),
               "Trajectories are not the same length");
@@ -28,12 +27,6 @@ class ControllerIlqr : public ControllerSimple {
  public:
   ControllerIlqr(const StateEstimatorInterface* state_estimator, Spray& spray)
       : ControllerSimple(state_estimator), spray_(spray) {}
-
-  // Datalogging
-  std::pair<float, float> setpointVel() const override {
-    return (state_ == RUNNING_TRAJ) ? desVel(trajTime_s())
-                                    : std::make_pair(0.0f, 0.0f);
-  }
 
  protected:
   static constexpr float dt = 0.01;
@@ -77,14 +70,14 @@ std::pair<size_t, float> ControllerIlqr::index_Remainder(float t) const {
   }
   float remainder = t - index * dt;
   // Pause trajectory if point color changes
-  if (painton[index]) {
+  // if (painton[index]) {
     if (prev_color_ind != colorinds[index]) {
       stopTraj();  // TODO(gerry): don't violate const-ness
       prev_color_ind = colorinds[index];
       return {index, remainder};
     }
     prev_color_ind = colorinds[index];
-  }
+  // }
   return {index, remainder};
 }
 ControllerIlqr::Vector2 ControllerIlqr::desPos(float t) const {
@@ -116,6 +109,8 @@ float ControllerIlqr::calcTorque(float t, uint8_t winchnum) const {
   // Note: this doesn't work for some reason, just be careful!
   const float xerr[2] = {xhat.first - xdes[0], xhat.second - xdes[1]};
   if (norm(xerr) > 0.4) {
+    Serial.printf("SAFETY CHECK ACTIVATED!!!  t = %.3f\txdes = %.3f, %.3f\n", t,
+                  xdes[0], xdes[1]);
     hold(); // TODO(gerry): don't violate const-ness
     return 0;
   }
