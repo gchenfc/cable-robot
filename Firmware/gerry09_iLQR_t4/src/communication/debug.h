@@ -14,6 +14,7 @@
 #include "odrive_can.h"
 #include "../spray.h"
 #include "ascii_parser.h"
+#include "cdpr_serial_commands.h"
 
 bool default_callback(AsciiParser parser) { return false; }
 
@@ -74,7 +75,7 @@ class Debug {
   Metro print_timer_;
   bool print_raw_ = false;
 
-  void readSerial();
+  void readSerial(uint64_t timeout_us = 750);
   bool parseMsgDebug(AsciiParser parser);
 };
 
@@ -90,7 +91,7 @@ bool parseMountPoints(const Robot& robot, uint8_t winchi, AsciiParser& parser,
 
 bool parseMsgCalibration(Robot& robot, Odrive& odrive, AsciiParser parser,
                          Stream& serial) {
-  UNWRAP_PARSE_CHECK(, parser.checkChar('c'));
+  UNWRAP_PARSE_CHECK(, parser.checkChar(SerialPrefixes::CALIBRATION));
   UNWRAP_PARSE_CHECK(uint32_t cmd, parser.parseInt(&cmd));
 
   switch (cmd) {
@@ -260,7 +261,7 @@ bool parseMountPoints(const Robot& robot, uint8_t winchi, AsciiParser& parser,
 
 bool parseMsgController(ControllerInterface* controller, Odrive& odrive,
                         AsciiParser parser, Stream& serial) {
-  UNWRAP_PARSE_CHECK(, parser.checkChar('g'));
+  UNWRAP_PARSE_CHECK(, parser.checkChar(SerialPrefixes::CONTROLLER));
   UNWRAP_PARSE_CHECK(uint32_t cmd, parser.parseInt(&cmd));
   switch (cmd) {
     case 0:
@@ -309,17 +310,19 @@ bool parseMsgController(ControllerInterface* controller, Odrive& odrive,
 }
 
 bool parseMsgSpray(Spray& spray, AsciiParser parser, Stream& serial) {
-  UNWRAP_PARSE_CHECK(, parser.checkChar('s'));
+  UNWRAP_PARSE_CHECK(, parser.checkChar(SerialPrefixes::SPRAY));
   // First check for 0 and 1, for backwards compatibility.
-  if (parser.advanceOnMatchChar('0')) {
+  AsciiParser parser0 = parser, parser1 = parser;
+  if (parser0.checkChar('0') && parser0.checkChar('\n')) {
     serial.println("Spray off");
     spray.setSpray(false);
     return true;
-  } else if (parser.advanceOnMatchChar('1')) {
+  } else if (parser1.checkChar('1') && parser1.checkChar('\n')) {
     serial.println("Spray on");
     spray.setSpray(true);
     return true;
-  } else { // Forward rest of args to spray paint MCU
+  } else {
+    // Forward rest of args to spray paint MCU
     spray.forward_msg(parser.get_buffer_cur(), parser.len());
     return true;
   }
@@ -382,6 +385,16 @@ bool parseMsgCanPassthrough(Odrive& odrive, AsciiParser parser,
       UNWRAP_PARSE_CHECK(, parser.parse(&f1));
       odrive.send(node, cmd, f1);
       break;
+    case MSG_SET_POS_GAIN:
+      // TODO(gerry): reflash ODrive firmware to read this!!!
+      UNWRAP_PARSE_CHECK(, parser.parse(&f1));
+      odrive.send(node, cmd, f1);
+      break;
+    case MSG_SET_VEL_GAINS:
+      // TODO(gerry): reflash ODrive firmware to read this!!!
+      UNWRAP_PARSE_CHECK(, parser.parse(&f1, &f2));
+      odrive.send(node, cmd, f1, f2);
+      break;
     default:
       serial.println("Command not recognized!");
       serial.print(node);
@@ -395,10 +408,11 @@ bool parseMsgCanPassthrough(Odrive& odrive, AsciiParser parser,
 }
 }  // namespace human_serial
 
-void Debug::readSerial() {
+void Debug::readSerial(uint64_t timeout_us) {
   static char buffer[1000];
   static int bufferi = 0;
-  while (serial_.available()) {
+  uint64_t t_start_ = micros();
+  while (serial_.available() && (micros() - t_start_ < timeout_us)) {
     char c = serial_.read();
     if (c == ';') c = '\n';
     buffer[bufferi] = c;
@@ -422,7 +436,7 @@ void Debug::readSerial() {
 }
 
 bool Debug::parseMsgDebug(AsciiParser parser) {
-  UNWRAP_PARSE_CHECK(, parser.checkChar('d'));
+  UNWRAP_PARSE_CHECK(, parser.checkChar(SerialPrefixes::DEBUG));
   UNWRAP_PARSE_CHECK(uint32_t cmd, parser.parseInt(&cmd));
 
   switch (cmd) {

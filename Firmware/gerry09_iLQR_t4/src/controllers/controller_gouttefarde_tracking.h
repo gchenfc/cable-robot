@@ -12,6 +12,10 @@
 static constexpr float kKp = 15000, kKi = 15, kKd = 30,  // gains
     kTMin_N = 8, kTMid_N = 54, kTMax_N = 100;            // tensions
 #endif
+#if defined(AIR)
+static constexpr float kKp = 10000, kKi = 10, kKd = 100,  // gains
+    kTMin_N = 8, kTMid_N = 54, kTMax_N = 100;            // tensions
+#endif
 #ifdef HYDROPONICS
 static constexpr float kKp = 30000, kKi = 50, kKd = 50,  // gains
     kTMin_N = 5, kTMid_N = 50, kTMax_N = 140;            // tensions
@@ -21,6 +25,7 @@ static constexpr float kKp = 30000, kKi = 50, kKd = 50,  // gains
  * Tracking controller using Gouttefarde's dual-space FF controller.
  * Uses Pott's tension distribution algorithm.
  */
+template <typename ControllerTracking = ControllerTracking>
 class ControllerGouttefardeTracking : public ControllerTracking {
  public:
   ControllerGouttefardeTracking(const StateEstimatorInterface* state_estimator,
@@ -28,6 +33,11 @@ class ControllerGouttefardeTracking : public ControllerTracking {
       : ControllerTracking(state_estimator),
         robot_(robot),
         kinematics_(robot) {}
+
+  static void print_name(Stream& serialOut) {
+    serialOut.print("ControllerGouttefardeTracking : ");
+    ControllerTracking::print_name(serialOut);
+  }
 
   bool readSerial(AsciiParser parser, Stream& serialOut) override {
     if (ControllerTracking::readSerial(parser, serialOut)) return true;
@@ -130,7 +140,6 @@ class ControllerGouttefardeTracking : public ControllerTracking {
   const Robot& robot_;
   Kinematics kinematics_;
 
-  virtual Vector2 desVel(float t) const override;
   virtual float calcTorque(float t, uint8_t winchnum) const override;
 
  public:
@@ -183,22 +192,13 @@ class ControllerGouttefardeTracking : public ControllerTracking {
 };
 
 /************* KEY FUNCTIONS **************/
-ControllerGouttefardeTracking::Vector2 ControllerGouttefardeTracking::desVel(
-    float t) const {
-  // float x2, y2;
-  // towards(1e-3 * SPEED,                       //
-  //         cur_.first, cur_.second,            // current
-  //         setpoint_.first, setpoint_.second,  // target
-  //         &x2, &y2);                          // new
-  // return {(x2 - cur_.first) / 1e-3, (y2 - cur_.second) / 1e-3};
-  return {0., 0.};
-}
-float ControllerGouttefardeTracking::calcTorque(float t,
-                                                uint8_t winchnum) const {
+template <typename T>
+float ControllerGouttefardeTracking<T>::calcTorque(float t,
+                                                   uint8_t winchnum) const {
   if (winchnum >= 4) return 0.0f;
   // Setpoint
-  const auto& xdes_ = desPos(t);
-  const auto& vdes_ = desVel(t);
+  const auto& xdes_ = this->desPos(t);
+  const auto& vdes_ = this->desVel(t);
   const float xdes[2] = {xdes_.first, xdes_.second};
   const float vdes[2] = {vdes_.first, vdes_.second};
 

@@ -1,6 +1,7 @@
 set(linkLibraries Metro)
 set(includeDirectories ${CMAKE_SOURCE_DIR}/unit_test_simulator ${CMAKE_SOURCE_DIR}/unit_test_simulator/Metro)
 add_subdirectory(communication)
+add_subdirectory(controllers)
 
 FILE(GLOB script_srcs RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*_test.cpp")
 FOREACH(script_src IN ITEMS ${script_srcs})

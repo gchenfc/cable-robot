@@ -32,10 +32,21 @@
 // #include "src/state_estimators/state_estimator_kf.h"
 // #include "src/controllers/controller_simple.h"
 // #include "src/controllers/controller_tracking.h"
-// #include "src/controllers/controller_ilqr.h"
+#define OLDx
+#ifdef OLD
+#include "src/controllers/controller_ilqr.h"
 // #include "src/controllers/controller_lqg.h"
 // #include "src/controllers/controller_gouttefarde.h"
-// #include "src/controllers/controller_gouttefarde_tracking.h"
+#include "src/controllers/controller_tracking.h"
+#include "src/controllers/controller_tracking_spline.h"
+#include "src/controllers/controller_gouttefarde_tracking.h"
+#else
+#include "src/controllers/setpoint_pure_pursuit.h"
+#include "src/controllers/setpoint_waypoints.h"
+#include "src/controllers/setpoint_spline.h"
+#include "src/controllers/tracker_gouttefarde.h"
+#include "src/controllers/controller_tracker_setpoint.h"
+#endif
 #include "src/controllers/controller_switchable.h"
 #include "src/communication/odrive_can.h"
 #include "src/spray.h"
@@ -49,10 +60,39 @@ StateEstimatorFirstOrder state_estimator(robot);
 // StateEstimatorKf state_estimator(robot);
 // ControllerSimple controller(&state_estimator);
 // ControllerTracking controller(&state_estimator);
-// ControllerIlqr controller(&state_estimator, spray);
+#ifdef OLD
+ControllerIlqr controller3(&state_estimator, spray);
 // ControllerLqg controller(&state_estimator);
-// ControllerGouttefardeTracking controller(&state_estimator, robot);
-ControllerSwitchable controller(&state_estimator, robot, spray);
+ControllerGouttefardeTracking<ControllerTracking> controller1(&state_estimator,
+                                                              robot);
+ControllerGouttefardeTracking<ControllerTrackingSpline> controller2(
+    &state_estimator, robot);
+ControllerSwitchable<ControllerGouttefardeTracking<ControllerTracking>,
+                     ControllerGouttefardeTracking<ControllerTrackingSpline>,
+                     ControllerIlqr>
+    controller(controller1, controller2, controller3);
+
+#else
+SetpointPurePursuit setpoint1(&state_estimator);
+SetpointWaypoints setpoint2(&state_estimator);
+SetpointSpline setpoint3(&state_estimator);
+TrackerGouttefarde tracker1(robot, &setpoint1, &state_estimator);
+TrackerGouttefarde tracker2(robot, &setpoint2, &state_estimator);
+TrackerGouttefarde tracker3(robot, &setpoint3, &state_estimator);
+ControllerTrackerSetpoint<SetpointPurePursuit, TrackerGouttefarde> controller1(
+    setpoint1, tracker1);
+ControllerTrackerSetpoint<SetpointWaypoints, TrackerGouttefarde> controller2(
+    setpoint2, tracker2);
+ControllerTrackerSetpoint<SetpointSpline, TrackerGouttefarde> controller3(
+    setpoint3, tracker3);
+
+ControllerSwitchable<
+    ControllerTrackerSetpoint<SetpointPurePursuit, TrackerGouttefarde>,
+    ControllerTrackerSetpoint<SetpointWaypoints, TrackerGouttefarde>,
+    ControllerTrackerSetpoint<SetpointSpline, TrackerGouttefarde>>
+    controller(controller1, controller2, controller3);
+#endif
+
 Odrive odrive(robot, controller);
 Estop<ESTOP> estop(odrive, &controller, spray);
 Debug debug(SerialD, robot, &controller, &state_estimator, odrive, spray);

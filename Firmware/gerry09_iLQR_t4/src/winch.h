@@ -85,6 +85,24 @@ class Winch {
         lenDotCorrectionInv(len, lenDot, lenCorrectionParams_));
   }
 
+  // Tension to torque and vice-versa
+  //   tau * thetadot = tension * ldot
+  //   ldot / thetadot = tau / tension
+  //   dl / dtheta = tau / tension
+  //   tau = tension * (dl / dtheta)
+  float torque_Nm(float tension_N) const {
+    float lraw_H_theta = radius_;
+    float l_H_lraw = lenDotCorrection(lenRaw(), 1, lenCorrectionParams_);
+    float l_H_theta = l_H_lraw * lraw_H_theta;
+    return tension_N * l_H_theta;
+  }
+  float tension_N(float torque_Nm) const {
+    float lraw_H_theta = radius_;
+    float l_H_lraw = lenDotCorrection(lenRaw(), 1, lenCorrectionParams_);
+    float l_H_theta = l_H_lraw * lraw_H_theta;
+    return torque_Nm / l_H_theta;
+  }
+
   // Check if valid
   bool isThetaValid() const { return theta_.isValid(); }
   bool isThetaDotValid() const { return thetaDot_.isValid(); }

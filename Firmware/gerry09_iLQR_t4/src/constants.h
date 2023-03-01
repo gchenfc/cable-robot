@@ -9,6 +9,7 @@
 // Select which robot:
 #define KLAUS
 #define DFLx
+#define AIRx
 #define HYDROPONICSx
 
 #ifndef DEBUG_CONSTANTS
@@ -19,6 +20,18 @@ static constexpr float kR = 0.0254 / 2;
 // static constexpr float kSprayDelay_s = 0.40;
 static constexpr float kSprayDelay_s = 3.0;
 
+/******** Safety parameters **********/
+#if defined(KLAUS) || defined(DFL) || defined(HYDROPONICS)
+static constexpr float kDefaultPaddingWidth = 0.1f;
+static constexpr float kDefaultPaddingHeight = 0.1f;
+static constexpr float kDefaultPaddingTol = 0.1f;
+#endif
+#ifdef AIR
+static constexpr float kDefaultPaddingWidth = 0.3f;
+static constexpr float kDefaultPaddingHeight = 0.3f;
+static constexpr float kDefaultPaddingTol = 0.1f;
+#endif
+
 /******** Frame Geometry **********/
 /* NOTE: THESE ACTUALLY GET OVERWRITTEN BY EEPROM */
 #ifdef KLAUS
@@ -28,6 +41,10 @@ static constexpr float kCarriageWidth = 0.187, kCarriageHeight = 0.122;
 #ifdef DFL
 static constexpr float kFrameWidth = 3.05, kFrameHeight = 2.44;
 static constexpr float kCarriageWidth = 0.187, kCarriageHeight = 0.122;
+#endif
+#ifdef AIR
+static constexpr float kFrameWidth = 6.17, kFrameHeight = 2.64;
+static constexpr float kCarriageWidth = 0.228, kCarriageHeight = 0.228;
 #endif
 #ifdef HYDROPONICS
 static constexpr float kFrameWidth = 2.20, kFrameHeight = 2.00;
@@ -43,7 +60,7 @@ static constexpr float kTau = 2 * 3.1415926535897932384626433832795;
 
 #endif
 
-#define CALIBRATION 
+#define CALIBRATIONx
 #ifdef CALIBRATION
 static constexpr bool kUseLenCorrectionParamsFromEeprom = false;
 static constexpr bool kUseMountPointsFromEeprom = false;
