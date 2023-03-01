@@ -7,9 +7,9 @@
 #define btSerial Serial5
 
 // Select which robot:
-#define KLAUSx
+#define KLAUS
 #define DFLx
-#define AIR
+#define AIRx
 #define HYDROPONICSx
 
 #ifndef DEBUG_CONSTANTS
@@ -19,6 +19,18 @@ float kZeros[4] = {4.868, 4.672, 6.490, 7.980};  // these will get reset anyway
 static constexpr float kR = 0.0254 / 2;
 // static constexpr float kSprayDelay_s = 0.40;
 static constexpr float kSprayDelay_s = 3.0;
+
+/******** Safety parameters **********/
+#if defined(KLAUS) || defined(DFL) || defined(HYDROPONICS)
+static constexpr float kDefaultPaddingWidth = 0.1f;
+static constexpr float kDefaultPaddingHeight = 0.1f;
+static constexpr float kDefaultPaddingTol = 0.1f;
+#endif
+#ifdef AIR
+static constexpr float kDefaultPaddingWidth = 0.3f;
+static constexpr float kDefaultPaddingHeight = 0.3f;
+static constexpr float kDefaultPaddingTol = 0.1f;
+#endif
 
 /******** Frame Geometry **********/
 /* NOTE: THESE ACTUALLY GET OVERWRITTEN BY EEPROM */

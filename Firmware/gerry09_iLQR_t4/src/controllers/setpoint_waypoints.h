@@ -41,7 +41,7 @@ class SetpointWaypoints : public SetpointBasic {
 
 bool SetpointWaypoints::pushWaypoint(const X& waypoint) {
   if (spline_.get_n_segments() == 0) {
-    auto xcur = spline_.eval(spline_.duration());
+    // auto xcur = spline_.eval(spline_.duration());
     spline_.add_segment(0, {{{{0, std::get<0>(waypoint)}},
                              {{0, std::get<1>(waypoint)}},
                              {{0, std::get<2>(waypoint)}}}});
@@ -98,7 +98,7 @@ bool SetpointWaypoints::readSerial(AsciiParser parser, Stream& serialOut) {
     case SetpointCommands::WAYPOINTS_PRINT_NUM_WAYPOINTS:
       serialOut.printf("Waypoint: %d waypoints\n", spline_.get_n_segments());
       break;
-    case SetpointCommands::WAYPOINTS_PRINT_WAYPOINT:
+    case SetpointCommands::WAYPOINTS_PRINT_WAYPOINT: {
       UNWRAP_PARSE_CHECK(int i, parser.parseInt('\n', &i));
       if (i < 0 || i >= spline_.get_n_segments()) {
         serialOut.printf("Waypoint: invalid index %d\n", i);
@@ -109,7 +109,8 @@ bool SetpointWaypoints::readSerial(AsciiParser parser, Stream& serialOut) {
                        coeffs.at(0).at(0), coeffs.at(0).at(1),
                        coeffs.at(1).at(0), coeffs.at(1).at(1),
                        coeffs.at(2).at(0), coeffs.at(2).at(1));
-
+      break;
+    }
     default:
       return false;
   }
