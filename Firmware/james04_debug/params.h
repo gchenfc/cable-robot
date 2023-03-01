@@ -1,0 +1,11 @@
+#ifndef PARAMS_H
+#define PARAMS_H
+
+#define NUM_DRIVES 4
+#define CNTS_PER_REV (-8192)
+#define CNTS_PER_RAD (CNTS_PER_REV/2/3.1415926535)
+#define CPR COUNTS_PER_REVOLUTION
+
+#define CURRENT_LIM 10
+
+#endif

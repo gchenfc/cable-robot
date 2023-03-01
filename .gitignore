@@ -1,0 +1,9 @@
+.DS_Store
+Firmware/gerry09_iLQR_t4/build
+**/__pycache__
+src/apriltag/tags
+src/apriltag/tagStandard41h12
+
+# Manaully track / unignore trajectories or data that you care about
+Firmware/gerry09_iLQR_t4/trajectories
+Firmware/gerry09_iLQR_t4/data

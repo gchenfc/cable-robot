@@ -1,0 +1,56 @@
+MSG_CO_NMT_CTRL              = 0 
+MSG_ODRIVE_HEARTBEAT         = 1
+MSG_ODRIVE_ESTOP             = 2
+MSG_GET_MOTOR_ERROR          = 3 
+MSG_GET_ENCODER_ERROR        = 4
+MSG_GET_SENSORLESS_ERROR     = 5
+MSG_SET_AXIS_NODE_ID         = 6
+MSG_SET_AXIS_REQUESTED_STATE = 7
+MSG_SET_AXIS_STARTUP_CONFIG  = 8
+MSG_GET_ENCODER_ESTIMATES    = 9
+MSG_GET_ENCODER_COUNT        = 10
+MSG_SET_CONTROLLER_MODES     = 11
+MSG_SET_INPUT_POS            = 12
+MSG_SET_INPUT_VEL            = 13
+MSG_SET_INPUT_TORQUE         = 14
+MSG_SET_VEL_LIMIT            = 15
+MSG_START_ANTICOGGING        = 16
+MSG_SET_TRAJ_VEL_LIMIT       = 17
+MSG_SET_TRAJ_ACCEL_LIMITS    = 18
+MSG_SET_TRAJ_INERTIA         = 19
+MSG_GET_IQ                   = 20
+MSG_GET_SENSORLESS_ESTIMATES = 21
+MSG_RESET_ODRIVE             = 22
+MSG_GET_VBUS_VOLTAGE         = 23
+MSG_CLEAR_ERRORS             = 24
+MSG_CO_HEARTBEAT_CMD         = 1792
+
+CMDSTR = [
+    "MSG_CO_NMT_CTRL",              # 0
+    "MSG_ODRIVE_HEARTBEAT",         # 1
+    "MSG_ODRIVE_ESTOP",             # 2
+    "MSG_GET_MOTOR_ERROR",          # 3
+    "MSG_GET_ENCODER_ERROR",        # 4
+    "MSG_GET_SENSORLESS_ERROR",     # 5
+    "MSG_SET_AXIS_NODE_ID",         # 6
+    "MSG_SET_AXIS_REQUESTED_STATE", # 7
+    "MSG_SET_AXIS_STARTUP_CONFIG",  # 8
+    "MSG_GET_ENCODER_ESTIMATES",    # 9
+    "MSG_GET_ENCODER_COUNT",        # 10
+    "MSG_SET_CONTROLLER_MODES",     # 11
+    "MSG_SET_INPUT_POS",            # 12
+    "MSG_SET_INPUT_VEL",            # 13
+    "MSG_SET_INPUT_TORQUE",         # 14
+    "MSG_SET_VEL_LIMIT",            # 15
+    "MSG_START_ANTICOGGING",        # 16
+    "MSG_SET_TRAJ_VEL_LIMIT",       # 17
+    "MSG_SET_TRAJ_ACCEL_LIMITS",    # 18
+    "MSG_SET_TRAJ_INERTIA",         # 19
+    "MSG_GET_IQ",                   # 20
+    "MSG_GET_SENSORLESS_ESTIMATES", # 21
+    "MSG_RESET_ODRIVE",             # 22
+    "MSG_GET_VBUS_VOLTAGE",         # 23
+    "MSG_CLEAR_ERRORS",             # 24
+    "MSG_CO_HEARTBEAT_CMD",         # ??
+]
+

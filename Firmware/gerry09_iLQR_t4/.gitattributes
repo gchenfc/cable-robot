@@ -1,0 +1,7 @@
+trajectories filter=lfs diff=lfs merge=lfs -text
+trajectories/ATL_controller_1e2_1mps.h filter=lfs diff=lfs merge=lfs -text
+trajectories/ATL_controller_1e2_static.h filter=lfs diff=lfs merge=lfs -text
+trajectories/ATL_controller_1e4.h filter=lfs diff=lfs merge=lfs -text
+trajectories/ATL_controller_1e6.h filter=lfs diff=lfs merge=lfs -text
+trajectories/ATL_filled_controller_1e2.h filter=lfs diff=lfs merge=lfs -text
+trajectories/ATL_controller_1e2.h filter=lfs diff=lfs merge=lfs -text
