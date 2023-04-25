@@ -22,6 +22,7 @@ const ControlMode = { POSITION: "position", VELOCITY: "velocity" };
 // const SwitchableControllerMode = { TRACKING: "tracking", SPLINE: "spline", ILQR: "ilqr" };
 const SwitchableControllerMode = {
   TRACKING: "tracking",
+  WAYPOINTS: "waypoints",
   SPLINE: "spline",
   ILQR: "ilqr",
 };
@@ -359,8 +360,9 @@ Cdpr.prototype.resetTraj = function () { this.send('x4'); };
 Cdpr.prototype.setSwitchableControllerMode = function (mode) {
   const LOOKUP_TABLE = {
     [SwitchableControllerMode.TRACKING]: 0,
-    [SwitchableControllerMode.SPLINE]: 1,
-    [SwitchableControllerMode.ILQR]: 2,
+    [SwitchableControllerMode.WAYPOINTS]: 1,
+    [SwitchableControllerMode.SPLINE]: 2,
+    [SwitchableControllerMode.ILQR]: 3,
   };
   this.setMode(Mode.HOLD);
   this.send(`gs${LOOKUP_TABLE[mode]}`);
