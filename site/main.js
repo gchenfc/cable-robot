@@ -24,8 +24,10 @@ function init() {
   gamepad.onpress["DPAD_RIGHT"] = function (state) { cdpr.control_mode = ControlMode.POSITION; };
   gamepad.onpress["DPAD_UP"] = function (state) { cdpr.setSwitchableControllerMode(SwitchableControllerMode.WAYPOINTS); };
   gamepad.onpress["DPAD_DOWN"] = function (state) { cdpr.setSwitchableControllerMode(SwitchableControllerMode.TRACKING); };
+  // gamepad.onchange["RT"] = function (state) { cdpr.spray(state); };
+  // gamepad.onchange["LT"] = function (state) { cdpr.spray(state); };
   gamepad.onchange["RT"] = function (state) { cdpr.spray(state); };
-  gamepad.onchange["LT"] = function (state) { cdpr.spray(state); };
+  gamepad.onchange["LT"] = function (state) { if (state) Arm.do_dip(); };
   gamepad.onpress["RSTICK"] = function (state) { cdpr.estop(); };
   gamepad.onpress["RB"] = function (state) { cdpr.next_color(); };
   gamepad.onpress["LB"] = function (state) { cdpr.prev_color(); };

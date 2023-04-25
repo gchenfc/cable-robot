@@ -217,27 +217,29 @@ Cdpr.prototype.update = function (dt) {
     }
     if (this.status == Status.TRAVELING) {
       if (this.setpointStatus.state == 0) {  // finished traveling
-        this.spray(true); // extend the brush
         this.status = Status.WAITING_FOR_BRUSH;
-        setTimeout(() => {
-          this.send("x2"); // start drawing
-          this.send("x?"); // poll status
-          setTimeout(() => {
-            this.status = Status.DRAWING;
-          }, 100); // give enough time for poll to respond
-        }, BRUSH_WAIT_DELAY_MS);
+        // extend the brush
+        Arm.do_dip_blocking().then(() => {
+          this.spray(true).then(() => {
+            this.send("x2"); // start drawing
+            this.send("x?"); // poll status
+            setTimeout(() => {
+              this.status = Status.DRAWING;
+            }, 100); // give enough time for poll to respond
+          });
+        });
         return;
       }
     }
     if (this.status == Status.DRAWING) {
       if (this.setpointStatus.state == 0) {  // finished drawing
         this.send("xc", false); // clear waypoints
-        this.spray(false);
         this.status = Status.WAITING_FOR_BRUSH;
-        setTimeout(() => {
+        // retract the brush
+        this.spray(false).then(() => {
           this.status = Status.IDLE;
           this.send("x?"); // poll status
-        }, BRUSH_WAIT_DELAY_MS);
+        });
         return;
       }
     }
@@ -373,11 +375,21 @@ Cdpr.prototype.setSwitchableControllerMode = function (mode) {
   }
   this.switchable_controller_mode = mode;
 };
-Cdpr.prototype.spray = function (on, force = false) {
-  if (!force && this.isSpray != on) {
-    this.send(`s${on ? 1 : 0}`);
-    this.send(`sM1,${on ? 8000 : 0}`);
+Cdpr.prototype.spray = async function (on, force = false) {
+  // if (!force && this.isSpray != on) {
+  //   this.send(`s${on ? 1 : 0}`);
+  //   this.send(`sM1,${on ? 8000 : 0}`);
+  //   this.isSpray = on;
+  // }
+  // await new Promise(r => setTimeout(r, BRUSH_WAIT_DELAY_MS));
+
+  if (this.isSpray != on) {
     this.isSpray = on;
+    if (on) {
+      await Arm.do_start_paint_blocking();
+    } else {
+      await Arm.do_prep_paint_blocking();
+    }
   }
 };
 var color_timer = null;
