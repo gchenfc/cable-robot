@@ -124,7 +124,7 @@ bool TrackerInterface::setState(const State& state) {
   }
 
   // Now set the initial motor torques
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 4; i++) {
     switch (state) {
       case IDLE:
         odrive.send(i, MSG_SET_INPUT_TORQUE, 0.0f);
