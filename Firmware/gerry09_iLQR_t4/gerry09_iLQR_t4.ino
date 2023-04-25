@@ -50,6 +50,7 @@
 #include "src/controllers/controller_switchable.h"
 #include "src/communication/odrive_can.h"
 #include "src/spray.h"
+#include "src/arm.h"
 #include "src/estop.h"
 #include "src/communication/debug.h"
 #include "src/communication/slave.h"
@@ -98,6 +99,7 @@ Estop<ESTOP> estop(odrive, &controller, spray);
 Debug debug(SerialD, robot, &controller, &state_estimator, odrive, spray);
 Debug computer(SerialComputer, robot, &controller, &state_estimator, odrive,
                spray, 100);
+Arm<usb_serial3_class> arm(SerialComputerArm, ArmSerial);
 Slave slave(Serial);
 
 // -------------------------------------------------------------
@@ -107,6 +109,7 @@ void setup(void) {
   controller.setup();
   odrive.setup();
   spray.setup();
+  arm.setup();
   estop.setup();
   debug.setup();
   computer.setup();
@@ -121,6 +124,7 @@ void loop(void) {
   controller.update();
   odrive.update();
   spray.update();
+  arm.update();
   slave.update();
   debug.update();
   computer.update();
