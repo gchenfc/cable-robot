@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <Metro.h>
+
 #include "communication/odrive_can.h"
 #include "controllers/controller_interface.h"
 #include "spray.h"
@@ -27,12 +29,14 @@ class Estop {
     bool on = digitalRead(PIN);
     if (on) {
       if ((micros() - t_last_off_us_) >= kEstopDebounceTime_us) {
-        odrive_.send(0, MSG_ODRIVE_ESTOP);
-        odrive_.send(3, MSG_ODRIVE_ESTOP);
-        odrive_.send(1, MSG_ODRIVE_ESTOP);
-        odrive_.send(2, MSG_ODRIVE_ESTOP);
-        controller_->release();
-        spray_.setSpray(false);
+        if (resend_timer_.check()) {
+          odrive_.send(0, MSG_ODRIVE_ESTOP);
+          odrive_.send(3, MSG_ODRIVE_ESTOP);
+          odrive_.send(1, MSG_ODRIVE_ESTOP);
+          odrive_.send(2, MSG_ODRIVE_ESTOP);
+          controller_->release();
+          spray_.setSpray(false);
+        }
       }
     } else {
       t_last_off_us_ = micros();
@@ -44,4 +48,5 @@ class Estop {
   ControllerInterface* controller_;
   Spray& spray_;
   uint64_t t_last_off_us_ = 0;
+  Metro resend_timer_{2};
 };
