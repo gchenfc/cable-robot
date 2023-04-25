@@ -8,6 +8,14 @@ const BUTTONS = {
   HOME: 16,
 };
 
+const BUTTONS_LOGITECH = {
+  A: 0, B: 1, X: 2, Y: 3,
+  LB: 4, RB: 5, LT: 6, RT: 7,
+  BACK: 8, START: 9,
+  LSTICK: 10, RSTICK: 11,
+  DPAD_UP: 12, DPAD_DOWN: 13, DPAD_LEFT: 14, DPAD_RIGHT: 15,
+};
+
 const BUTTONS_0079_0006 = {
   A: 2, B: 1, X: 3, Y: 0,
   LB: 4, RB: 5, LT: 6, RT: 7,
@@ -29,7 +37,14 @@ function MyGamepad() {
 
 MyGamepad.prototype.update = function (gamepad) {
   this.gamepad = gamepad;
-  var buttons = gamepad.id.includes('Vendor: 0079 Product: 0006') ? BUTTONS_0079_0006 : BUTTONS;
+  var buttons;
+  if (gamepad.id.includes("Vendor: 0079 Product: 0006")) {
+    buttons = BUTTONS_0079_0006;
+  } else if (gamepad.id.includes("Vendor: 046d Product: c219")) {
+    buttons = BUTTONS_LOGITECH;
+  } else {
+    buttons = BUTTONS;
+  }
   prevButtons = Object.fromEntries(Object.keys(buttons).map((name) => [name, this[name]]));
 
   for (const [BUTTON, index] of Object.entries(buttons)) {
