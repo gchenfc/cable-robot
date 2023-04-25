@@ -84,14 +84,14 @@ bool SetpointSpline::readSerial(AsciiParser parser, Stream& serialOut) {
         serialOut.printf("Spline Point: %.1f, %.4f, %.4f, %.4f, %.4f\n", t,
                          X[0], X[1], Xd[0], Xd[1]);
       }
-    case '>': {  // debug - print interpolated X, Xdot at input time t
+    case SetpointCommands::SPLINE_QUERY_AT_TIME: {  // debug - print interpolated X, Xdot at input time t
       UNWRAP_PARSE_CHECK(float t, parser.parseFloat('\n', &t));
       auto X = spline_.eval(t);
       auto Xd = spline_.evald(t);
       serialOut.printf("Spline Point: %.1f, %.4f, %.4f, %.4f, %.4f\n", t, X[0],
                        X[1], Xd[0], Xd[1]);
     }
-    case '<': {  // debug - print the spline coefficients for segment `i`
+    case SetpointCommands::SPLINE_QUERY_COEFFS: {  // debug - print the spline coefficients for segment `i`
       UNWRAP_PARSE_CHECK(int i, parser.parseInt('\n', &i));
       auto C = spline_.get_coeffs(i);
       serialOut.printf(
