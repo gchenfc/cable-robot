@@ -116,7 +116,7 @@ Cdpr.prototype.draw = function (ctx) {
   }
   // Draw setpoint queue
   ctx.beginPath();
-  ctx.lineWidth = 0.25;
+  ctx.lineWidth = 0.05;
   ctx.strokeStyle = "#afa";
   ctx.lineCap = "round";
   // first draw the stroke being drawn
@@ -262,6 +262,7 @@ Cdpr.prototype.update = function (dt) {
       this.send("x0;x1"); // restart and start traveling
       this.send("x?"); // poll status
       this.status = Status.WAITING_FOR_BRUSH; // we're not actually waiting on brush but this is convenient
+      // TODO: start dipping here?
       setTimeout(() => {this.status = Status.TRAVELING;}, 100); // give enough time for poll to respond
     }
 
@@ -370,11 +371,14 @@ Cdpr.prototype.setSwitchableControllerMode = function (mode) {
     [SwitchableControllerMode.SPLINE]: 2,
     [SwitchableControllerMode.ILQR]: 3,
   };
-  this.setMode(Mode.HOLD);
+  // this.setMode(Mode.HOLD);
   this.send(`gs${LOOKUP_TABLE[mode]}`);
+  // TODO: consider actually setting mode to TRACKING here if we were previously in tracking mode
+  // Actually, this is a byproduct of the sub-optimal way that Teensy code has separate trackers
+  // for each setpoint controller mode.
   if (mode == SwitchableControllerMode.TRACKING) {
     this.control_mode = ControlMode.VELOCITY;
-  } else if (mode == SwitchableControllerMode.SPLINE) {
+  } else if (mode == SwitchableControllerMode.WAYPOINTS) {
     this.control_mode = ControlMode.POSITION;
   }
   this.switchable_controller_mode = mode;

@@ -29,7 +29,8 @@ function try_connect() {
       console.log(event);
       connected = true;
       // cdpr.control_mode = ControlMode.POSITION;
-      cdpr.setSwitchableControllerMode(SwitchableControllerMode.SPLINE);
+      cdpr.setSwitchableControllerMode(SwitchableControllerMode.WAYPOINTS);
+      // cdpr.setSwitchableControllerMode(SwitchableControllerMode.SPLINE);
       websocket.send('F' + [cdpr.frame.w - cdpr.ee.w, cdpr.frame.h - cdpr.ee.h]);
     }
     
