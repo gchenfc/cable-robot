@@ -7,10 +7,19 @@ var readStreamDisplay, readStreamLogfile;
 
 async function attemptAutoconnect() {
   if (!document.getElementById("autoConnect").checked) return;
+  // Somehow, the order that Teensy serial ports are reported by Chrome gets randomized each time
+  // the Teensy is plugged in, so use AUTOCONNECT_INDEX to set which one you want.
+  const AUTOCONNECT_INDEX = 1;
+  let i = 0;
   return await navigator.serial.getPorts().then((ports) => {
     for (const port_ of ports) {
       info = port_.getInfo();
-      if (info.usbProductId === 1163 && info.usbVendorId === 5824) {
+      console.log(info);
+      if ((info.usbProductId === 1163 || info.usbProductId === 1164) && info.usbVendorId === 5824) {
+        if (i < AUTOCONNECT_INDEX) {
+          i += 1;
+          continue;
+        }
         port = port_;
         connectSerialPort();
         return true;
