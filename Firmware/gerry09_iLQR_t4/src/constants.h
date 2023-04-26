@@ -1,10 +1,12 @@
 #pragma once
 
-#define ESTOP 11
+#define ESTOP 26
 #define ESTOP_HIGHx
 #define SerialD Serial
 #define SerialComputer SerialUSB1
+#define SerialComputerArm SerialUSB2
 #define btSerial Serial5
+#define ArmSerial Serial3
 
 // Select which robot:
 #define KLAUS
