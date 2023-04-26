@@ -220,12 +220,16 @@ Cdpr.prototype.update = function (dt) {
         this.status = Status.WAITING_FOR_BRUSH;
         // extend the brush
         Arm.do_dip_blocking().then(() => {
-          this.spray(true).then(() => {
-            this.send("x2"); // start drawing
-            this.send("x?"); // poll status
-            setTimeout(() => {
-              this.status = Status.DRAWING;
-            }, 100); // give enough time for poll to respond
+          console.log("FINISHED DIPPING");
+          this.spray(false, true).then(() => {
+            console.log("Prepped for drawing!");
+            this.spray(true).then(() => {
+              this.send("x2"); // start drawing
+              this.send("x?"); // poll status
+              setTimeout(() => {
+                this.status = Status.DRAWING;
+              }, 100); // give enough time for poll to respond
+            });
           });
         });
         return;
@@ -383,13 +387,14 @@ Cdpr.prototype.spray = async function (on, force = false) {
   // }
   // await new Promise(r => setTimeout(r, BRUSH_WAIT_DELAY_MS));
 
-  if (this.isSpray != on) {
+  if (this.isSpray != on || force) {
     this.isSpray = on;
     if (on) {
       await Arm.do_start_paint_blocking();
     } else {
       await Arm.do_prep_paint_blocking();
     }
+    console.log("DONE PAINTING");
   }
 };
 var color_timer = null;
