@@ -53,3 +53,58 @@
 * Main battery balance
 * Carriage battery/BEC temperature
 * Carriage battery voltage
+
+# AIR SOP
+
+Construct robot as usual
+
+## Commands to run
+
+For all of these, remember to do these for BOTH CONTROLLERS!!! (`gs0` / `gs1`)
+
+* Max tension: `kKM300` (300N)
+* Distance threshold to stop tracking: `kd0.5` (0.5m)
+* Limits: `xLl1.0;xLd0.75;xLr2.0;xLu1.3;` (left, down, right, up)
+* Speed: `xs0.2;xS0.2` this is pretty fast but reasonable
+
+CHECK TO MAKE SURE THE CABLES ARE ROUTED THROUGH THE PULLEYS CORRECTLY
+
+## Setting up all the servers
+### RPi
+
+This is used if the controller pcb (Teensy) is connected to the RPi via USB instead of to your local computer (via USB).  In that case, you will run a server which forwards the serial port over websockets using a custom protocol.
+
+* ssh into the RPi and run `cd ~/GIT_REPOS/cable-robot/site && python serial_server.py`
+* tunnel the port, e.g. by running (from your local computer): `ssh -L 8765:localhost:8765 pi@ipaddressofpi`
+
+Also, on your local computer, in `site/index.html`, make sure at the top you're using `serial_over_ws.js` instead of `serial.js`, i.e.  
+```html
+<!-- <script defer src="serial.js"></script> -->
+<script defer src="serial_over_ws.js"></script>
+```
+
+Note that, for calibration, you will also probably want to run the `gerry00_calibrate.ipynb` jupyter notebook on the RPi.  You can either run `jupyter notebook` in the ssh shell, or in VSCode remote ssh extension.
+
+### iPad
+In the `art_skills` repo, run `cd whiteboard && python server.py`.  This will start up a server that listens for the iPad to connect to it and forwards it to the cable robot control panel index.html.  Also, it will print out an ip address.  For example,
+```
+STARTING UP!!!
+Serving whiteboard at: 143.215.94.191:5900
+Serving robot at: localhost:5904
+Serving robot at: localhost:5906
+Serving fit server at ('::1', 5902, 0, 0), ('127.0.0.1', 5902)
+```
+In this case, we would copy `143.215.94.191`.  Then, edit the `art_skills/whiteboard/client/main.js` file and at the very top, paste the ip address into the `HOST` variable.
+
+On the control panel (after refresh), the debug console should show `Connected to ipad!!!` and the python should print `Robot connection opened!`.
+
+~~
+
+Next, launch a server to host the whiteboard/client/index.html somehow (e.g. in VSCode, install the Live Server extension and click "Go Live" in the bottom right corner).  Then, open up the whiteboard on the iPad by going to `143.215.94.191:5500/whiteboard/client` (or whatever the IP address is)  Notice the Live Share extension defaults to port number 5500 (the "Go Live" icon says the port number), but if you're using a different port/server, use the correct port number.  Also, make sure that you don't do `https://143...`.  I don't know why but this doesn't work - just type it into the address bar without the https.
+
+On the python server, you should see `Whiteboard connection opened!`.
+
+### Arm
+In the RAW-AIR repo, run `cd RAW-AIR/arm && python arm_server.py`.  This should be run on whatever computer is currently connected to the Teensy via USB.  Currently, this may or may not work on the RPi, so you might have to:
+* Edit the port to probably `/dev/ttyACM2`.  Currently, the Teensy creates 3 virtual serial ports, and the 3rd one is dedicated to the arm, while the other 2 are for the cable robot.
+* Edit the HOST variable to be the RPi's ip address.  I'm not sure, but I'm pretty sure that when you host as localhost, it doesn't allow other devices to connect to the websocket even if they type the correct Teensy's ip address.  Something about the way it's broadcasted.
