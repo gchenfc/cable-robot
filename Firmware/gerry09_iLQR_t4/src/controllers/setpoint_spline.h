@@ -49,6 +49,7 @@ bool SetpointSpline::readSerial(AsciiParser parser, Stream& serialOut) {
     case SetpointCommands::SPLINE_RESET:
       serialOut.println("Spline reset.");
       spline_.reset();
+      // TODO: set a safer default spline center position
       break;
     case SetpointCommands::SPLINE_ADD_SEGMENT:
       UNWRAP_PARSE_CHECK(float t, parser.parseFloat(',', &t));

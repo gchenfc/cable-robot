@@ -106,6 +106,7 @@ class SetpointBasic : public SetpointInterface {
   // necessary updates to make desPos(0) = end
   bool updateSetpoint(const X& end);
   static Vector<3> appendZeroTheta(const Vector<2>& x);
+  virtual X defaultPos() const { return (limits_min_ + limits_max_) / 2; }
 };
 
 bool SetpointBasic::readSerial(AsciiParser parser, Stream& serialOut) {
@@ -462,7 +463,7 @@ SetpointInterface::X SetpointBasic::setpointPos() {
     case State::INTERMEDIATE_TRAVEL:
       return appendZeroTheta(travel_spline_.eval(time_s()));
   }
-  return kDefaultPos<3>();
+  return defaultPos();
 }
 
 SetpointInterface::V SetpointBasic::setpointVel() {

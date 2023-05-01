@@ -20,7 +20,7 @@ class SetpointPurePursuit : public SetpointBasic {
   /******************************** Common API ********************************/
   virtual void setup() override {
     SetpointBasic::setup();
-    setpoint_ = kDefaultPos<3>();
+    setpoint_ = defaultPos();
   }
 
   virtual bool readSerial(AsciiParser parser, Stream& serialOut) override;

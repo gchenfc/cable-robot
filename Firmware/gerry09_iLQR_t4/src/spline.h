@@ -125,7 +125,7 @@ class PPoly {
   // Same as `reparameterize_dumb` except caches result
   std::pair<int, float> reparameterize(float t);
 
-  // Evaluate the `Deg`th derivative
+  // Evaluate the piecewise polynomial coeffs at the given time.
   template <int Deg>
   X eval(float t, PPolyCoeffs<MaxSegments, Dims, Deg> coeffs,
          bool is_pos = true) const;
