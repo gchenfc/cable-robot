@@ -26,11 +26,13 @@ function init() {
   gamepad.onpress["DPAD_DOWN"] = function (state) { cdpr.setSwitchableControllerMode(SwitchableControllerMode.TRACKING); };
   // gamepad.onchange["RT"] = function (state) { cdpr.spray(state); };
   // gamepad.onchange["LT"] = function (state) { cdpr.spray(state); };
-  gamepad.onchange["RT"] = function (state) { cdpr.spray(state); };
-  gamepad.onchange["LT"] = function (state) { if (state) Arm.do_dip_blocking(); };
+  // gamepad.onpress["RB"] = function (state) { cdpr.next_color(); };
+  // gamepad.onpress["LB"] = function (state) { cdpr.prev_color(); };
+  gamepad.onchange["RT"] = function (state) { if (state) cdpr.spray(true, true); }; // go paint
+  gamepad.onchange["RB"] = function (state) { if (state) cdpr.spray(false, true); }; // prep paint
+  gamepad.onchange["LT"] = function (state) { if (state) Arm.do_dip_blocking(); }; // dip paint
+  gamepad.onchange["LB"] = function (state) { if (state) Arm.do_move_home_blocking(); }; // home
   gamepad.onpress["RSTICK"] = function (state) { cdpr.estop(); };
-  gamepad.onpress["RB"] = function (state) { cdpr.next_color(); };
-  gamepad.onpress["LB"] = function (state) { cdpr.prev_color(); };
   // start updates
   cdpr_interval = setInterval(function () { cdpr.update(1 / 30); }, 1000 / 30);
   // cdpr_interval = setInterval(function () { cdpr.update(1 / 50); }, 1000 / 50);
