@@ -113,7 +113,9 @@ bool TrackerInterface::setState(const State& state) {
       break;
     case GRAVITY_COMP:
       if (state_ == POSITION_CONTROL) {
-        if (!setpoint_->pause()) return false;
+        // if (!setpoint_->pause()) return false;
+        // Always allow switching from position control to gravity comp
+        setpoint_->pause();
       }
       break;
     case POSITION_CONTROL:
