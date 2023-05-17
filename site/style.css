@@ -32,6 +32,18 @@ div.arm button {
   margin: 2px 1px;
 }
 
+div.status {
+  background-color: #ccc;
+  padding: 3px;
+  margin: 5px;
+}
+div.status > label, div.status > input {
+  display: block;
+  width: 100%;
+  border: none;
+  color: white;
+}
+
 .serialoutput {
   background-color: #000;
   color: #0f0;

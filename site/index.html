@@ -33,7 +33,7 @@
           <button onclick="Arm.disable_all_blocking();">Disable</button>
           <div style="background: lightgray;">
             <button id="get_joint_angles_button">Get Angles</button>
-            <input type="text" id="joint_angles" size="21" readonly style="width: max-content; font-family: monospace;"></label>
+            <input type="text" id="joint_angles" size="21" readonly style="width: max-content; font-family: monospace;"></input>
           </div>
           <script>
             document.getElementById("get_joint_angles_button").onclick = async function () {
@@ -56,6 +56,24 @@
       <p class="serialoutput" id="setpointOut" style="height:calc(75px - 20px);"></p>
       <p class="serialoutput" id="trackerOut" style="height:calc(75px - 20px);"></p>
       <p class="serialoutput" id="waypointOut" style="height:calc(75px - 20px);"></p>
+      <div style="width: 100%">
+        <div class="status" id="setpoint_status_div" style="float:left;">
+          <label for="setpoint_status">Setpoint Status</label>
+          <input type="text" id="setpoint_status" size="8" readonly></input>
+        </div>
+        <div class="status" id="tracker_status_div" style="float:left;">
+          <label for="tracker_status">Tracker Status</label>
+          <input type="text" id="tracker_status" size="8" readonly></input>
+        </div>
+        <div class="status" id="brush_status_div" style="float:left;">
+          <label for="brush_status">Brush Status</label>
+          <input type="text" id="brush_status" size="8" readonly></input>
+        </div>
+        <div class="status" id="painting_status_div" style="float:left;">
+          <label for="painting_status">Painting Status</label>
+          <input type="text" id="painting_status" size="8" readonly></input>
+        </div>
+      </div>
     </div>
   </div>
   <div style="clear: both;"></div>
