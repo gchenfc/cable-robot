@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Preliminary</title>
+        <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+</style>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+        
+    </head>
+    <body class="vscode-body vscode-light">
+        <style>
+.title {
+   text-align: center;
+   margin: 30px;
+}
+hr {
+   margin-top: 30px;
+}
+h1 {
+   text-align: center;
+}
+h2 {
+   /* text-align: center; */
+   text-decoration: underline;
+}
+h3 {
+   text-decoration: underline;
+}
+</style>
+<h1 class=title> SOP for TEDxAtlanta Demo (and future demos?) </h1>
+<h2 class=toc> Table of Contents </h2>
+<ul>
+<li><a href="#preliminary">Preliminary</a>
+<ul>
+<li><a href="#what-configuration-is-this-readme-meant-for">What configuration is this README meant for?</a></li>
+<li><a href="#packing-list">Packing List</a></li>
+<li><a href="#software-installation">Software Installation</a></li>
+</ul>
+</li>
+<li><a href="#general-html-control-panel-usage">General HTML Control Panel Usage</a>
+<ul>
+<li><a href="#layout">Layout</a></li>
+<li><a href="#joystick-control">Joystick Control</a></li>
+<li><a href="#sending-manual-commands">Sending manual commands</a></li>
+</ul>
+</li>
+<li><a href="#assembly">Assembly</a>
+<ul>
+<li><a href="#strut-channel-frame">Strut Channel Frame</a></li>
+<li><a href="#electronics">Electronics</a></li>
+</ul>
+</li>
+<li><a href="#setup--calibration">Setup / Calibration</a>
+<ul>
+<li><a href="#cable-robot">Cable Robot</a></li>
+<li><a href="#arm">Arm</a></li>
+<li><a href="#ipad">iPad</a></li>
+</ul>
+</li>
+<li><a href="#operation">Operation</a></li>
+</ul>
+<hr>
+<h1 id="preliminary">Preliminary</h1>
+<h2 id="what-configuration-is-this-readme-meant-for">What configuration is this README meant for?</h2>
+<ul>
+<li>Strut Channel Frame (rectangular prism of strut channel)</li>
+<li>AIR box</li>
+<li>Robot Arm brush actuator</li>
+<li>Laptop, connected to AIR box via USB, AIR box connects to robot arm</li>
+</ul>
+<h2 id="packing-list">Packing List</h2>
+<ul>
+<li>Strut Channel Frame
+<ul>
+<li>2x rectangles, 8'x2'</li>
+<li>4x 10' strut channel lengths</li>
+<li>2x 8' strut channel lengths (for holding backing board / paper)</li>
+<li>3x 8'x2' drywall sheets for backing board</li>
+<li>1x roll of paper (4' tall, or 6' tall if you wanna go hardcore)</li>
+<li>All strut channel nuts &amp; bolts, should be included on frames</li>
+</ul>
+</li>
+<li>AIR box
+<ul>
+<li>AIR box</li>
+<li>EIC power cable</li>
+<li>long USB cable / isolator</li>
+<li>power cable &amp; CAT5 tether cables to robot arm</li>
+</ul>
+</li>
+<li>Robot Arm brush actuator
+<ul>
+<li>Arm assembly box</li>
+</ul>
+</li>
+<li>Tools
+<ul>
+<li>TODO: fill this in</li>
+</ul>
+</li>
+</ul>
+<h2 id="software-installation">Software Installation</h2>
+<p>You need to clone/download 3 github repos:</p>
+<ol>
+<li><code>cable-robot</code> - <a href="https://github.gatech.edu/borglab/cable-robot">https://github.gatech.edu/borglab/cable-robot</a>
+<ol>
+<li>This is for the main <strong>cable robot HTML control panel</strong>, and also contains cable robot Firmware.</li>
+<li>Mainly, you will be using the <code>site</code> folder, which contains the control panel (locally) at <code>site/index.html</code>.</li>
+</ol>
+</li>
+<li><code>raw-air</code> - <a href="https://github.com/gchenfc/RAW-AIR">https://github.com/gchenfc/RAW-AIR</a>
+<ol>
+<li>This is for the arm.</li>
+<li>Mainly, you will be using the <code>arm/arm_server.py</code> file to interpret cable robot control panel commands and send them to the arm (control panel -&gt; arm_server -&gt; teensy -&gt; arm)</li>
+</ol>
+</li>
+<li><code>art_skills</code> - <a href="https://github.com/gchenfc/art_skills">https://github.com/gchenfc/art_skills</a>
+<ol>
+<li>This is for the iPad.</li>
+<li>Mainly, you will be using the <code>whiteboard</code> folder.</li>
+<li>Also, highly recommended to install the vscode extension <code>Live Server</code> and use it to serve the <code>whiteboard/client</code> folder.</li>
+</ol>
+</li>
+</ol>
+<hr>
+<h1 id="general-html-control-panel-usage">General HTML Control Panel Usage</h1>
+<h2 id="layout">Layout</h2>
+<p>The HTML Control Panel shows:</p>
+<ul>
+<li>The cable robot on the top left.  Black is &quot;estimated position&quot;, Red is &quot;commanded position&quot; from the control panel, and Green is drawn trajectory on the iPad.</li>
+<li>Joystick in the top-middle.  This is mainly just to debug in the joystick is connected or not.</li>
+<li>Debug messages on the top-right.
+<ul>
+<li>Top: messages sent from control panel to cable robot</li>
+<li>Next: setpoint manager status.  Mostly applies to iPad.  Format: <code>time state status isDone</code>, where:
+<ul>
+<li><code>time</code> is where in the trajectory we are in.  i.e. halfway through the trajectory.  For joystick mode, this doesn't matter, but it might matter for iPad mode.</li>
+<li><code>state</code> is 0: hold/idle, 1: painting/running, 2: traveling</li>
+<li><code>status</code> is 0: uninitialized, 2: nominal</li>
+<li><code>isDone</code> is 0: not done, 1: done (with trajectory, again, this only applies to iPad mode)</li>
+</ul>
+</li>
+<li>Next: tracking.  Format: <code>state</code>, where:
+<ul>
+<li><code>state</code> is 0: idle, 1: &quot;hold&quot; aka &quot;gravity comp&quot;, 2: &quot;position tracking mode&quot;</li>
+</ul>
+</li>
+<li>Bottom: waypoint.  Prints debug information about trajectories, esp waypoints follower (iPad).</li>
+</ul>
+</li>
+<li>Arm Control in the center.
+<ul>
+<li>Go Home - moves the robot to the vertical up position</li>
+<li>Go Storage - moves the robot to a tucked-in position then disables the motors</li>
+<li>Enable/Disable - enables/disables the motors</li>
+</ul>
+</li>
+<li>Low-level Serial Communication
+<ul>
+<li><code>Connect</code>: manually connect to a serial port
+<ul>
+<li>Select the first &quot;Triple Serial&quot;.</li>
+<li>If &quot;autoconnect&quot; is checked, it will automatically connect and the &quot;connect&quot; button won't give you a list of options.</li>
+</ul>
+</li>
+<li><code>Clear</code>: clears the messages</li>
+<li><code>Disconnect</code>: disconnects.  This is the easiest way to stop the messages so that you can stop to read what they say.</li>
+<li><code>Logging</code>: ignore these - this is for data collection but we don't need to do that.</li>
+<li><code>Send with \r\n</code>: leave this checked</li>
+<li><code>echo</code>: whether to print out the line you sent or not</li>
+<li><code>Auto-connect</code>: will auto-connect to a certain &quot;Triple Serial&quot; port so you don't have to click &quot;connect&quot; every time.  If it isn't getting the right one (messages aren't coming in), try switching the <code>AUTOCONNECT_INDEX</code> from 0/1/2 in <code>site/js/serial.js</code>.</li>
+<li><code>Send</code>: you can just hit &quot;enter&quot; instead.</li>
+<li>Green text: this are the messages coming from the Teensy (MCU) cable robot.  Format is:
+<blockquote>
+<p><code>[time] - 0: [est pos] - [set pos]   | [motor 0] | [motor 1] | [motor 2] | [motor 3] |   [spray]</code></p>
+</blockquote>
+<ul>
+<li><code>time</code>: time in us, modulo 10s for readability</li>
+<li><code>0</code>: idk what this is.  I think it's robot state but it's outdated.</li>
+<li><code>est pos</code>: estimated position as theta-x-y.  I am not estimating or controlling orientation theta so it's always 0.</li>
+<li><code>set pos</code>: setpoint position ^.</li>
+<li><code>motor x</code>: format is
+<blockquote>
+<p><code>[error code] [state] [cable length] [cable vel]</code></p>
+</blockquote>
+<ul>
+<li><code>Error code</code> should be 0 under normal operation, 2048 if Teensy disconnected, 16384 if ESTOP pressed.</li>
+<li><code>State</code> is 1: idle (off), 8: motor on, 4/5/6/7: motor calibration sequence</li>
+<li>length &amp; vel are in SI units (m and m/s)</li>
+</ul>
+</li>
+<li><code>[spray]</code>: ignore this.  It's outdated.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="joystick-control">Joystick Control</h2>
+<ul>
+<li>Mode - I recommend spamming these just in case the wireless connection cuts out.
+<ul>
+<li><code>A</code> to clear errors</li>
+<li><code>X</code> to put into <code>HOLD</code>/&quot;gravity comp&quot; mode</li>
+<li><code>Y</code> to put into <code>position tracking</code> mode
+<ul>
+<li>I recommend anytime <em>before</em> pressing <code>Y</code>, first press <code>X</code> (HOLD) just in case.  It's probably not necessary, but you never know.</li>
+</ul>
+</li>
+<li><code>DPAD</code>
+<ul>
+<li><code>LEFT</code> &amp; <code>DOWN</code> (both!) to put into <code>joystick</code> mode (default unless iPad is connected)</li>
+<li><code>RIGHT</code> &amp; <code>UP</code> (both!) to put into <code>iPad</code> mode (default when an iPad is connected)</li>
+</ul>
+</li>
+<li><code>Press right joystick</code> to <strong>ESTOP</strong></li>
+</ul>
+</li>
+<li>Joystick
+<ul>
+<li>Left joystick controls the position setpoint when in <code>position tracking</code> mode and <code>joystick</code> mode</li>
+</ul>
+</li>
+<li>Arm
+<ul>
+<li><code>LB</code> &quot;home&quot; configuration</li>
+<li><code>LT</code> dip for paint</li>
+<li><code>RB</code> prepare to paint (hover in front of canvas)</li>
+<li><code>RT</code> paint (touch canvas with brush)</li>
+</ul>
+</li>
+</ul>
+<h2 id="sending-manual-commands">Sending manual commands</h2>
+<p>Some commands don't have joystick mappings due to safety or laziness.  For example, to calibrate the motors, you need to send the string <code>c4</code>.  To do so, type the string into the &quot;Low-level Serial Communication&quot; text box (between &quot;Connect&quot; and checkboxes) and hit enter on keyboard or press the &quot;Send&quot; button.</p>
+<hr>
+<h1 id="assembly">Assembly</h1>
+<h2 id="strut-channel-frame">Strut Channel Frame</h2>
+<ol>
+<li>Assemble frame / pulley mounting points</li>
+<li>Place AIR box in frame</li>
+<li>Place the wooden Arm base in a &quot;home&quot;-ish position in the frame.</li>
+<li>Route the cables through the pulleys and clip them to the wooden Arm base.  Leave some slack in the cables - roughly 2 rotations-worth of each winch (6&quot; or so).</li>
+</ol>
+<h2 id="electronics">Electronics</h2>
+<ol>
+<li>Connect Teensy (Microcontroller aka MCU) in AIR box to laptop via USB
+<ol>
+<li>At this point, 3 serial devices with similar names should appear on the computer.</li>
+</ol>
+</li>
+<li>Plug in power to AIR box
+<ul>
+<li>Before plugging in power, ensure that the AIR box power switch is <code>OFF</code></li>
+<li>Before plugging in power, make sure cables have some slack just in case</li>
+</ul>
+</li>
+<li>Inside AIR box, turn power switch to <code>1</code> -&gt; <code>1 &amp; 2</code> -&gt; <code>2</code>
+<ul>
+<li>This should just involve turning the switch clockwise (&quot;tighten a bolt&quot;) 3 clicks.  Give it a second or so between each click to allow the capacitors to pre-charge.</li>
+</ul>
+<blockquote>
+<p>Checkpoint: you should hear/see the fan inside the AIR box power supply start spinning, and the 2 ODrives should have little green lights.</p>
+</blockquote>
+</li>
+<li>Plug in the Arm CAT5 cable</li>
+<li>Plug in the Arm power cable</li>
+<li>Un-press the E-STOP (if it is pressed)</li>
+</ol>
+<hr>
+<h1 id="setup--calibration">Setup / Calibration</h1>
+<h2 id="cable-robot">Cable Robot</h2>
+<ol>
+<li>
+<p>Bring up the HTML control panel and &quot;connect&quot; to the robot/Teensy.</p>
+</li>
+<li>
+<p>Calibrate motors</p>
+<ol>
+<li>Ensure there is some slack in the cables.</li>
+<li>Ensure none of the motors are in an error state.</li>
+<li>In the control panel, type <code>c4</code> (and enter).
+<ol>
+<li>You should hear a beep and all four motors should go to state 4, then 5, then 6, then 7, then 1.  Ensure that they all made it to state 7 before returning to 1.</li>
+</ol>
+</li>
+</ol>
+</li>
+<li>
+<p>Energize motors</p>
+<ol>
+<li>Manually wind the cables to make sure there isn't excessive slack.  A little slack is fine.</li>
+<li>Put the robot into <code>HOLD</code> mode by pressing <code>x</code> on the gamepad.
+<ol>
+<li>The robot should pull the cables taught and maybe even lift up the wooden arm base an inch or so.</li>
+<li>BE READY TO ESTOP IF ANYTHING GOES UNEXPECTED HERE (the arm should not move more than an inch).</li>
+</ol>
+</li>
+<li>Check that all the cables are routed through the pulleys correctly and not wedged between the pulley's wall.</li>
+</ol>
+</li>
+<li>
+<p>Zero motors</p>
+<ol>
+<li>Manually move (with your hands) the wooden arm base to roughly the &quot;home&quot; position within the frame (resting on the AIR box or ground).</li>
+<li>Type <code>c14</code>.  On the top-left diagram, the black estimated position should be updated to the home position.</li>
+</ol>
+</li>
+<li>
+<p>Calibrate robot</p>
+<ol>
+<li>
+<p>In VSCode, open up <code>src/gerry09/gerry00_calibrate.ipynb</code>.</p>
+</li>
+<li>
+<p>Run through the notebook.  If you are not intimately familiar with the notebook, be sure to read the markdown instructions in the notebook.</p>
+</li>
+<li>
+<p>Enter settings</p>
+<p>If you didn't already run the very last cell of the calibration script, manually enter these settings for EVERY CONTROLLER YOU PLAN TO USE (using gamepad DPAD buttons or with <code>gs#</code> where # denotes 0/1/2 which controller you're using).  So, for example, send <code>gs0</code> then run all these.  Then send <code>gs1</code> and run all these again.</p>
+<ul>
+<li>Max tension: <code>kKM300</code> (300N)</li>
+<li>Distance threshold to stop tracking: <code>kd0.5</code> (0.5m)</li>
+<li>Limits: <code>xLl1.0;xLd0.75;xLr2.0;xLu1.3;</code> (left, down, right, up)</li>
+<li>Speed: <code>xs0.2;xS0.2</code> this is pretty fast but reasonable</li>
+</ul>
+</li>
+</ol>
+</li>
+<li>
+<p>Check</p>
+<p>Ensure everything is running as expected by switching to position control mode (joystick <code>Y</code>) and moving around a bit to test the robot is moving as you expect.</p>
+</li>
+</ol>
+<p><strong>CHECK TO MAKE SURE THE CABLES ARE ROUTED THROUGH THE PULLEYS CORRECTLY</strong></p>
+<h2 id="arm">Arm</h2>
+<p>In the RAW-AIR repo, (in a terminal e.g. in the built-in VSCode terminal) run <code>cd RAW-AIR/arm &amp;&amp; python arm_server.py</code>.  This will start a server which listens for commands from the HTML control panel.  The arm server will then forward those commands to the Teensy which will forward them to the arm.  Mainly this python server exists because I was too lazy to implement the dynamixel protocol and IK in c++ or javascript and instead I implemented them in Python, so we need this server to get the different languages to talk to eachother.</p>
+<p>You might need to refresh the HTML control panel.  The arm server terminal should print something like &quot;rpc connected!!!!&quot; when the HTML control panel connects to it.</p>
+<p>If it's not connecting, double check that the <code>cable-robot/site/index.html</code> hasn't commented-out the <code>arm.js</code> import near the top of the file.</p>
+<p>Test something simple like gamepad <code>LB</code> to make sure there's no errors and the arm is moving.</p>
+<h2 id="ipad">iPad</h2>
+<p>In the <code>art_skills</code> repo, run <code>cd whiteboard &amp;&amp; python server.py</code>.  This will start up a server that listens for the iPad to connect to it and forwards it to the cable robot control panel index.html.  Also, it will print out an ip address.  For example,</p>
+<pre><code>STARTING UP!!!
+Serving whiteboard at: 143.215.94.191:5900
+Serving robot at: localhost:5904
+Serving robot at: localhost:5906
+Serving fit server at ('::1', 5902, 0, 0), ('127.0.0.1', 5902)
+</code></pre>
+<p>In this case, we would copy <code>143.215.94.191</code>.  Then, edit the <code>art_skills/whiteboard/client/main.js</code> file and at the very top, paste the ip address into the <code>HOST</code> variable.</p>
+<p>On the HTML control panel (after refresh), the debug console should show <code>Connected to ipad!!!</code> and the python should print <code>Robot connection opened!</code>.</p>
+<p>If it's not connecting, double check that the <code>cable-robot/site/index.html</code> hasn't commented-out the <code>ipad.js</code> import near the top of the file.</p>
+<p>~~</p>
+<p>Next, launch a server to host the whiteboard/client/index.html (e.g. in VSCode, install the Live Server extension and click &quot;Go Live&quot; in the bottom right corner).  Then, open up the whiteboard on the iPad by going to <code>143.215.94.191:5500/whiteboard/client</code> (or whatever the IP address is).  Notice the Live Share extension defaults to port number 5500 (the &quot;Go Live&quot; icon says the port number), but if you're using a different port/server, use the correct port number.  Also, make sure that you do <strong>not</strong> do <code>https://143...</code>.  I don't know why but this doesn't work - just type it into the address bar with<strong>out</strong> the https.</p>
+<p>On the python server, you should see <code>Whiteboard connection opened!</code>.</p>
+<p>Test it by drawing a small shape in the center of the iPad.  You should see it appear in green on the HTML control panel and (assuming you're in iPad mode, Position control mode) the robot should start painting it.</p>
+<hr>
+<h1 id="operation">Operation</h1>
+<p>This should be pretty straightforward if you walked through the setup.  Some random things you might want to do:</p>
+<ul>
+<li>ESTOP - press the red ESTOP button or click the right joystick.</li>
+<li>Clear drawings - especially when there's a big backlog of old trajectories that will take forever for the cable robot to finish, try refreshing the HTML control panel and iPad window.</li>
+<li>Reboot the Arm - sometimes the arm servos will overload or overheat or something.  I couldn't figure out a solution better than just unplugging and re-plugging the arm's power cable.</li>
+<li>Switch to joystick/iPad control - this can sometimes be confusing because, once an iPad (well actually the art_skills <a href="http://server.py">server.py</a>) connects to the HTML control panel, it auto-switches to iPad control mode and the joystick no longer does anything.  Use DPAD LEFT+DOWN and UP+RIGHT to switch to joystick or iPad control modes respectively (see <a href="#joystick-control">Joystick Control</a>)</li>
+<li>Relax the robot arm - press the &quot;Go Storage&quot; button</li>
+<li>Manual control of the robot arm - see the bottom of <code>arm.js</code> and call any of those functions from the HTML debug console (or add a button to the HTML control panel) using <code>Arm.function_name</code>.</li>
+</ul>
+
+        
+        
+    </body>
+    </html>
