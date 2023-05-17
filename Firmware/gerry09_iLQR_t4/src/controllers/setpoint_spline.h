@@ -20,6 +20,7 @@ class SetpointSpline : public SetpointBasic {
   virtual void setup() override {
     SetpointBasic::setup();
     spline_.reset();
+    spline_.set_default_pos(head<2>(defaultPos()));
   }
 
   virtual bool readSerial(AsciiParser parser, Stream& serialOut) override;
@@ -49,7 +50,7 @@ bool SetpointSpline::readSerial(AsciiParser parser, Stream& serialOut) {
     case SetpointCommands::SPLINE_RESET:
       serialOut.println("Spline reset.");
       spline_.reset();
-      // TODO: set a safer default spline center position
+      spline_.set_default_pos(head<2>(defaultPos()));
       break;
     case SetpointCommands::SPLINE_ADD_SEGMENT:
       UNWRAP_PARSE_CHECK(float t, parser.parseFloat(',', &t));

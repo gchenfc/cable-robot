@@ -22,7 +22,7 @@ class SetpointWaypoints : public SetpointBasic {
   virtual void setup() override {
     SetpointBasic::setup();
     spline_.reset();
-    pushWaypoint(defaultPos());
+    spline_.set_default_pos(defaultPos());
   }
 
   virtual bool readSerial(AsciiParser parser, Stream& serialOut) override;
@@ -72,7 +72,7 @@ bool SetpointWaypoints::readSerial(AsciiParser parser, Stream& serialOut) {
     case SetpointCommands::WAYPOINT_CLEAR:
       serialOut.println("waypoints reset.");
       spline_.reset();
-      pushWaypoint(defaultPos());
+      spline_.set_default_pos(defaultPos());
       break;
     case SetpointCommands::WAYPOINT_ADD:
       UNWRAP_PARSE_CHECK(float x, parser.parseFloat(',', &x));

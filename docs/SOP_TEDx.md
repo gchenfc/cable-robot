@@ -88,12 +88,14 @@ The HTML Control Panel shows:
 * Joystick in the top-middle.  This is mainly just to debug in the joystick is connected or not.
 * Debug messages on the top-right.
   * Top: messages sent from control panel to cable robot
-  * Next: setpoint manager status.  Mostly applies to iPad.  Format: `time state status isDone`, where:
+  * Next: setpoint manager status.  Mostly applies to iPad.  Format:
+    > `setpoint: STATUS: [time] [state] [status] [isDone]`
     * `time` is where in the trajectory we are in.  i.e. halfway through the trajectory.  For joystick mode, this doesn't matter, but it might matter for iPad mode.
     * `state` is 0: hold/idle, 1: painting/running, 2: traveling
     * `status` is 0: uninitialized, 2: nominal
     * `isDone` is 0: not done, 1: done (with trajectory, again, this only applies to iPad mode)
-  * Next: tracking.  Format: `state`, where:
+  * Next: tracking.  Format:
+    > `tracking: state: [state]`
     * `state` is 0: idle, 1: "hold" aka "gravity comp", 2: "position tracking mode"
   * Bottom: waypoint.  Prints debug information about trajectories, esp waypoints follower (iPad).
 * Arm Control in the center.
