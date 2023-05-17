@@ -132,24 +132,86 @@ const Arm = (function () {
   }
 
   const do_move_home = async () => await rpc("arm.do_move_home");
+  const do_move_storage = async () => await rpc("arm.do_move_storage");
   const do_dip = async () => await rpc("arm.do_dip");
   const do_prep_paint = async () => await rpc("arm.do_prep_paint");
   const do_start_paint = async () => await rpc("arm.do_start_paint");
 
   const do_move_home_blocking = async () => await rpc_blocking("arm.do_move_home");
+  const do_move_storage_blocking = async () => await rpc_blocking("arm.do_move_storage");
   const do_dip_blocking = async () => await rpc_blocking("arm.do_dip");
   const do_prep_paint_blocking = async () => await rpc_blocking("arm.do_prep_paint");
   const do_start_paint_blocking = async () => await rpc_blocking("arm.do_start_paint");
 
+  const enable_all_blocking = async () => await rpc_blocking("arm.enable_all");
+  const disable_all_blocking = async () => await rpc_blocking("arm.disable_all");
+
+  const cur_pose_blocking = async () => await rpc_blocking("arm.cur_pose");
+  const cur_point_blocking = async () => await rpc_blocking("arm.cur_point");
+  const cur_canvas_pose_blocking = async () => await rpc_blocking("arm.cur_canvas_pose");
+  const cur_canvas_point_blocking = async () => await rpc_blocking("arm.cur_canvas_point");
+
+  const joint_angles_deg_blocking = async () => await rpc_blocking("arm.joint_angles_deg");
+  const joint_angles_string_blocking = async () => await rpc_blocking("arm.joint_angles_string");
+  const go_to_blocking_blocking = async (goal) => await rpc_blocking("arm.go_to_blocking", args=[goal]);
+  const go_to_pose_blocking_blocking = async (goal) => await rpc_blocking("arm.go_to_pose_blocking", args=[goal]);
+  const go_to_canvas_blocking_blocking = async (goal) => await rpc_blocking("arm.go_to_canvas_blocking", args=[goal]);
+  const reached_goal_blocking = async (goal) => await rpc_blocking("arm.reached_goal", args=[goal]);
+
+  
+  // Low-level, recommend not using
+  const read_all_joint_angles_deg_blocking = async () => await rpc_blocking("arm.read_all_joint_angles_deg");
+  const read_all_blocking = async (addr) => await rpc_blocking("arm.read_all", args=[addr]);
+  const command_angles_deg_blocking = async (angles) => await rpc_blocking("arm.command_angles_deg", (args = angles));
+  const command_angle_blocking = async (id, angle) => await rpc_blocking("arm.command_angle", args=[id, angle]);
+  const set_speed_blocking = async (speed_counts) => await rpc_blocking("arm.set_speed", args=[speed_counts]);
+  const set_speeds_blocking = async (speeds_counts) => await rpc_blocking("arm.set_speeds", args=[speeds_counts]);
+
+  // Below functions are untested
+  const execute_joint_path_blocking = async (path) => await rpc_blocking("arm.execute_joint_path", args=[path]);
+  const write_all_blocking = async (addr, value) => await rpc_blocking("arm.write_all", args=[addr, value]);
+  const set_compliance_margins_blocking = async (margin) => await rpc_blocking("arm.set_compliance_margins", args=[margin]);
+  const set_compliance_slopes_blocking = async (slope) => await rpc_blocking("arm.set_compliance_slopes", args=[slope]);
+  // ----------------------------
+
   return {
     rpc,
     do_move_home,
+    do_move_storage,
     do_dip,
     do_prep_paint,
     do_start_paint,
     do_move_home_blocking,
+    do_move_storage_blocking,
     do_dip_blocking,
     do_prep_paint_blocking,
     do_start_paint_blocking,
+    
+    enable_all_blocking, // void -> # bytes written
+    disable_all_blocking, // void -> # bytes written
+
+    cur_pose_blocking, // void -> 4x4 homogeneous transformation matrix
+    cur_point_blocking, // void -> [x, y, z]
+    cur_canvas_pose_blocking, // void -> 4x4 homogeneous transformation matrix
+    cur_canvas_point_blocking, // void -> [x, y, z]
+    joint_angles_deg_blocking, // void -> [q1, q2, q3, q4, q5]
+    joint_angles_string_blocking, // void -> string
+    
+    go_to_blocking_blocking, // [q1, q2, q3, q4, q5] -> void
+    go_to_pose_blocking_blocking, // 4x4 homogeneous transformation matrix -> bool
+    go_to_canvas_blocking_blocking, // [x, y, z] -> bool
+    reached_goal_blocking, // [q1, q2, q3, q4, q5] -> bool
+    execute_joint_path_blocking,
+
+    // Low-level functions, recommend not using
+    write_all_blocking,
+    read_all_blocking, // addr -> 6-array of {id: #, error: #, value: #}
+    set_speed_blocking, // int -> # bytes written, arg is same speed for all motors
+    set_speeds_blocking, // [v0, v1, v2, v3, v4, v5] -> # bytes written
+    set_compliance_margins_blocking,
+    set_compliance_slopes_blocking,
+    read_all_joint_angles_deg_blocking, // void -> [q1, q2, q3, q4, q5, q6]
+    command_angle_blocking, // command_angle_blocking(id, angle_deg)
+    command_angles_deg_blocking, // command_angles_deg_blocking([q1, q2, q3, q4, q5])
   };
 })();

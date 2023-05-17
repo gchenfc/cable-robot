@@ -5,16 +5,31 @@ canvas {
   padding: 0;
   width: 50%;
   aspect-ratio: 2/1;
+  max-height: 500px;
 }
 
 canvas.cdpr {
-  width: 55%;
+  width: 65%;
 }
 canvas.gamepad {
+  display: block;
   background-color: #fff;
   border: 1px solid #eee;
-  margin-left: 30px;
-  width: calc(45% - 30px - 10px);
+  margin: 0 auto 20px auto;
+  width: 90%;
+}
+div.centercol {
+  float: right;
+  width: 34%;
+  margin: 0 auto;
+  max-height: 500px;
+}
+div.arm {
+  border: 1px solid #888;
+  padding: 10px;
+}
+div.arm button {
+  margin: 2px 1px;
 }
 
 .serialoutput {

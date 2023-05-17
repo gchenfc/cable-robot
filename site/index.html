@@ -21,7 +21,27 @@
       <canvas class="cdpr" id="cdpr_canvas" width="400" height="300" style="aspect-ratio: 4/3;"></canvas>
       <!-- <canvas class="cdpr" id="cdpr_canvas" width="617" height="264" style="aspect-ratio: 4/3;"></canvas> -->
       <!-- <canvas class="cdpr" id="cdpr_canvas" width="617" height="264" style="aspect-ratio: 7/3;"></canvas> -->
-      <canvas class="gamepad" id="gamepad_canvas" width="300" height="260" style="aspect-ratio: 300/260;"></canvas>
+      <div class="centercol">
+        <!-- Gamepad -->
+        <canvas class="gamepad" id="gamepad_canvas" width="300" height="260" style="aspect-ratio: 300/260;"></canvas>
+        <!-- Arm -->
+        <div class="arm">
+          <h2>Arm Control</h2>
+          <button onclick="Arm.do_move_home_blocking();">Go Home</button>
+          <button onclick="Arm.do_move_storage_blocking();">Go Storage</button>
+          <button onclick="Arm.enable_all_blocking();">Enable</button>
+          <button onclick="Arm.disable_all_blocking();">Disable</button>
+          <div style="background: lightgray;">
+            <button id="get_joint_angles_button">Get Angles</button>
+            <input type="text" id="joint_angles" size="21" readonly style="width: max-content; font-family: monospace;"></label>
+          </div>
+          <script>
+            document.getElementById("get_joint_angles_button").onclick = async function () {
+              document.getElementById('joint_angles').value = await Arm.joint_angles_string_blocking();
+            };
+          </script>
+        </div>
+      </div>
     </div>
     <div style="width: 400px; float: right;">
       <h2>Debug Output</h2>
@@ -31,10 +51,11 @@
         <option value="1">1</option>
         <option value="2">2</option>
       </select>
-      <p class="serialoutput" id="output" style="height:calc((100vw - 400px - 30px) * 0.55 * 3 / 4 - 70px - 150px-35px);"></p>
+      <!-- <p class="serialoutput" id="output" style="height:calc((100vw - 400px - 30px) * 0.55 * 3 / 4 - 70px - 150px-35px);"></p> -->
+      <p class="serialoutput" id="output" style="height:calc(150px - 20px);"></p>
       <p class="serialoutput" id="setpointOut" style="height:calc(75px - 20px);"></p>
       <p class="serialoutput" id="trackerOut" style="height:calc(75px - 20px);"></p>
-      <p class="serialoutput" id="waypointOut" style="height:calc(35px - 20px);"></p>
+      <p class="serialoutput" id="waypointOut" style="height:calc(75px - 20px);"></p>
     </div>
   </div>
   <div style="clear: both;"></div>
