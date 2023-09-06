@@ -10,15 +10,18 @@
 /******** DEFAULT GAINS AND PARAMETERS **********/
 #if defined(KLAUS) || defined(DFL)
 static constexpr float kKp = 15000, kKi = 15, kKd = 30,  // gains
-    kTMin_N = 8, kTMid_N = 54, kTMax_N = 100;            // tensions
+    kTMin_N = 8, kTMid_N = 54, kTMax_N = 100,            // tensions
+    kEeMass_kg = 3;                                      // end effector mass
 #endif
 #if defined(AIR)
 static constexpr float kKp = 10000, kKi = 10, kKd = 100,  // gains
-    kTMin_N = 8, kTMid_N = 54, kTMax_N = 100;            // tensions
+    kTMin_N = 8, kTMid_N = 54, kTMax_N = 100,            // tensions
+    kEeMass_kg = 3;                                      // end effector mass
 #endif
 #ifdef HYDROPONICS
 static constexpr float kKp = 30000, kKi = 50, kKd = 50,  // gains
-    kTMin_N = 5, kTMid_N = 50, kTMax_N = 140;            // tensions
+    kTMin_N = 5, kTMid_N = 50, kTMax_N = 140,            // tensions
+    kEeMass_kg = 3;                                      // end effector mass
 #endif
 
 /* ControllerGouttefardeTracking
@@ -73,6 +76,9 @@ class ControllerGouttefardeTracking : public ControllerTracking {
           return true;
         case 'L':
           minTension_ = a;
+          return true;
+        case 'g':
+          eeMass_kg_ = a;
           return true;
       }
     }
@@ -167,6 +173,7 @@ class ControllerGouttefardeTracking : public ControllerTracking {
   float fs_ = 0., fv_ = 0., mu_ = 0.;
   float kp_ = kKp, ki_ = kKi, kd_ = kKd;
   float minTension_ = kTMin_N, midTension_ = kTMid_N, maxTension_ = kTMax_N;
+  float eeMass_kg_ = kEeMass_kg;
   mutable Pid pid_[4]{Pid(kp_, ki_, kd_), Pid(kp_, ki_, kd_),
                       Pid(kp_, ki_, kd_), Pid(kp_, ki_, kd_)};
 
@@ -253,7 +260,8 @@ float ControllerGouttefardeTracking<T>::calcTorque(float t,
   // const float(&vdes_prev)[3] = LQG_GAINS[k == 0 ? k : k - 1].vff;
   // static constexpr float kMass = 1.0;
   ff_force_N[0] = 0;  //(vdes[0] - vdes_prev[0]) / dt * kMass;
-  ff_force_N[1] = 0;  //(vdes[1] - vdes_prev[1]) / dt * kMass;
+  // ff_force_N[1] = 0;  //(vdes[1] - vdes_prev[1]) / dt * kMass;
+  ff_force_N[1] = eeMass_kg_ * 9.8;  //(vdes[1] - vdes_prev[1]) / dt * kMass;
   float fc_N[2];
   matadd(feedback_force_N, ff_force_N, fc_N);
   save_total_force(fc_N);
