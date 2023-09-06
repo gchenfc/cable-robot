@@ -207,7 +207,7 @@ Some commands don't have joystick mappings due to safety or laziness.  For examp
 **CHECK TO MAKE SURE THE CABLES ARE ROUTED THROUGH THE PULLEYS CORRECTLY**
 
 ## Arm
-In the RAW-AIR repo, (in a terminal e.g. in the built-in VSCode terminal) run `cd RAW-AIR/arm && python arm_server.py`.  This will start a server which listens for commands from the HTML control panel.  The arm server will then forward those commands to the Teensy which will forward them to the arm.  Mainly this python server exists because I was too lazy to implement the dynamixel protocol and IK in c++ or javascript and instead I implemented them in Python, so we need this server to get the different languages to talk to eachother.
+In the RAW-AIR repo, (in a new terminal e.g. in the built-in VSCode terminal) run `cd RAW-AIR/arm && python arm_server.py`.  This will start a server which listens for commands from the HTML control panel.  The arm server will then forward those commands to the Teensy which will forward them to the arm.  Mainly this python server exists because I was too lazy to implement the dynamixel protocol and IK in c++ or javascript and instead I implemented them in Python, so we need this server to get the different languages to talk to eachother.
 
 You might need to refresh the HTML control panel.  The arm server terminal should print something like "rpc connected!!!!" when the HTML control panel connects to it.
 

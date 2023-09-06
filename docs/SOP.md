@@ -47,6 +47,36 @@
 
 --------------------------------------------------------------------------------
 
+## Setup - AIR Box
+
+### 1. Assembly
+1. Assemble frame / pulley mounting points
+2. Place AIR box in frame
+
+### 2. RPi ssh
+* check route list (mac: netstat -nr)
+* ssh pi@143.215.191.229
+  * Ask Gerry to add your ssh key to the pi
+* TODO: figure out how to get ethernet working, since wifi is too unreliable.
+
+### 3. SOFTWARE
+You need to clone/download 3 github repos:
+1. `cable-robot` - https://github.gatech.edu/borglab/cable-robot
+   1. This is for the main **cable robot control panel**, and also contains cable robot Firmware.
+2. `raw-air` - https://github.com/gchenfc/RAW-AIR
+   1. For the arm!!!!
+3. `art_skills` - https://github.com/gchenfc/art_skills
+   1. For the iPad
+
+### 4. Startup and Calibration
+1. Calibrate motors
+2. Hold
+3. Move to home and zero
+4. Calibrate robot
+5. 
+
+--------------------------------------------------------------------------------
+
 ## Operation
 
 ### Things to periodically check

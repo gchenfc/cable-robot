@@ -113,6 +113,21 @@ bool SetpointWaypoints::readSerial(AsciiParser parser, Stream& serialOut) {
                        coeffs.at(2).at(0), coeffs.at(2).at(1));
       break;
     }
+    // TODO: implement this
+    // case SetpointCommands::SPLINE_DEBUG_SAMPLE_1S:
+    //   for (float t = 0; t < 1; t += 0.1) {
+    //     auto X = spline_.eval(t);
+    //     auto Xd = spline_.evald(t);
+    //     serialOut.printf("Spline Point: %.1f, %.4f, %.4f, %.4f, %.4f\n", t,
+    //                      X[0], X[1], Xd[0], Xd[1]);
+    //   }
+    // case SetpointCommands::SPLINE_QUERY_AT_TIME: {  // debug - print interpolated X, Xdot at input time t
+    //   UNWRAP_PARSE_CHECK(float t, parser.parseFloat('\n', &t));
+    //   auto X = spline_.eval(t);
+    //   auto Xd = spline_.evald(t);
+    //   serialOut.printf("Spline Point: %.1f, %.4f, %.4f, %.4f, %.4f\n", t, X[0],
+    //                    X[1], Xd[0], Xd[1]);
+    // }
     default:
       return false;
   }
