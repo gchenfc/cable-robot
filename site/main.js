@@ -6,7 +6,10 @@ const gamepad_ctx = gamepad_canvas.getContext("2d");
 
 var gamepad_idx = null;
 // const cdpr = new Cdpr(new Dims(2.9, 2.3), new Dims(0.184, 0.122));
-const cdpr = new Cdpr(new Dims(3.05, 2.34), new Dims(0.1778, 0.14));
+// const cdpr = new Cdpr(new Dims(3.05, 2.34), new Dims(0.1778, 0.14));
+// const cdpr = new Cdpr(new Dims(4.685, 3.62), new Dims(0.827, 0.63));
+const cdpr = new Cdpr(new Dims(5.77, 3.586), new Dims(0.184, 0.122));
+
 // const cdpr = new Cdpr(new Dims(6.17, 2.64), new Dims(0.184, 0.122));
 const drawing = new Drawing();
 const gamepad = new MyGamepad();

@@ -15,7 +15,9 @@ COLORS = {
 
 
 // CANVAS_BOUNDS = { w: [1.0, 1.8], h: [0.65, 1.0] };
-CANVAS_BOUNDS = { w: [1.0, 2.0], h: [0.75, 1.3] };
+CANVAS_BOUNDS = { w: [0.9, 3.25], h: [0.63, 2.7] };
+// CANVAS_BOUNDS = { w: [0.72, 3.49], h: [0.63, 2.7] };
+
 
 
 let connected = false;

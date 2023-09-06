@@ -9,7 +9,7 @@ async function attemptAutoconnect() {
   if (!document.getElementById("autoConnect").checked) return;
   // Somehow, the order that Teensy serial ports are reported by Chrome gets randomized each time
   // the Teensy is plugged in, so use AUTOCONNECT_INDEX to set which one you want.
-  const AUTOCONNECT_INDEX = 1;
+  const AUTOCONNECT_INDEX = 0;
   let i = 0;
   return await navigator.serial.getPorts().then((ports) => {
     for (const port_ of ports) {

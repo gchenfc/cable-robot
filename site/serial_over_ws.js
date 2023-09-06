@@ -76,7 +76,9 @@ async function attemptAutoconnect() {
   }
   return await getPorts().then((ports) => {
     for (const port_ of ports) {
-      if (port_.pid === 1163 && port_.vid === 5824) {
+      // if ((port_.pid === 1163 || port_.pid === 1164) && port_.vid === 5824) {
+      console.log(port_)
+      if (port_.name === "ttyACM0") {
         connectSerialPort(port_.device);
         return true;
       }
@@ -96,6 +98,7 @@ async function connectSerial() {
   }
 }
 async function connectSerialPort(port_path) {
+  console.log('Serial Websocket ', port_path);
   const resp = await blocking_send({
     command: "open",
     port: port_path,

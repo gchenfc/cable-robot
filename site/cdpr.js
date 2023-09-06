@@ -1,5 +1,5 @@
 // const SPEED = 0.5 * 2.3;
-const CDPR_SPEED = 0.2;
+const CDPR_SPEED = 0.35;
 const SPEED = CDPR_SPEED * 2.3;
 const BRUSH_WAIT_DELAY_MS = 1500;
 
