@@ -62,13 +62,18 @@ function try_connect() {
 
       // scales x, y to CANVAS_BOUNDS
       console.log('this is txy', txy[2], h1 / w1)
-      x = parseFloat(txy[1]) * (CANVAS_BOUNDS.w[1] - CANVAS_BOUNDS.w[0]) + CANVAS_BOUNDS.w[0];
-      // y = parseFloat(txy[2]) * (CANVAS_BOUNDS.h[1] - CANVAS_BOUNDS.h[0]) + CANVAS_BOUNDS.h[0]; // this will squish aspect ratio
-      // console.log('txy is :', txy[2], h1 / w1);
-      // y = ((h1 / w1) - parseFloat(txy[2])) * (CANVAS_BOUNDS.w[1] - CANVAS_BOUNDS.w[0]) + CANVAS_BOUNDS.h[0]; // this will squish aspect ratio
-      // y = ((0.67) - parseFloat(txy[2])) * (CANVAS_BOUNDS.w[1] - CANVAS_BOUNDS.w[0]) + CANVAS_BOUNDS.h[0]; // this will squish aspect ratio
-      y = ((0.60) - parseFloat(txy[2])) * (CANVAS_BOUNDS.w[1] - CANVAS_BOUNDS.w[0]) + CANVAS_BOUNDS.h[0]; // this will squish aspect ratio
-      // 0.60 currently needs to be tuned to the ipad's aspect ratio, but we should send this over socket.
+      if (false) { // iPad
+        x = parseFloat(txy[1]) * (CANVAS_BOUNDS.w[1] - CANVAS_BOUNDS.w[0]) + CANVAS_BOUNDS.w[0];
+        // y = parseFloat(txy[2]) * (CANVAS_BOUNDS.h[1] - CANVAS_BOUNDS.h[0]) + CANVAS_BOUNDS.h[0]; // this will squish aspect ratio
+        // console.log('txy is :', txy[2], h1 / w1);
+        // y = ((h1 / w1) - parseFloat(txy[2])) * (CANVAS_BOUNDS.w[1] - CANVAS_BOUNDS.w[0]) + CANVAS_BOUNDS.h[0]; // this will squish aspect ratio
+        // y = ((0.67) - parseFloat(txy[2])) * (CANVAS_BOUNDS.w[1] - CANVAS_BOUNDS.w[0]) + CANVAS_BOUNDS.h[0]; // this will squish aspect ratio
+        y = ((0.60) - parseFloat(txy[2])) * (CANVAS_BOUNDS.w[1] - CANVAS_BOUNDS.w[0]) + CANVAS_BOUNDS.h[0]; // this will squish aspect ratio
+        // 0.60 currently needs to be tuned to the ipad's aspect ratio, but we should send this over socket.
+      } else { // gcode
+        x = txy[1];
+        y = txy[2];
+      }
 
       console.log(command, x, y)
 
