@@ -303,6 +303,21 @@ Cdpr.prototype.ipadStateUpdate = function () {
   }
 }
 
+Cdpr.prototype.should_breakup_stroke = function (threshold=0.7) {
+  // Compute the length of the curve this.tmp_queue by summing the distances between points
+  let length = 0;
+  for (let i = 1; i < this.tmp_queue.length; i++) {
+    length += dist(
+      this.tmp_queue[i - 1][0],
+      this.tmp_queue[i - 1][1],
+      this.tmp_queue[i][0],
+      this.tmp_queue[i][1]
+    );
+  }
+  // If the length is greater than some threshold, return true
+  return length > threshold;
+};
+
 Cdpr.prototype.add_to_queue = function (x, y, spray, force = false) {
   // [x2, y2, spray2] = this.set_queue[this.set_queue.length - 1];
   // if ((dist(x, y, x2, y2) > 0.025) || (!spray)) {
@@ -315,6 +330,12 @@ Cdpr.prototype.add_to_queue = function (x, y, spray, force = false) {
       this.stroke_queue.push([...this.tmp_queue]);
     }
     this.tmp_queue = [];
+  } else if (this.should_breakup_stroke()) {
+    // Need to break up the stroke because it's too long
+    if (this.tmp_queue.length > 1) {
+      this.stroke_queue.push([...this.tmp_queue]);
+    }
+    this.tmp_queue = [this.tmp_queue[this.tmp_queue.length - 1]];
   }
   console.log(
     "add to queue",
@@ -504,7 +525,6 @@ Cdpr.prototype.parseLogString = function (logString, printToTerminal_cb) {
         } else if (line.toLowerCase().startsWith("tracking")) {
           printlnTracker(line);
           const resultStatus = line.match(TRACKING_STATUS_REGEX);
-          console.log(TRACKING_STATUS_REGEX, line, resultStatus);
           if (resultStatus && resultStatus.length == 2) {
             this.trackerStatus = { state: parseInt(resultStatus[1]) };
             this.redraw_tracker_status();
