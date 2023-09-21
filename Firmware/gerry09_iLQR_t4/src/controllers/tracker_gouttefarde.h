@@ -12,9 +12,9 @@ static constexpr float kKp = 15000, kKi = 15, kKd = 30,  // gains
     kEeMass_kg = 3;                                      // end effector mass
 #endif
 #ifdef AIR
-static constexpr float kKp = 10000, kKi = 10, kKd = 100,  // gains
+static constexpr float kKp = 10000, kKi = 50, kKd = 500,  // gains
     kTMin_N = 8, kTMid_N = 54, kTMax_N = 100,             // tensions
-    kEeMass_kg = 3;                                      // end effector mass
+    kEeMass_kg = 3;                                       // end effector mass
 #endif
 #ifdef HYDROPONICS
 static constexpr float kKp = 30000, kKi = 50, kKd = 50,  // gains
