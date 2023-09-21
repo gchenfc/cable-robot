@@ -85,7 +85,9 @@ namespace human_serial {
 bool parseWinchZeroFromCurrentLength(Robot& robot, uint8_t winchi,
                                      AsciiParser& parser, Stream& serial);
 bool parseLengthCorrectionParams(const Robot& robot, uint8_t winchi,
-                                 AsciiParser& parser, Stream& serial);
+                                 AsciiParser& parser, Stream& serial,
+                                 bool saveToEeprom = true);
+void printLengthCorrectionParams(Stream& serial);
 bool parseMountPoints(const Robot& robot, uint8_t winchi, AsciiParser& parser,
                       Stream& serial);
 
@@ -204,6 +206,23 @@ bool parseMsgCalibration(Robot& robot, Odrive& odrive, AsciiParser parser,
       }
       return true;
     }
+    case 45: {  // Don't save to EEPROM
+      UNWRAP_PARSE_CHECK(
+          float a, parser.peek(&a, &a, &a, &a, &a, &a, &a, &a, &a, &a, &a, &a));
+      for (int winchi = 0; winchi < 4; ++winchi) {
+        if (!parseLengthCorrectionParams(robot, winchi, parser, serial, false))
+          return false;
+      }
+      return true;
+    }
+    case 46: {  // Read length correction parameters
+      if (parser.checkDone()) {
+        printLengthCorrectionParams(serial);
+        return true;
+      } else {
+        return false;
+      }
+    }
     case 50:  // Set mount points
     case 51:
     case 52:
@@ -234,7 +253,8 @@ bool parseWinchZeroFromCurrentLength(Robot& robot, uint8_t winchi,
 }
 
 bool parseLengthCorrectionParams(const Robot& robot, uint8_t winchi,
-                                 AsciiParser& parser, Stream& serial) {
+                                 AsciiParser& parser, Stream& serial,
+                                 bool saveToEeprom) {
   UNWRAP_PARSE_CHECK(float a, parser.parseFloat(&a));
   UNWRAP_PARSE_CHECK(float b, parser.parseFloat(&b));
   UNWRAP_PARSE_CHECK(float c, parser.parseFloat(&c));
@@ -244,8 +264,20 @@ bool parseLengthCorrectionParams(const Robot& robot, uint8_t winchi,
   lenCorrectionParamsAll[winchi][0] = a;
   lenCorrectionParamsAll[winchi][1] = b;
   lenCorrectionParamsAll[winchi][2] = c;
-  robot.saveLenCorrectionParams(winchi);
+  if (saveToEeprom) {
+    robot.saveLenCorrectionParams(winchi);
+  }
   return true;
+}
+
+void printLengthCorrectionParams(Stream& serial) {
+  serial.printf("c44,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",
+                lenCorrectionParamsAll[0][0], lenCorrectionParamsAll[0][1],
+                lenCorrectionParamsAll[0][2], lenCorrectionParamsAll[1][0],
+                lenCorrectionParamsAll[1][1], lenCorrectionParamsAll[1][2],
+                lenCorrectionParamsAll[2][0], lenCorrectionParamsAll[2][1],
+                lenCorrectionParamsAll[2][2], lenCorrectionParamsAll[3][0],
+                lenCorrectionParamsAll[3][1], lenCorrectionParamsAll[3][2]);
 }
 
 bool parseMountPoints(const Robot& robot, uint8_t winchi, AsciiParser& parser,
