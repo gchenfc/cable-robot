@@ -255,6 +255,9 @@ Cdpr.prototype.ipadStateUpdate = function () {
     }
   }
   if (this.status == Status.DRAWING) {
+    if (this.trackerStatus.state != 2) { // TRACKER FAILED!!!
+      // TODO(gerry): how to handle this?
+    }
     if (this.setpointStatus.state == 0) {  // finished drawing
       if (this.brush_status == BrushStatus.PAINTING) {
         this.send("xc", false); // clear waypoints
