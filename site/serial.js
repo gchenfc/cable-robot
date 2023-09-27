@@ -4,12 +4,10 @@
 var port, textEncoder, writableStreamClosed, writer, historyIndex = -1, reader;
 const lineHistory = [];
 var readStreamDisplay, readStreamLogfile;
+let AUTOCONNECT_INDEX = localStorage.autoConnectIndex || 0;
 
 async function attemptAutoconnect() {
   if (!document.getElementById("autoConnect").checked) return;
-  // Somehow, the order that Teensy serial ports are reported by Chrome gets randomized each time
-  // the Teensy is plugged in, so use AUTOCONNECT_INDEX to set which one you want.
-  const AUTOCONNECT_INDEX = 0;
   let i = 0;
   return await navigator.serial.getPorts().then((ports) => {
     for (const port_ of ports) {
@@ -27,6 +25,17 @@ async function attemptAutoconnect() {
     }
   });
 }
+
+// Somehow, the order that Teensy serial ports are reported by Chrome gets randomized each time
+// the Teensy is plugged in, so use AUTOCONNECT_INDEX to set which one you want.
+function updateAutoConnectIndex(number) {
+  AUTOCONNECT_INDEX = parseInt(number, 10);
+  localStorage.autoConnectIndex = AUTOCONNECT_INDEX;
+  if (localStorage.autoConnect) {
+    attemptAutoconnect();
+  }
+}
+document.getElementById("autoConnectIndex").value = AUTOCONNECT_INDEX;
 
 async function connectSerial() {
   // Prompt user to select any serial port.
