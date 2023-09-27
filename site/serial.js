@@ -78,7 +78,7 @@ async function sendSerialLine() {
   dataToSend = document.getElementById("lineToSend").value;
   lineHistory.unshift(dataToSend);
   historyIndex = -1; // No history entry selected
-  if (document.getElementById("addLine").checked == true) dataToSend = dataToSend + "\r\n";
+  if (document.getElementById("addLine").checked == true) dataToSend = dataToSend + "\n";
   if (document.getElementById("echoOn").checked == true) appendToTerminal("> " + dataToSend);
   await writer.write(dataToSend);
   document.getElementById("lineToSend").value = "";
