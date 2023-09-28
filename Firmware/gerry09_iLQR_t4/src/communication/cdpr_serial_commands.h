@@ -32,9 +32,10 @@ enum : char {
   POLL_SPLINE_STATUS = '!',
   DEBUG_COMPUTE_AND_PRINT_TRAVEL_SPLINE_SAMPLED = '%',
   SPLINE_DEBUG_PRINT_NUM_SEGMENTS = '#',
-  SPLINE_DEBUG_SAMPLE_1S = '*',  // Print spline from 0s to 1s, every 0.1s
-  SPLINE_QUERY_AT_TIME = '>',    // `x>0.5` would print x, xdot at time 0.5
-  SPLINE_QUERY_COEFFS = '<',     // `x<3` would print coeffs for segment 3
+  SPLINE_DEBUG_PRINT_DURATION = 'T',  // Print spline duration, not implemented
+  SPLINE_DEBUG_SAMPLE_1S = '*',       // Print spline from 0s to 1s, every 0.1s
+  SPLINE_QUERY_AT_TIME = '>',         // `x>0.5` would print x, xdot at time 0.5
+  SPLINE_QUERY_COEFFS = '<',          // `x<3` would print coeffs for segment 3
   WAYPOINTS_PRINT_NUM_WAYPOINTS = '@',
   WAYPOINTS_PRINT_WAYPOINT = '$',
   // WAYPOINTS_DEBUG_SAMPLE_1S // TODO!!!
