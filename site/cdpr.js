@@ -458,7 +458,7 @@ const LINE_REGEX = new RegExp("^\\s*" + joinRegexWith([PREAMBLE_REGEX, MOTOR_REG
 
 const SETPOINT_STATUS_REGEX = new RegExp(
   "^setpoint: STATUS: " +
-    joinRegexWith([FLOAT_REGEX, INT_REGEX, INT_REGEX, INT_REGEX], /\s/).source +
+    joinRegexWith([FLOAT_REGEX, INT_REGEX, INT_REGEX, INT_REGEX, FLOAT_REGEX], /\s/).source +
     "\\s*$"
 );
 // regex to extract the state from a line of the form:
@@ -516,12 +516,13 @@ Cdpr.prototype.parseLogString = function (logString, printToTerminal_cb) {
         if (line.toLowerCase().startsWith("setpoint")) {
           printlnSetpoint(line);
           const resultStatus = line.match(SETPOINT_STATUS_REGEX);
-          if (resultStatus && resultStatus.length == 5) {
+          if (resultStatus && resultStatus.length == 6) {
             this.setpointStatus = {
               t_s: parseFloat(resultStatus[1]),
               state: parseInt(resultStatus[2]),
               status: parseInt(resultStatus[3]),
               isDone: parseInt(resultStatus[4]),
+              tTotal_s: parseFloat(resultStatus[5]),
             };
             this.redraw_setpoint_status();
           }

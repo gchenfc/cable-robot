@@ -30,6 +30,7 @@ class SetpointPurePursuit : public SetpointBasic {
   virtual V desVel(float) override { return kZero<3>(); }
   virtual A desAcc(float) override { return kZero<3>(); }
   virtual bool isDone(float) override { return false; }
+  virtual float timeTotal_s() const override { return 999999; }
 
  protected:
   X setpoint_;
