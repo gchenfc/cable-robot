@@ -83,7 +83,7 @@ function Cdpr(frameDims, eeDims) {
 
 Cdpr.prototype.sendStartupMessages = function () {
   // Initializing Marker Changer parameters
-  this.send("ss2,10"); // Set color changing speed
+  // this.send("ss2,10"); // Set color changing speed
   // this.send('ss1,150');
 };
 
@@ -222,7 +222,6 @@ Cdpr.prototype.update = function (dt) {
       this.setpointStatus.state,
       this.stroke_queue.length
     );
-    // this.spray(this.setpointStatus.state == 2);
 
     this.ipadStateUpdate();
 
@@ -238,7 +237,7 @@ Cdpr.prototype.ipadStateUpdate = function () {
       if (this.brush_status == BrushStatus.PREPPING_TO_PAINT) return;
       if (this.brush_status == BrushStatus.READY_TO_PAINT) {
         this.brush_status = BrushStatus.MOVING_TO_PAINT;
-        this.spray(true, (force = true)).then(() => {
+        painter.start_painting().then(() => {
           this.brush_status = BrushStatus.PAINTING;
         });
       }
@@ -257,13 +256,20 @@ Cdpr.prototype.ipadStateUpdate = function () {
   if (this.status == Status.DRAWING) {
     if (this.trackerStatus.state != 2) { // TRACKER FAILED!!!
       // TODO(gerry): how to handle this?
+      painter.finish_painting();
+    }
+    if (this.trackerStatus.state == 2) {
+      const time_left_s = this.setpointStatus.tTotal_s - this.setpointStatus.t_s;
+      if (time_left_s < painter.time_to_finish_painting()) {
+        painter.finish_painting();
+      }
     }
     if (this.setpointStatus.state == 0) {  // finished drawing
       if (this.brush_status == BrushStatus.PAINTING) {
         this.send("xc", false); // clear waypoints
         // retract the brush
         this.brush_status = BrushStatus.RETRACTING;
-        this.spray(false, (force = true)).then(() => {
+        painter.prep_for_travel().then(() => {
           this.brush_status = BrushStatus.IDLE;
         });
         return;
@@ -293,20 +299,22 @@ Cdpr.prototype.ipadStateUpdate = function () {
     this.send("x?"); // poll status
     // Start dipping
     this.brush_status = BrushStatus.PREPPING_TO_PAINT;
-    Arm.do_dip_blocking().then(() => {
+    painter.refill().then(() => {
       console.log("FINISHED DIPPING, prepping to draw");
-      this.spray(false, force=true).then(() => {
+      painter.prep_for_start_painting().then(() => {
         console.log("Prepped for drawing!");
         this.brush_status = BrushStatus.READY_TO_PAINT;
       });
     });
-    // TODO: start dipping here?
     this.status = Status.DUMMY_STATE_FOR_DELAY;
     setTimeout(() => {this.status = Status.TRAVELING;}, 100); // give enough time for poll to respond
   }
 }
 
-Cdpr.prototype.should_breakup_stroke = function (threshold=0.7) {
+Cdpr.prototype.should_breakup_stroke = function () {
+  const threshold = painter.distance_between_refills();
+  if (threshold < 0) return false;
+
   // Compute the length of the curve this.tmp_queue by summing the distances between points
   let length = 0;
   for (let i = 1; i < this.tmp_queue.length; i++) {
@@ -388,24 +396,6 @@ Cdpr.prototype.setSwitchableControllerMode = function (mode) {
     this.control_mode = ControlMode.POSITION;
   }
   this.switchable_controller_mode = mode;
-};
-Cdpr.prototype.spray = async function (on, force = false) {
-  // if (!force && this.isSpray != on) {
-  //   this.send(`s${on ? 1 : 0}`);
-  //   this.send(`sM1,${on ? 8000 : 0}`);
-  //   this.isSpray = on;
-  // }
-  // await new Promise(r => setTimeout(r, BRUSH_WAIT_DELAY_MS));
-
-  if (this.isSpray != on || force) {
-    this.isSpray = on;
-    if (on) {
-      await Arm.do_start_paint_blocking();
-    } else {
-      await Arm.do_prep_paint_blocking();
-    }
-    console.log("DONE PAINTING");
-  }
 };
 var color_timer = null;
 Cdpr.prototype.set_color = function (color, retry = false) {

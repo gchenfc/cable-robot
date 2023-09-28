@@ -5,11 +5,13 @@ const gamepad_canvas = document.getElementById("gamepad_canvas");
 const gamepad_ctx = gamepad_canvas.getContext("2d");
 
 var gamepad_idx = null;
+
 // const cdpr = new Cdpr(new Dims(2.9, 2.3), new Dims(0.184, 0.122));
 // const cdpr = new Cdpr(new Dims(3.05, 2.34), new Dims(0.1778, 0.14));
 // const cdpr = new Cdpr(new Dims(4.685, 3.62), new Dims(0.827, 0.63));
-const cdpr = new Cdpr(new Dims(5.77, 3.586), new Dims(0.184, 0.122));
-// const cdpr = new Cdpr(new Dims(2.9464, 2.26), new Dims(0.1, 0.1));
+// const cdpr = new Cdpr(new Dims(5.77, 3.586), new Dims(0.184, 0.122));  // RAW-AIR
+const cdpr = new Cdpr(new Dims(2.9464, 2.26), new Dims(0.1, 0.1));  // Klaus
+const painter = new Painter();
 
 // const cdpr = new Cdpr(new Dims(6.17, 2.64), new Dims(0.184, 0.122));
 const drawing = new Drawing();
@@ -28,15 +30,8 @@ function init() {
   gamepad.onpress["DPAD_RIGHT"] = function (state) { cdpr.control_mode = ControlMode.POSITION; };
   gamepad.onpress["DPAD_UP"] = function (state) { cdpr.setSwitchableControllerMode(SwitchableControllerMode.WAYPOINTS); };
   gamepad.onpress["DPAD_DOWN"] = function (state) { cdpr.setSwitchableControllerMode(SwitchableControllerMode.TRACKING); };
-  // gamepad.onchange["RT"] = function (state) { cdpr.spray(state); };
-  // gamepad.onchange["LT"] = function (state) { cdpr.spray(state); };
-  // gamepad.onpress["RB"] = function (state) { cdpr.next_color(); };
-  // gamepad.onpress["LB"] = function (state) { cdpr.prev_color(); };
-  gamepad.onchange["RT"] = function (state) { if (state) cdpr.spray(true, true); }; // go paint
-  gamepad.onchange["RB"] = function (state) { if (state) cdpr.spray(false, true); }; // prep paint
-  gamepad.onchange["LT"] = function (state) { if (state) Arm.do_dip_blocking(); }; // dip paint
-  gamepad.onchange["LB"] = function (state) { if (state) Arm.do_move_home_blocking(); }; // home
   gamepad.onpress["RSTICK"] = function (state) { cdpr.estop(); };
+  painter.setGamepadCallbacks(gamepad); // Uses RT, RB, LT, LB
   // start updates
   cdpr_interval = setInterval(function () { cdpr.update(1 / 30); }, 1000 / 30);
   // cdpr_interval = setInterval(function () { cdpr.update(1 / 50); }, 1000 / 50);
