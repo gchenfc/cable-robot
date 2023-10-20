@@ -54,7 +54,9 @@ class Debug {
         serial_.printf("%d %d %.4f %.4f\t|\t",  //
                        winch.error(), winch.state(),
                        print_raw_ ? winch.lenRaw() : winch.len(),
-                       print_raw_ ? winch.lenDotRaw() : winch.lenDot());
+                      //  print_raw_ ? winch.lenDotRaw() : winch.lenDot()
+                       print_raw_ ? winch.torque() : winch.tension()
+                       );
       }
       serial_.println(spray_.spray());
     }
@@ -387,12 +389,12 @@ bool parseMsgCanPassthrough(Odrive& odrive, AsciiParser parser,
       odrive.send(node, cmd, f1, i1, i2);
       break;
     case MSG_SET_INPUT_VEL:
+    case MSG_SET_VEL_LIMIT:  // Vel, Current
     case MSG_SET_TRAJ_ACCEL_LIMITS:
       UNWRAP_PARSE_CHECK(, parser.parse(&f1, &f2));
       odrive.send(node, cmd, f1, f2);
       break;
     case MSG_SET_INPUT_TORQUE:
-    case MSG_SET_VEL_LIMIT:
     case MSG_SET_TRAJ_VEL_LIMIT:
     case MSG_SET_TRAJ_INERTIA:
       UNWRAP_PARSE_CHECK(, parser.parse(&f1));
