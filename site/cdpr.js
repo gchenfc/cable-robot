@@ -192,16 +192,16 @@ Cdpr.prototype.update = function (dt) {
     // this.x = this.lastState.controller.est.x + this.vx * this.max_dt * 2.0;
     // this.y = this.lastState.controller.est.y + this.vy * this.max_dt * 2.0;
 
-    this.x = clamp(
-      this.x,
-      this.ee.w / 2 + this.padding_w,
-      this.frame.w - this.ee.w / 2 - this.padding_w
-    );
-    this.y = clamp(
-      this.y,
-      this.ee.h / 2 + this.padding_h,
-      this.frame.h - this.ee.h / 2 - this.padding_h
-    );
+    // this.x = clamp(
+    //   this.x,
+    //   this.ee.w / 2 + this.padding_w,
+    //   this.frame.w - this.ee.w / 2 - this.padding_w
+    // );
+    // this.y = clamp(
+    //   this.y,
+    //   this.ee.h / 2 + this.padding_h,
+    //   this.frame.h - this.ee.h / 2 - this.padding_h
+    // );
     console.log(
       "WE ARE IN VELOCITY MODE",
       this.mode,
