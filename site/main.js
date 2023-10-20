@@ -49,15 +49,17 @@ function draw() {
   draw_gamepad();
 }
 function draw_drawing() {
+  const SCALE = cdpr_canvas.width / cdpr.frame.w;
   cdpr_ctx.clearRect(0, 0, cdpr_canvas.width, cdpr_canvas.height);
   cdpr_ctx.save();
-  cdpr_ctx.drawAtLoc(0, cdpr_canvas.height, 100, drawing, -100);
+  cdpr_ctx.drawAtLoc(0, cdpr_canvas.height, SCALE, drawing, -SCALE);
   cdpr_ctx.restore();
 }
 function draw_cdpr() {
+  const SCALE = cdpr_canvas.width / cdpr.frame.w;
   // cdpr_ctx.clearRect(0, 0, cdpr_canvas.width, cdpr_canvas.height);
   cdpr_ctx.save();
-  cdpr_ctx.drawAtLoc(0, cdpr_canvas.height, 100, cdpr, -100);
+  cdpr_ctx.drawAtLoc(0, cdpr_canvas.height, SCALE, cdpr, -SCALE);
   cdpr_ctx.restore();
 }
 function draw_gamepad() {
@@ -77,7 +79,7 @@ function draw_gamepad() {
     gamepad_ctx.fillStyle = '#0004'
     gamepad_ctx.fillRect(0, 0, 300, 260);
   }
-  gamepad_ctx.drawAtLoc(0, 0, 300, gamepad_drawing);
+  gamepad_ctx.drawAtLoc(0, 0, 300, gamepad_drawing, 200);
   gamepad_ctx.restore();
 }
 
