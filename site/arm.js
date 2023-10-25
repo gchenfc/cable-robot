@@ -50,13 +50,13 @@ function Mutex() {
 const armSerialMutex = new MutexImmediateFail();
 // const armSerialMutex = new Mutex();
 
-const Arm = (function () {
+const createArm = function () {
   const socket = new WebSocket("ws://localhost:5910/aoeuPATH");
-
+  
   socket.onopen = () => {
     console.log("Arm WebSocket connection established");
   };
-
+  
   socket.onerror = (error) => {
     console.error(`Arm WebSocket error: ${error}`);
   };
@@ -175,6 +175,7 @@ const Arm = (function () {
   // ----------------------------
 
   return {
+    socket,
     rpc,
     do_move_home,
     do_move_storage,
@@ -214,4 +215,13 @@ const Arm = (function () {
     command_angle_blocking, // command_angle_blocking(id, angle_deg)
     command_angles_deg_blocking, // command_angles_deg_blocking([q1, q2, q3, q4, q5])
   };
-})();
+};
+
+let Arm = createArm();
+
+setInterval(() => {
+  if (Arm.socket.readyState !== WebSocket.OPEN) {
+    console.log("Arm WebSocket connection closed, attempting to reconnect");
+    Arm = createArm();
+  }
+}, 1000);
