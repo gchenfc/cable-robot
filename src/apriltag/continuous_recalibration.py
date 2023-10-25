@@ -56,7 +56,7 @@ class ContinuousRecalibration:
     TAG_LOCATIONS = {k: (v[0] * 0.0254, v[1] * 0.0254) for k, v in TAG_LOCATIONS_IN.items()}
     EE_LOCATION_IN = (18.5, 2)
     EE_LOCATION = (EE_LOCATION_IN[0] * 0.0254, EE_LOCATION_IN[1] * 0.0254)
-    W_EE, H_EE = 20.5 * 0.0254, 15.75 * 0.0254
+    W_EE, H_EE = 21.5 * 0.0254, 15.25 * 0.0254
     ANCHOR_POINTS = np.array([[W - W_EE, 0], [W - W_EE, H - H_EE], [0, H - H_EE], [0, 0]])
 
     # INITIALIZATION
