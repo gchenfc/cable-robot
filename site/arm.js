@@ -51,7 +51,7 @@ const armSerialMutex = new MutexImmediateFail();
 // const armSerialMutex = new Mutex();
 
 const createArm = function () {
-  const socket = new WebSocket("ws://localhost:5910/aoeuPATH");
+  let socket = new WebSocket("ws://localhost:5910/aoeuPATH");
   
   socket.onopen = () => {
     console.log("Arm WebSocket connection established");
@@ -108,7 +108,6 @@ const createArm = function () {
     const request = { method, params: { args, kwargs } };
     return new Promise(async (resolve, reject) => {
 
-      
       if (false) {
         resolve("no arm connected, automatically resolving");
       }
@@ -175,7 +174,12 @@ const createArm = function () {
   // ----------------------------
 
   return {
-    socket,
+    get socket() {
+      return socket;
+    },
+    set socket(value) {
+      socket = value;
+    },
     rpc,
     do_move_home,
     do_move_storage,
@@ -187,7 +191,7 @@ const createArm = function () {
     do_dip_blocking,
     do_prep_paint_blocking,
     do_start_paint_blocking,
-    
+
     enable_all_blocking, // void -> # bytes written
     disable_all_blocking, // void -> # bytes written
 
@@ -197,7 +201,7 @@ const createArm = function () {
     cur_canvas_point_blocking, // void -> [x, y, z]
     joint_angles_deg_blocking, // void -> [q1, q2, q3, q4, q5]
     joint_angles_string_blocking, // void -> string
-    
+
     go_to_blocking_blocking, // [q1, q2, q3, q4, q5] -> void
     go_to_pose_blocking_blocking, // 4x4 homogeneous transformation matrix -> bool
     go_to_canvas_blocking_blocking, // [x, y, z] -> bool
@@ -219,9 +223,16 @@ const createArm = function () {
 
 let Arm = createArm();
 
+// Logic to re-connect Arm on disconnect
 setInterval(() => {
   if (Arm.socket.readyState !== WebSocket.OPEN) {
     console.log("Arm WebSocket connection closed, attempting to reconnect");
-    Arm = createArm();
+    Arm.socket = new WebSocket("ws://localhost:5910/aoeuPATH");
+    Arm.socket.onopen = () => {
+      console.log("Arm WebSocket connection established");
+    };
+    Arm.socket.onerror = (error) => {
+      console.error(`Arm WebSocket error: ${error}`);
+    };
   }
 }, 1000);
