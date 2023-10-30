@@ -29,6 +29,7 @@ const SwitchableControllerMode = {
 const Mode = { IDLE: "idle", HOLD: "hold", TRACKING: "tracking" };
 const Status = {
   IDLE: "idle",
+  PAUSED: "paused",
   DRAWING: "drawing",
   TRAVELING: "traveling",
   WAITING_FOR_BRUSH: "waiting_for_brush",
@@ -79,6 +80,7 @@ function Cdpr(frameDims, eeDims) {
   this.max_dt = 0.1;
   this.logBuffer = "";
   this.mode = Mode.IDLE;
+  setInterval(this.updateEta.bind(this), 3000);
 }
 
 Cdpr.prototype.sendStartupMessages = function () {
@@ -230,6 +232,17 @@ Cdpr.prototype.update = function (dt) {
 };
 
 Cdpr.prototype.ipadStateUpdate = function () {
+  if (
+    (this.trackerStatus.state != 2) &&
+    (this.status == Status.TRAVELING ||
+      this.status == Status.DRAWING ||
+      this.status == Status.WAITING_FOR_BRUSH)
+  ) {
+    // tracker failed!
+    this.pause();
+    return;
+  }
+  if (this.status == Status.PAUSED) return;
   if (this.status == Status.WAITING_FOR_BRUSH) return;
   if (this.status == Status.DUMMY_STATE_FOR_DELAY) return;
   if (this.status == Status.TRAVELING) {
@@ -269,9 +282,18 @@ Cdpr.prototype.ipadStateUpdate = function () {
         this.send("xc", false); // clear waypoints
         // retract the brush
         this.brush_status = BrushStatus.RETRACTING;
-        painter.prep_for_travel().then(() => {
-          this.brush_status = BrushStatus.IDLE;
-        });
+        if (this.stroke_queue.length > 0) {
+          painter.prep_for_travel().then(() => {
+            this.brush_status = BrushStatus.IDLE;
+          });
+        } else {
+          painter
+            .prep_for_travel()
+            .then(() => painter.rest())
+            .then(() => {
+              this.brush_status = BrushStatus.IDLE;
+            });
+        }
         return;
       }
       if (this.brush_status == BrushStatus.RETRACTING) return;
@@ -308,6 +330,33 @@ Cdpr.prototype.ipadStateUpdate = function () {
     });
     this.status = Status.DUMMY_STATE_FOR_DELAY;
     setTimeout(() => {this.status = Status.TRAVELING;}, 100); // give enough time for poll to respond
+  }
+}
+
+Cdpr.prototype.pause = function () {
+  this.status = Status.PAUSED;
+  document.getElementById("resumeButton").disabled = false;
+  painter.rest();
+}
+
+Cdpr.prototype.resume = function () {
+  if (this.status == Status.PAUSED) {
+    this.send("x0;x1"); // restart and start traveling
+    this.send("x?"); // poll status
+    // Start dipping
+    this.brush_status = BrushStatus.PREPPING_TO_PAINT;
+    painter.refill().then(() => {
+      console.log("FINISHED DIPPING, prepping to draw");
+      painter.prep_for_start_painting().then(() => {
+        console.log("Prepped for drawing!");
+        this.brush_status = BrushStatus.READY_TO_PAINT;
+      });
+    });
+    this.status = Status.DUMMY_STATE_FOR_DELAY;
+    document.getElementById("resumeButton").disabled = true;
+    setTimeout(() => {this.status = Status.TRAVELING;}, 100); // give enough time for poll to respond
+  } else {
+    console.error("Cannot resume from status", this.status, ".  Can only resume from status PAUSED");
   }
 }
 
@@ -355,6 +404,36 @@ Cdpr.prototype.add_to_queue = function (x, y, spray, force = false) {
     this.tmp_queue
   );
 };
+
+Cdpr.prototype.updateEta = function () {
+  const seconds = this.eta();
+  const minutes = Math.floor(seconds / 60);
+  const seconds_rem = Math.floor(seconds - minutes * 60);
+  document.getElementById("eta").innerHTML = `${minutes}m${seconds_rem}s`;
+}
+
+Cdpr.prototype.eta = function () {
+  // First get the time left for the current stroke
+  // const time_left_s = this.setpointStatus.tTotal_s - this.setpointStatus.t_s
+  // TODO: check the conditions for which the above is valid
+
+  if (this.stroke_queue.length == 0) return 0;
+
+  const SPEED = 0.1;
+  const PAINT_DIP_DURATION = 25;
+  let total_time = 0;
+
+  let cur = this.stroke_queue[0][0];
+  for (const stroke of this.stroke_queue) {
+    for (const pt of stroke) {
+      total_time += dist(cur[0], cur[1], pt[0], pt[1]) / SPEED;
+      // console.log(cur, pt, total_time);
+      cur = pt;
+    }
+    total_time += PAINT_DIP_DURATION;
+  }
+  return total_time;
+}
 
 /*********** CDPR CONTROL CODE ***************/
 Cdpr.prototype.clearErrors = function () {
@@ -642,6 +721,7 @@ Cdpr.prototype.redraw_painting_status = function () {
   painting_status_icon.value = this.status;
   switch (this.status) {
     case Status.IDLE:
+    case Status.PAUSED:
     case Status.DUMMY_STATE_FOR_DELAY:
     case Status.WAITING_FOR_BRUSH:
       painting_status_div.style.backgroundColor = "#aaa";

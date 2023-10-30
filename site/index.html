@@ -98,6 +98,15 @@
           <label for="painting_status">Painting Status</label>
           <input type="text" id="painting_status" size="8" readonly></input>
         </div>
+        <div class="status" id="pause_div" style="float:left;">
+          <label>Play/Pause Painting</label>
+          <button id="pauseButton" onclick="cdpr.pause();">Pause</button>
+          <button id="resumeButton" onclick="cdpr.resume();" disabled=true>Resume</button>
+        </div>
+        <div class="status" id="eta_div" style="float:left;">
+          <label>ETA: </label>
+          <label id="eta"></label>
+        </div>
       </div>
     </div>
   </div>
