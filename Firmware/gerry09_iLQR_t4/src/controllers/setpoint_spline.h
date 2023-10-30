@@ -35,6 +35,7 @@ class SetpointSpline : public SetpointBasic {
     return appendZeroTheta(spline_.evaldd(t));
   }
   virtual bool isDone(float t) override { return (t >= spline_.duration()); }
+  virtual float timeTotal_s() const override { return spline_.duration(); }
 
  protected:
   PPoly<750> spline_;

@@ -42,6 +42,8 @@ MyGamepad.prototype.update = function (gamepad) {
     buttons = BUTTONS_0079_0006;
   } else if (gamepad.id.includes("Vendor: 046d Product: c219")) {
     buttons = BUTTONS_LOGITECH;
+  } else if (gamepad.id.includes("Vendor: 046d Product: c216")) {
+    buttons = BUTTONS_LOGITECH;
   } else {
     buttons = BUTTONS;
   }

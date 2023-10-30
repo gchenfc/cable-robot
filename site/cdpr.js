@@ -29,6 +29,7 @@ const SwitchableControllerMode = {
 const Mode = { IDLE: "idle", HOLD: "hold", TRACKING: "tracking" };
 const Status = {
   IDLE: "idle",
+  PAUSED: "paused",
   DRAWING: "drawing",
   TRAVELING: "traveling",
   WAITING_FOR_BRUSH: "waiting_for_brush",
@@ -79,11 +80,12 @@ function Cdpr(frameDims, eeDims) {
   this.max_dt = 0.1;
   this.logBuffer = "";
   this.mode = Mode.IDLE;
+  setInterval(this.updateEta.bind(this), 3000);
 }
 
 Cdpr.prototype.sendStartupMessages = function () {
   // Initializing Marker Changer parameters
-  this.send("ss2,10"); // Set color changing speed
+  // this.send("ss2,10"); // Set color changing speed
   // this.send('ss1,150');
 };
 
@@ -192,16 +194,16 @@ Cdpr.prototype.update = function (dt) {
     // this.x = this.lastState.controller.est.x + this.vx * this.max_dt * 2.0;
     // this.y = this.lastState.controller.est.y + this.vy * this.max_dt * 2.0;
 
-    this.x = clamp(
-      this.x,
-      this.ee.w / 2 + this.padding_w,
-      this.frame.w - this.ee.w / 2 - this.padding_w
-    );
-    this.y = clamp(
-      this.y,
-      this.ee.h / 2 + this.padding_h,
-      this.frame.h - this.ee.h / 2 - this.padding_h
-    );
+    // this.x = clamp(
+    //   this.x,
+    //   this.ee.w / 2 + this.padding_w,
+    //   this.frame.w - this.ee.w / 2 - this.padding_w
+    // );
+    // this.y = clamp(
+    //   this.y,
+    //   this.ee.h / 2 + this.padding_h,
+    //   this.frame.h - this.ee.h / 2 - this.padding_h
+    // );
     console.log(
       "WE ARE IN VELOCITY MODE",
       this.mode,
@@ -222,7 +224,6 @@ Cdpr.prototype.update = function (dt) {
       this.setpointStatus.state,
       this.stroke_queue.length
     );
-    // this.spray(this.setpointStatus.state == 2);
 
     this.ipadStateUpdate();
 
@@ -231,6 +232,17 @@ Cdpr.prototype.update = function (dt) {
 };
 
 Cdpr.prototype.ipadStateUpdate = function () {
+  if (
+    (this.trackerStatus.state != 2) &&
+    (this.status == Status.TRAVELING ||
+      this.status == Status.DRAWING ||
+      this.status == Status.WAITING_FOR_BRUSH)
+  ) {
+    // tracker failed!
+    this.pause();
+    return;
+  }
+  if (this.status == Status.PAUSED) return;
   if (this.status == Status.WAITING_FOR_BRUSH) return;
   if (this.status == Status.DUMMY_STATE_FOR_DELAY) return;
   if (this.status == Status.TRAVELING) {
@@ -238,7 +250,7 @@ Cdpr.prototype.ipadStateUpdate = function () {
       if (this.brush_status == BrushStatus.PREPPING_TO_PAINT) return;
       if (this.brush_status == BrushStatus.READY_TO_PAINT) {
         this.brush_status = BrushStatus.MOVING_TO_PAINT;
-        this.spray(true, (force = true)).then(() => {
+        painter.start_painting().then(() => {
           this.brush_status = BrushStatus.PAINTING;
         });
       }
@@ -257,15 +269,31 @@ Cdpr.prototype.ipadStateUpdate = function () {
   if (this.status == Status.DRAWING) {
     if (this.trackerStatus.state != 2) { // TRACKER FAILED!!!
       // TODO(gerry): how to handle this?
+      painter.finish_painting();
+    }
+    if (this.trackerStatus.state == 2) {
+      const time_left_s = this.setpointStatus.tTotal_s - this.setpointStatus.t_s;
+      if (time_left_s < painter.time_to_finish_painting()) {
+        painter.finish_painting();
+      }
     }
     if (this.setpointStatus.state == 0) {  // finished drawing
       if (this.brush_status == BrushStatus.PAINTING) {
         this.send("xc", false); // clear waypoints
         // retract the brush
         this.brush_status = BrushStatus.RETRACTING;
-        this.spray(false, (force = true)).then(() => {
-          this.brush_status = BrushStatus.IDLE;
-        });
+        if (this.stroke_queue.length > 0) {
+          painter.prep_for_travel().then(() => {
+            this.brush_status = BrushStatus.IDLE;
+          });
+        } else {
+          painter
+            .prep_for_travel()
+            .then(() => painter.rest())
+            .then(() => {
+              this.brush_status = BrushStatus.IDLE;
+            });
+        }
         return;
       }
       if (this.brush_status == BrushStatus.RETRACTING) return;
@@ -293,20 +321,49 @@ Cdpr.prototype.ipadStateUpdate = function () {
     this.send("x?"); // poll status
     // Start dipping
     this.brush_status = BrushStatus.PREPPING_TO_PAINT;
-    Arm.do_dip_blocking().then(() => {
+    painter.refill().then(() => {
       console.log("FINISHED DIPPING, prepping to draw");
-      this.spray(false, force=true).then(() => {
+      painter.prep_for_start_painting().then(() => {
         console.log("Prepped for drawing!");
         this.brush_status = BrushStatus.READY_TO_PAINT;
       });
     });
-    // TODO: start dipping here?
     this.status = Status.DUMMY_STATE_FOR_DELAY;
     setTimeout(() => {this.status = Status.TRAVELING;}, 100); // give enough time for poll to respond
   }
 }
 
-Cdpr.prototype.should_breakup_stroke = function (threshold=0.7) {
+Cdpr.prototype.pause = function () {
+  this.status = Status.PAUSED;
+  document.getElementById("resumeButton").disabled = false;
+  painter.rest();
+}
+
+Cdpr.prototype.resume = function () {
+  if (this.status == Status.PAUSED) {
+    this.send("x0;x1"); // restart and start traveling
+    this.send("x?"); // poll status
+    // Start dipping
+    this.brush_status = BrushStatus.PREPPING_TO_PAINT;
+    painter.refill().then(() => {
+      console.log("FINISHED DIPPING, prepping to draw");
+      painter.prep_for_start_painting().then(() => {
+        console.log("Prepped for drawing!");
+        this.brush_status = BrushStatus.READY_TO_PAINT;
+      });
+    });
+    this.status = Status.DUMMY_STATE_FOR_DELAY;
+    document.getElementById("resumeButton").disabled = true;
+    setTimeout(() => {this.status = Status.TRAVELING;}, 100); // give enough time for poll to respond
+  } else {
+    console.error("Cannot resume from status", this.status, ".  Can only resume from status PAUSED");
+  }
+}
+
+Cdpr.prototype.should_breakup_stroke = function () {
+  const threshold = painter.distance_between_refills();
+  if (threshold < 0) return false;
+
   // Compute the length of the curve this.tmp_queue by summing the distances between points
   let length = 0;
   for (let i = 1; i < this.tmp_queue.length; i++) {
@@ -348,6 +405,36 @@ Cdpr.prototype.add_to_queue = function (x, y, spray, force = false) {
   );
 };
 
+Cdpr.prototype.updateEta = function () {
+  const seconds = this.eta();
+  const minutes = Math.floor(seconds / 60);
+  const seconds_rem = Math.floor(seconds - minutes * 60);
+  document.getElementById("eta").innerHTML = `${minutes}m${seconds_rem}s`;
+}
+
+Cdpr.prototype.eta = function () {
+  // First get the time left for the current stroke
+  // const time_left_s = this.setpointStatus.tTotal_s - this.setpointStatus.t_s
+  // TODO: check the conditions for which the above is valid
+
+  if (this.stroke_queue.length == 0) return 0;
+
+  const SPEED = 0.1;
+  const PAINT_DIP_DURATION = 25;
+  let total_time = 0;
+
+  let cur = this.stroke_queue[0][0];
+  for (const stroke of this.stroke_queue) {
+    for (const pt of stroke) {
+      total_time += dist(cur[0], cur[1], pt[0], pt[1]) / SPEED;
+      // console.log(cur, pt, total_time);
+      cur = pt;
+    }
+    total_time += PAINT_DIP_DURATION;
+  }
+  return total_time;
+}
+
 /*********** CDPR CONTROL CODE ***************/
 Cdpr.prototype.clearErrors = function () {
   this.send("g0");
@@ -388,24 +475,6 @@ Cdpr.prototype.setSwitchableControllerMode = function (mode) {
     this.control_mode = ControlMode.POSITION;
   }
   this.switchable_controller_mode = mode;
-};
-Cdpr.prototype.spray = async function (on, force = false) {
-  // if (!force && this.isSpray != on) {
-  //   this.send(`s${on ? 1 : 0}`);
-  //   this.send(`sM1,${on ? 8000 : 0}`);
-  //   this.isSpray = on;
-  // }
-  // await new Promise(r => setTimeout(r, BRUSH_WAIT_DELAY_MS));
-
-  if (this.isSpray != on || force) {
-    this.isSpray = on;
-    if (on) {
-      await Arm.do_start_paint_blocking();
-    } else {
-      await Arm.do_prep_paint_blocking();
-    }
-    console.log("DONE PAINTING");
-  }
 };
 var color_timer = null;
 Cdpr.prototype.set_color = function (color, retry = false) {
@@ -458,7 +527,7 @@ const LINE_REGEX = new RegExp("^\\s*" + joinRegexWith([PREAMBLE_REGEX, MOTOR_REG
 
 const SETPOINT_STATUS_REGEX = new RegExp(
   "^setpoint: STATUS: " +
-    joinRegexWith([FLOAT_REGEX, INT_REGEX, INT_REGEX, INT_REGEX], /\s/).source +
+    joinRegexWith([FLOAT_REGEX, INT_REGEX, INT_REGEX, INT_REGEX, FLOAT_REGEX], /\s/).source +
     "\\s*$"
 );
 // regex to extract the state from a line of the form:
@@ -516,12 +585,13 @@ Cdpr.prototype.parseLogString = function (logString, printToTerminal_cb) {
         if (line.toLowerCase().startsWith("setpoint")) {
           printlnSetpoint(line);
           const resultStatus = line.match(SETPOINT_STATUS_REGEX);
-          if (resultStatus && resultStatus.length == 5) {
+          if (resultStatus && resultStatus.length == 6) {
             this.setpointStatus = {
               t_s: parseFloat(resultStatus[1]),
               state: parseInt(resultStatus[2]),
               status: parseInt(resultStatus[3]),
               isDone: parseInt(resultStatus[4]),
+              tTotal_s: parseFloat(resultStatus[5]),
             };
             this.redraw_setpoint_status();
           }
@@ -651,6 +721,7 @@ Cdpr.prototype.redraw_painting_status = function () {
   painting_status_icon.value = this.status;
   switch (this.status) {
     case Status.IDLE:
+    case Status.PAUSED:
     case Status.DUMMY_STATE_FOR_DELAY:
     case Status.WAITING_FOR_BRUSH:
       painting_status_div.style.backgroundColor = "#aaa";

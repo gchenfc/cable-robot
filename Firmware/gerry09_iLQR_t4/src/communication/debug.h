@@ -54,7 +54,9 @@ class Debug {
         serial_.printf("%d %d %.4f %.4f\t|\t",  //
                        winch.error(), winch.state(),
                        print_raw_ ? winch.lenRaw() : winch.len(),
-                       print_raw_ ? winch.lenDotRaw() : winch.lenDot());
+                      //  print_raw_ ? winch.lenDotRaw() : winch.lenDot()
+                       print_raw_ ? winch.torque() : winch.tension()
+                       );
       }
       serial_.println(spray_.spray());
     }
@@ -341,25 +343,6 @@ bool parseMsgController(ControllerInterface* controller, Odrive& odrive,
   }
 }
 
-bool parseMsgSpray(Spray& spray, AsciiParser parser, Stream& serial) {
-  UNWRAP_PARSE_CHECK(, parser.checkChar(SerialPrefixes::SPRAY));
-  // First check for 0 and 1, for backwards compatibility.
-  AsciiParser parser0 = parser, parser1 = parser;
-  if (parser0.checkChar('0') && parser0.checkChar('\n')) {
-    serial.println("Spray off");
-    spray.setSpray(false);
-    return true;
-  } else if (parser1.checkChar('1') && parser1.checkChar('\n')) {
-    serial.println("Spray on");
-    spray.setSpray(true);
-    return true;
-  } else {
-    // Forward rest of args to spray paint MCU
-    spray.forward_msg(parser.get_buffer_cur(), parser.len());
-    return true;
-  }
-}
-
 bool parseMsgCanPassthrough(Odrive& odrive, AsciiParser parser,
                             Stream& serial) {
   UNWRAP_PARSE_CHECK(uint8_t node, parser.parseInt('n', &node))
@@ -406,12 +389,12 @@ bool parseMsgCanPassthrough(Odrive& odrive, AsciiParser parser,
       odrive.send(node, cmd, f1, i1, i2);
       break;
     case MSG_SET_INPUT_VEL:
+    case MSG_SET_VEL_LIMIT:  // Vel, Current
     case MSG_SET_TRAJ_ACCEL_LIMITS:
       UNWRAP_PARSE_CHECK(, parser.parse(&f1, &f2));
       odrive.send(node, cmd, f1, f2);
       break;
     case MSG_SET_INPUT_TORQUE:
-    case MSG_SET_VEL_LIMIT:
     case MSG_SET_TRAJ_VEL_LIMIT:
     case MSG_SET_TRAJ_INERTIA:
       UNWRAP_PARSE_CHECK(, parser.parse(&f1));
@@ -447,6 +430,7 @@ void Debug::readSerial(uint64_t timeout_us) {
   while (serial_.available() && (micros() - t_start_ < timeout_us)) {
     char c = serial_.read();
     if (c == ';') c = '\n';
+    if (c == '\r') c = '\n';
     buffer[bufferi] = c;
     bufferi++;
     if (c == '\n') {
@@ -456,8 +440,8 @@ void Debug::readSerial(uint64_t timeout_us) {
                                               serial_)) &&
           (!human_serial::parseMsgController(controller_, odrive_, parser,
                                              serial_)) &&
-          (!human_serial::parseMsgSpray(spray_, parser, serial_)) &&
           (!human_serial::parseMsgCanPassthrough(odrive_, parser, serial_)) &&
+          (!spray_.parseMsg(parser, serial_)) &&
           (!custom_callback_(parser)) &&
           (!controller_->readSerial(AsciiParser(buffer, bufferi), serial_))) {
         serial_.println("Parse Error");

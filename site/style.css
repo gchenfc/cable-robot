@@ -31,6 +31,10 @@ div.arm {
 div.arm button {
   margin: 2px 1px;
 }
+div.spray {
+  border: 1px solid #888;
+  padding: 10px;
+}
 
 div.status {
   background-color: #ccc;
@@ -63,6 +67,27 @@ h2 {
   margin: 0;
 }
 
+.toggleButton {
+    cursor: pointer;
+    padding: 5px;
+    background-color: rgba(255, 0, 0, 0.2);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+}
+.toggleButton.active {
+    background-color: #0f0;
+}
+.slider-container {
+  margin: 20px;
+}
+.slider-container label {
+  display: block;
+  margin-bottom: 10px;
+}
+.slider-container [type=range] {
+  width: 100%;
+}
 
 /* Begin plagiarism from https://github.com/mmiscool/serialTerminal.com */
 .serialterminalbackground {

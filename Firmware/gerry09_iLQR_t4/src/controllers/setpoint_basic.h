@@ -64,6 +64,7 @@ class SetpointBasic : public SetpointInterface {
   virtual V desVel(float t) = 0;
   virtual A desAcc(float t) = 0;
   virtual bool isDone(float t) = 0;
+  virtual float timeTotal_s() const { return 0; }
 
   /*************************** Protected Variables ***************************/
  protected:
@@ -148,8 +149,8 @@ bool SetpointBasic::readSerial(AsciiParser parser, Stream& serialOut) {
       return true;
     }
     case SetpointCommands::POLL_STATUS:
-      serialOut.printf("setpoint: STATUS: %.3f %d %d %d\n", time_s(), state_,
-                       status_, isDone(time_s()));
+      serialOut.printf("setpoint: STATUS: %.3f %d %d %d %.3f\n", time_s(),
+                       state_, status_, isDone(time_s()), timeTotal_s());
       return true;
     case SetpointCommands::DEBUG_COMPUTE_AND_PRINT_TRAVEL_SPLINE_SAMPLED: {
       travel_spline_ = calcTravelSpline(desPosSafe(time_s(t_paused_us_)));
@@ -437,10 +438,11 @@ SetpointBasic::TravelSpline SetpointBasic::calcTravelSpline(const X& start,
     float d_decel = 0.5 * max_accel * t_decel * t_decel;
     float t_mid = (d - d_accel - d_decel) / max_speed;
     float t1 = t_accel, t2 = t_accel + t_mid, t3 = t_accel + t_mid + t_decel;
-    add_segment(0, 0, 0, 0);             // Dummy segment
+    add_segment(0, 0, 0, 0);                         // Dummy segment
     add_segment(t1, 0.5 * max_accel, cur_speed, 0);  // First accelerate
-    add_segment(t2, 0, max_speed, d_accel);  // Then constant velocity
-    add_segment(t3, -0.5 * max_accel, max_speed, d - d_decel);  // Then decelerate
+    add_segment(t2, 0, max_speed, d_accel);          // Then constant velocity
+    add_segment(t3, -0.5 * max_accel, max_speed,
+                d - d_decel);  // Then decelerate
     return spline;
   }
 #else

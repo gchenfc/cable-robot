@@ -21,6 +21,7 @@ observable.
 
 import argparse
 import time
+import traceback
 import socket
 import read_tags
 import util
@@ -56,7 +57,7 @@ class ContinuousRecalibration:
     TAG_LOCATIONS = {k: (v[0] * 0.0254, v[1] * 0.0254) for k, v in TAG_LOCATIONS_IN.items()}
     EE_LOCATION_IN = (18.5, 2)
     EE_LOCATION = (EE_LOCATION_IN[0] * 0.0254, EE_LOCATION_IN[1] * 0.0254)
-    W_EE, H_EE = 20.5 * 0.0254, 15.75 * 0.0254
+    W_EE, H_EE = 21.5 * 0.0254, 15.25 * 0.0254
     ANCHOR_POINTS = np.array([[W - W_EE, 0], [W - W_EE, H - H_EE], [0, H - H_EE], [0, 0]])
 
     # INITIALIZATION
@@ -65,12 +66,16 @@ class ContinuousRecalibration:
                  PORT='/dev/tty.usbmodem103568503',
                  lpf_alpha=0.01,
                  slew_rate_m_per_detection=0.0001,
+                 far_slew_rate_m_per_detection=0.003,
+                 far_slew_rate_threshold_m=0.03,
                  send_interval_s=1):
         self.params = initial_lparams.copy()
         self.robot = CableRobot(print_raw=True, write_timeout=None, initial_msg='d10,10', port=PORT)
         self.apriltag = Detector(self.DEFAULT_CAMERA_PARAMS, timeout=0.1)
         self.lpf_alpha = lpf_alpha
         self.slew_rate_m_per_detection = slew_rate_m_per_detection
+        self.far_slew_rate_m_per_detection = far_slew_rate_m_per_detection
+        self.far_slew_rate_threshold_m = far_slew_rate_threshold_m
         self.last_t = None
         self.send_interval_s = send_interval_s
         self.last_send = time.time()
@@ -94,12 +99,23 @@ class ContinuousRecalibration:
             return
         self.last_t = detection[0]
         self.read_robot()
-        params = self.calibrate(*detection)
-        slew_rate = self.slew_rate_m_per_detection / self.lpf_alpha
+        try:
+            params = self.calibrate(*detection)
+        except KeyError:  # Probably one of the tags is missing
+            print(traceback.format_exc())
+            return
+        if (np.linalg.norm(params[2] - self.params[2]) > self.far_slew_rate_threshold_m):
+            slew_rate = self.far_slew_rate_m_per_detection / self.lpf_alpha
+        else:
+            slew_rate = self.slew_rate_m_per_detection / self.lpf_alpha
+        old_params = self.params.copy()
         self.params += self.lpf_alpha * np.clip(params - self.params, -slew_rate, slew_rate)
         if (self.last_send + self.send_interval_s) < time.time():
             self.last_send = time.time()
             self.send_params_to_robot(dry_run=dry_run)
+            print(f"Updating params from {old_params[2]}\n" + \
+                  f"             towards {params[2]}\n" + \
+                  f"                  to {self.params[2]}")
 
     # IO
     def read_robot(self):
@@ -189,12 +205,14 @@ def main():
     initial_lparams = np.array(
         [[-5.39622604e-03, -7.55211558e-04, -6.64543613e-03, -1.23351185e-02],
          [4.89951909e-01, 2.22615412e-01, 2.81593933e-01, 5.03432217e-01],
-         [2.57621490e+00, 4.13689341e+00, 4.23045204e+00, 2.70388820e+00]])
+         [2.73, 4.03, 4.11, 2.70]])
     # with ContinuousRecalibration(initial_lparams=initial_lparams, lpf_alpha=0.01) as cr:
     with ContinuousRecalibration(initial_lparams=initial_lparams,
                                  send_interval_s=0,
                                  lpf_alpha=0.1,
-                                 slew_rate_m_per_detection=0.0001) as cr:
+                                 slew_rate_m_per_detection=0.0001,
+                                 far_slew_rate_m_per_detection=0.001,
+                                 far_slew_rate_threshold_m=0.03) as cr:
         while True:
             cr.update(dry_run=False)
 
