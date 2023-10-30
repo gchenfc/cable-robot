@@ -10,7 +10,7 @@ function hide_disabled_paint_controls() {
 
 function Painter() {
   /**
-   * Painter has 5 functions.  They should be called like this:
+   * Painter has 8 functions.  They should be called like this:
    *    await Promise.all([
    *      Painter.prep_for_start_painting(),
    *      travel()
@@ -30,6 +30,10 @@ function Painter() {
    *    await Painter.prep_for_travel();
    *
    *    // ok to move on to next stroke :)
+   * 
+   *    // after all strokes are done
+   *    
+   *    await Painter.rest();
    */
 
   if (PAINT_MODE == "spray") {
@@ -42,6 +46,7 @@ function Painter() {
     this.time_to_finish_painting = Spray.time_to_finish_painting.bind(Spray);
     this.finish_painting = Spray.sprayOff.bind(Spray);
     this.prep_for_travel = Spray.sprayOff.bind(Spray); // this is a safety measure, just in case finish_painting was never called
+    this.rest = async () => {};
 
     Spray.setup();
   } else if (PAINT_MODE == "arm") {
@@ -55,6 +60,7 @@ function Painter() {
     this.time_to_finish_painting = () => 0;
     this.finish_painting = async () => {};
     this.prep_for_travel = Arm.do_prep_paint_blocking.bind(Arm);
+    this.rest = Arm.do_move_storage_blocking.bind(Arm);
   } else {
     alert("Invalid paint mode: " + PAINT_MODE + "\nShould be 'spray' or 'arm'");
   }
