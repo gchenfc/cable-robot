@@ -26,10 +26,10 @@ class SetpointPurePursuit : public SetpointBasic {
   virtual bool readSerial(AsciiParser parser, Stream& serialOut) override;
 
   // We can just offload the pure pursuit logic to the travel stroke calculator
-  virtual X desPos(float) override { return setpoint_; }
-  virtual V desVel(float) override { return kZero<3>(); }
-  virtual A desAcc(float) override { return kZero<3>(); }
-  virtual bool isDone(float) override { return false; }
+  virtual X desPos(float) const override { return setpoint_; }
+  virtual V desVel(float) const override { return kZero<3>(); }
+  virtual A desAcc(float) const override { return kZero<3>(); }
+  virtual bool isDone(float) const override { return false; }
   virtual float timeTotal_s() const override { return 999999; }
 
  protected:

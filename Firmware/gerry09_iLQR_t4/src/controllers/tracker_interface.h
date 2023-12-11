@@ -37,7 +37,9 @@ class TrackerInterface {
   virtual void update() {
     if (!update_timer_.check()) return;
     if (state_ == POSITION_CONTROL) {
-      if (setpoint_->getStatus() != SetpointInterface::Status::NOMINAL) {
+      const auto setpoint_status = setpoint_->getStatus();
+      if ((setpoint_status != SetpointInterface::Status::NOMINAL) &&
+          (setpoint_status != SetpointInterface::Status::TRACKING_SOFT_ERROR)) {
         setState(GRAVITY_COMP);  // kill the controller
       }
     }

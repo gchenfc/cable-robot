@@ -27,10 +27,12 @@ class SetpointWaypoints : public SetpointBasic {
 
   virtual bool readSerial(AsciiParser parser, Stream& serialOut) override;
 
-  virtual X desPos(float t) override { return spline_.eval(t); }
-  virtual V desVel(float t) override { return spline_.evald(t); }
-  virtual A desAcc(float t) override { return spline_.evaldd(t); }
-  virtual bool isDone(float t) override { return t >= spline_.duration(); }
+  virtual X desPos(float t) const override { return spline_.eval(t); }
+  virtual V desVel(float t) const override { return spline_.evald(t); }
+  virtual A desAcc(float t) const override { return spline_.evaldd(t); }
+  virtual bool isDone(float t) const override {
+    return t >= spline_.duration();
+  }
   virtual float timeTotal_s() const override { return spline_.duration(); }
 
  protected:

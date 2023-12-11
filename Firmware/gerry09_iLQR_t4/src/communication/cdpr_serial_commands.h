@@ -44,6 +44,8 @@ enum : char {
   SET_SWITCH_TO_RUN_THRESHOLD =
       't',  // If we are not within this threshold to the first setpoint, don't
             // switch to "RUN" mode
+  SET_MAX_DISTANCE_TO_SETPOINT = 'd',
+  CLEAR_TRACKING_SOFT_ERROR = 'D',
   SET_TRAVEL_SPEED = 's',          // e.g. `xs0.5` sets travel speed to 0.5 m/s
   SET_TRAVEL_ACCEL = 'a',          // e.g. `xa1.5` sets travel accel to 1.5 m/s
   SET_WORKSPACE_LIMITS_REL = 'l',  // e.g. xlu0.5 sets upper lim to height-0.5

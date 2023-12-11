@@ -60,10 +60,10 @@ class SetpointBasic : public SetpointInterface {
   virtual V setpointVel() override;
   virtual A setpointAcc() override;
   /**************************** Implement these!!! ****************************/
-  virtual X desPos(float t) = 0;
-  virtual V desVel(float t) = 0;
-  virtual A desAcc(float t) = 0;
-  virtual bool isDone(float t) = 0;
+  virtual X desPos(float t) const = 0;
+  virtual V desVel(float t) const = 0;
+  virtual A desAcc(float t) const = 0;
+  virtual bool isDone(float t) const = 0;
   virtual float timeTotal_s() const { return 0; }
 
   /*************************** Protected Variables ***************************/
@@ -83,6 +83,7 @@ class SetpointBasic : public SetpointInterface {
 
   // Tunable parameters
   float switch_to_run_threshold_ = 0.1;
+  float max_distance_to_setpoint_ = 0.2;
   float travel_speed_ = 0.1, travel_accel_ = 1.0;
   X limits_min_ = {{mountPoints[3][0] + kDefaultPaddingWidth,
                     mountPoints[3][1] + kDefaultPaddingHeight, 0.}};
@@ -94,7 +95,14 @@ class SetpointBasic : public SetpointInterface {
   // Convenience functions
   virtual X estimatedCurPos() const;
   virtual bool setState(State state);  // prep for next state
-  X desPosSafe(float t) { return clamp(desPos(t), limits_min_, limits_max_); }
+  X desPosSafe(float t) const {
+    return clamp(desPos(t), limits_min_, limits_max_);
+  }
+  X setpointPosConst() const;
+  float distToSetpoint() const {
+    return norm(estimatedCurPos() - setpointPosConst());
+  }
+  bool clearTrackingSoftError();
   static TravelSpline calcTravelSpline(const X& start, const X& end,
                                        float max_speed = 0.1,
                                        float max_accel = 1.0,
@@ -148,6 +156,10 @@ bool SetpointBasic::readSerial(AsciiParser parser, Stream& serialOut) {
       advanceTo(t);
       return true;
     }
+    case SetpointCommands::CLEAR_TRACKING_SOFT_ERROR:
+      serialOut.println("setpoint: CLEAR TRACKING SOFT ERROR");
+      clearTrackingSoftError();
+      return true;
     case SetpointCommands::POLL_STATUS:
       serialOut.printf("setpoint: STATUS: %.3f %d %d %d %.3f\n", time_s(),
                        state_, status_, isDone(time_s()), timeTotal_s());
@@ -167,6 +179,11 @@ bool SetpointBasic::readSerial(AsciiParser parser, Stream& serialOut) {
     case SetpointCommands::SET_SWITCH_TO_RUN_THRESHOLD: {
       UNWRAP_PARSE_CHECK(float threshold, parser.parseFloat('\n', &threshold));
       switch_to_run_threshold_ = threshold;
+      return true;
+    }
+    case SetpointCommands::SET_MAX_DISTANCE_TO_SETPOINT: {
+      UNWRAP_PARSE_CHECK(float dist, parser.parseFloat('\n', &dist));
+      max_distance_to_setpoint_ = dist;
       return true;
     }
     case SetpointCommands::SET_TRAVEL_SPEED: {
@@ -238,7 +255,13 @@ bool SetpointBasic::readSerial(AsciiParser parser, Stream& serialOut) {
 
 void SetpointBasic::update() {
   if (!update_timer_.check()) return;
+  if (status_ == Status::TRACKING_SOFT_ERROR) return;  // start() will reset
   if (status_ == Status::NOMINAL) {
+    if (distToSetpoint() > max_distance_to_setpoint_) {
+      pause();
+      status_ = Status::TRACKING_SOFT_ERROR;
+      return;
+    }
     switch (state_) {
       case State::HOLD:
         break;
@@ -341,6 +364,12 @@ bool SetpointBasic::setState(State state) {
       return false;
   }
   state_ = state;
+  return true;
+}
+
+bool SetpointBasic::clearTrackingSoftError() {
+  if (status_ != Status::TRACKING_SOFT_ERROR) return false;
+  status_ = Status::NOMINAL;
   return true;
 }
 
@@ -457,6 +486,10 @@ Vector<3> SetpointBasic::estimatedCurPos() const {
 
 SetpointInterface::X SetpointBasic::setpointPos() {
   initialize();
+  return setpointPosConst();
+}
+
+SetpointInterface::X SetpointBasic::setpointPosConst() const {
   switch (state_) {
     case State::HOLD:
       return hold_pos_;

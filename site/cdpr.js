@@ -451,7 +451,7 @@ Cdpr.prototype.estop = function () {
 };
 Cdpr.prototype.setMode = function (mode) {
   const pos = (this.lastState.t_us !== null) ? this.lastState.controller.est : new Pose2(this.x, this.y, 0);
-  const MSGS = { [Mode.IDLE]: 'k0', [Mode.HOLD]: `xw${pos.x},${pos.y},0;k1;g8`, [Mode.TRACKING]: `k2;x2` };
+  const MSGS = { [Mode.IDLE]: 'k0', [Mode.HOLD]: `xw${pos.x},${pos.y},0;k1;g8`, [Mode.TRACKING]: `k2;xD;x2` };
   // const MSGS = { [Mode.IDLE]: 'g7', [Mode.HOLD]: `ta${pos.x},${pos.y};g6;g8`, [Mode.TRACKING]: `g1;g2` };
   this.send(MSGS[mode]);
   this.mode = mode;
@@ -621,6 +621,11 @@ Cdpr.prototype.redraw_setpoint_status = function () {
   }
   if (setpoint_status_div == null) {
     setpoint_status_div = document.getElementById("setpoint_status_div");
+    return;
+  }
+  if (this.setpointStatus.status == 3) {  // Soft Tracking Error
+    setpoint_status_div.style.backgroundColor = "orange";
+    setpoint_status_icon.value = "SAFETY STOP";
     return;
   }
   if (this.setpointStatus.status != 2) {
