@@ -8,16 +8,19 @@
 /******** DEFAULT GAINS AND PARAMETERS **********/
 #if defined(KLAUS) || defined(DFL)
 static constexpr float kKp = 15000, kKi = 15, kKd = 30,  // gains
+    kIntegratorLimit = 10,                               // integrator limit
     kTMin_N = 8, kTMid_N = 54, kTMax_N = 100,            // tensions
     kEeMass_kg = 3;                                      // end effector mass
 #endif
 #ifdef AIR
-static constexpr float kKp = 10000, kKi = 50, kKd = 500,  // gains
-    kTMin_N = 8, kTMid_N = 54, kTMax_N = 100,             // tensions
-    kEeMass_kg = 3;                                       // end effector mass
+static constexpr float kKp = 10000, kKi = 0, kKd = 500,  // gains
+    kIntegratorLimit = 0,                                // integrator limit
+    kTMin_N = 16, kTMid_N = 150, kTMax_N = 300,          // tensions
+    kEeMass_kg = 3;                                      // end effector mass
 #endif
 #ifdef HYDROPONICS
 static constexpr float kKp = 30000, kKi = 50, kKd = 50,  // gains
+    kIntegratorLimit = 10,                               // integrator limit
     kTMin_N = 5, kTMid_N = 50, kTMax_N = 140,            // tensions
     kEeMass_kg = 3;                                      // end effector mass
 #endif
@@ -44,7 +47,7 @@ class TrackerGouttefarde : public TrackerSafe {
  protected:
   Kinematics kinematics_;
   float fs_ = 0., fv_ = 0., mu_ = 0.;
-  float kp_ = kKp, ki_ = kKi, kd_ = kKd, integratorLimit_ = kTMax_N * 2;
+  float kp_ = kKp, ki_ = kKi, kd_ = kKd, integratorLimit_ = kIntegratorLimit;
   float minTension_ = kTMin_N, midTension_ = kTMid_N, maxTension_ = kTMax_N;
   float eeMass_kg_ = kEeMass_kg;
   Pid pid_[4]{Pid(kp_, ki_, kd_, integratorLimit_),

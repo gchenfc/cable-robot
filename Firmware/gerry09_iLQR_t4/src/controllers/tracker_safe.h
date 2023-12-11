@@ -24,7 +24,7 @@ class TrackerSafe : public TrackerInterface {
   SetpointInterface::A setpointAcc();
 
  protected:
-  float max_distance_to_setpoint_ = 0.05;
+  float max_distance_to_setpoint_ = 0.25;
   float max_vel_setpoint_ = 3;
   float max_acc_setpoint_ = 30;
 
