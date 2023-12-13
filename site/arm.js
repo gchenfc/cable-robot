@@ -129,6 +129,36 @@ const createArm = function () {
       };
     });
   }
+  async function check_overheat() {
+    const SOFT_LIMIT = 65;
+    const DEADBAND = 5;  // re-enables when SOFT_LIMIT - DEADBAND
+    var temps = await read_temperatures_blocking();
+    // Hard limit is 70C, so we set a soft limit at 65C.
+    if (temps.some((t) => t > SOFT_LIMIT)) {
+      do_move_storage_blocking();
+      document.getElementById("arm_error_div").style.display = "block";
+      document.getElementById("arm_error").textContent =
+        `Close to overheating.  Pausing.  ` +
+        `Last checked at ${new Date().toLocaleTimeString()}.  ` + 
+        `Motor Temps: (${temps}) > ${SOFT_LIMIT} (restart @ ${SOFT_LIMIT - DEADBAND}, hard @ 70)`;
+      // alert("Arm is close to overheating.  Pausing for a bit.");
+      await new Promise((r) => setTimeout(r, 10000));
+    }
+    else {
+      return false;
+    }
+    temps = await read_temperatures_blocking();
+    while (temps.some((t) => t > (SOFT_LIMIT - DEADBAND))) {
+      document.getElementById("arm_error").textContent =
+      `Close to overheating.  Pausing.  ` +
+      `Last checked at ${new Date().toLocaleTimeString()}.  ` + 
+      `Motor Temps: (${temps}) > ${SOFT_LIMIT} (restart @ ${SOFT_LIMIT - DEADBAND}, hard @ 70)`;
+      await new Promise((r) => setTimeout(r, 10000));
+      temps = await read_temperatures_blocking();
+    }
+    document.getElementById("arm_error_div").style.display = "none";
+    return true;
+  }
 
   const do_move_home = async () => await rpc("arm.do_move_home");
   const do_move_storage = async () => await rpc("arm.do_move_storage");
@@ -156,6 +186,8 @@ const createArm = function () {
   const go_to_pose_blocking_blocking = async (goal) => await rpc_blocking("arm.go_to_pose_blocking", args=[goal]);
   const go_to_canvas_blocking_blocking = async (goal) => await rpc_blocking("arm.go_to_canvas_blocking", args=[goal]);
   const reached_goal_blocking = async (goal) => await rpc_blocking("arm.reached_goal", args=[goal]);
+  const read_temperatures_blocking = async () => await rpc_blocking("arm.read_temperatures");
+  const ping_all_blocking = async () => await rpc_blocking("arm.ping_all");
 
   
   // Low-level, recommend not using
@@ -191,6 +223,7 @@ const createArm = function () {
     do_dip_blocking,
     do_prep_paint_blocking,
     do_start_paint_blocking,
+    check_overheat,
 
     enable_all_blocking, // void -> # bytes written
     disable_all_blocking, // void -> # bytes written
@@ -201,6 +234,8 @@ const createArm = function () {
     cur_canvas_point_blocking, // void -> [x, y, z]
     joint_angles_deg_blocking, // void -> [q1, q2, q3, q4, q5]
     joint_angles_string_blocking, // void -> string
+    read_temperatures_blocking, // void -> [t0, t1, t2, t3, t4, t5]
+    ping_all_blocking, // void -> [s0, s1, s2, s3, s4, s5]
 
     go_to_blocking_blocking, // [q1, q2, q3, q4, q5] -> void
     go_to_pose_blocking_blocking, // 4x4 homogeneous transformation matrix -> bool

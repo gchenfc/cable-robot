@@ -54,8 +54,13 @@ function Painter() {
     this.prep_for_start_painting = Arm.do_prep_paint_blocking.bind(Arm);
     this.start_painting = Arm.do_start_paint_blocking.bind(Arm);
 
-    this.distance_between_refills = () => 0.7;
-    this.refill = Arm.do_dip_blocking.bind(Arm);
+    this.distance_between_refills = () => 1.0;
+    this.refill = async () => {
+      if (await Arm.check_overheat()) {
+        await Arm.do_prep_paint();
+      }
+      await Arm.do_dip_blocking();
+    };
 
     this.time_to_finish_painting = () => 0;
     this.finish_painting = async () => {};
