@@ -233,7 +233,8 @@ Cdpr.prototype.update = function (dt) {
 
 Cdpr.prototype.ipadStateUpdate = function () {
   if (
-    (this.trackerStatus.state != 2) &&
+    ((this.trackerStatus.state != 2) ||
+     (this.setpointStatus.status == 3)) &&
     (this.status == Status.TRAVELING ||
       this.status == Status.DRAWING ||
       this.status == Status.WAITING_FOR_BRUSH)
