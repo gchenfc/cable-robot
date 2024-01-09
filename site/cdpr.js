@@ -127,22 +127,25 @@ Cdpr.prototype.draw = function (ctx) {
     ctx.stroke();
   }
   // Draw setpoint queue
-  ctx.beginPath();
-  ctx.lineWidth = 0.05;
-  ctx.strokeStyle = "#afa";
   ctx.lineCap = "round";
-  // first draw the stroke being drawn
-  if (this.stroke_being_drawn.length > 0) {
-    ctx.moveTo(this.stroke_being_drawn[0][0], this.stroke_being_drawn[0][1]);
-    for (const [x, y] of this.stroke_being_drawn) {
+  // first draw the queue
+  ctx.lineWidth = 0.03;
+  ctx.strokeStyle = "rgba(170,170,170,0.4)";
+  for (const stroke of this.stroke_queue) {
+    ctx.beginPath();
+    ctx.moveTo(stroke[0][0], stroke[0][1]);
+    for (const [x, y] of stroke) {
       ctx.lineTo(x, y);
     }
     ctx.stroke();
   }
-  ctx.strokeStyle = "#aaa";
-  for (const stroke of this.stroke_queue) {
-    ctx.moveTo(stroke[0][0], stroke[0][1]);
-    for (const [x, y] of stroke) {
+  // then draw the stroke currently being drawn (on top)
+  ctx.lineWidth = 0.03;
+  ctx.strokeStyle = "#afa";
+  if (this.stroke_being_drawn.length > 0) {
+    ctx.beginPath();
+    ctx.moveTo(this.stroke_being_drawn[0][0], this.stroke_being_drawn[0][1]);
+    for (const [x, y] of this.stroke_being_drawn) {
       ctx.lineTo(x, y);
     }
     ctx.stroke();
@@ -421,7 +424,7 @@ Cdpr.prototype.eta = function () {
   if (this.stroke_queue.length == 0) return 0;
 
   const SPEED = 0.1;
-  const PAINT_DIP_DURATION = 25;
+  const PAINT_DIP_DURATION = 15.375;
   let total_time = 0;
 
   let cur = this.stroke_queue[0][0];
