@@ -9,8 +9,8 @@ var gamepad_idx = null;
 // const cdpr = new Cdpr(new Dims(2.9, 2.3), new Dims(0.184, 0.122));
 // const cdpr = new Cdpr(new Dims(3.05, 2.34), new Dims(0.1778, 0.14));
 // const cdpr = new Cdpr(new Dims(4.685, 3.62), new Dims(0.827, 0.63));
-// const cdpr = new Cdpr(new Dims(5.77, 3.586), new Dims(0.184, 0.122));  // RAW-AIR
-const cdpr = new Cdpr(new Dims(2.9464, 2.26), new Dims(0.1, 0.1));  // Klaus
+const cdpr = new Cdpr(new Dims(5.77, 3.586), new Dims(0.184, 0.122));  // RAW-AIR
+// const cdpr = new Cdpr(new Dims(2.9464, 2.26), new Dims(0.1, 0.1));  // Klaus
 const painter = new Painter();
 
 // const cdpr = new Cdpr(new Dims(6.17, 2.64), new Dims(0.184, 0.122));
