@@ -67,7 +67,14 @@ function draw_gamepad() {
   gamepad_ctx.save();
   if (gamepad_idx !== null) {
     gamepad.update(navigator.getGamepads()[gamepad_idx]);
-    cdpr.setControls(SPEED / Math.sqrt(2) * gamepad.joyleft.x, SPEED / Math.sqrt(2) * gamepad.joyleft.y);
+    if (gamepad.LSTICK) {
+      const speed = 0.05
+      cdpr.setControls(speed / Math.sqrt(2) * gamepad.joyright.x, speed / Math.sqrt(2) * gamepad.joyright.y);
+    } else {
+      const speed = SPEED;
+      cdpr.setControls(speed / Math.sqrt(2) * gamepad.joyleft.x, speed / Math.sqrt(2) * gamepad.joyleft.y);
+    }
+    console.log(cdpr.vx, cdpr.vy);
     drawing.update(cdpr.x, cdpr.y, gamepad.LT || gamepad.RT);
     gamepad_drawing.update(gamepad);
   } else {
