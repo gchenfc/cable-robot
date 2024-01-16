@@ -89,7 +89,7 @@ function setPainterGamepadCallbacks(gamepad) {
       gamepad.onchange["RT"] = call_if_true(painter.start_painting); // go paint
       gamepad.onchange["RB"] = call_if_true(painter.prep_for_start_painting); // prep paint
       gamepad.onchange["LT"] = call_if_true(Arm.do_dip_blocking); // dip paint
-      gamepad.onchange["LB"] = call_if_true(Arm.do_move_home_blocking); // home
+      gamepad.onchange["LB"] = call_if_true(Arm.do_move_storage_blocking); // storage
       break;
     // case "revolver":
     //   gamepad.onchange["RT"] = function (state) { cdpr.spray(state); };
