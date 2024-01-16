@@ -310,17 +310,10 @@ Cdpr.prototype.ipadStateUpdate = function () {
   }
   if (this.status == Status.IDLE) {
     // Send new waypoints
-    if (this.stroke_queue.length > 0) {
-      this.stroke_being_drawn = this.stroke_queue.shift();
-    } else {
-      this.stroke_being_drawn = [];
-      return; // ??? wait until there is a stroke
+    if (!this.send_new_stroke()) {
+      return; // wait until there is a stroke
     }
-    // We're starting a new stroke!!!
-    this.send("xc", false); // clear waypoints
-    for (const [x, y] of this.stroke_being_drawn) {
-      this.send("xn" + x + "," + y + "," + 0.0);
-    }
+    // We're starting a new stroke!
     this.send("x0;x1"); // restart and start traveling
     this.send("x?"); // poll status
     // Start dipping
@@ -335,6 +328,23 @@ Cdpr.prototype.ipadStateUpdate = function () {
     this.status = Status.DUMMY_STATE_FOR_DELAY;
     setTimeout(() => {this.status = Status.TRAVELING;}, 100); // give enough time for poll to respond
   }
+}
+
+// Returns true if sent a new stroke, false otherwise (no strokes in queue)
+Cdpr.prototype.send_new_stroke = function () {
+  if (this.stroke_queue.length > 0) {
+    this.stroke_being_drawn = this.stroke_queue.shift();
+  } else {
+    this.stroke_being_drawn = [];
+    return false; // ??? wait until there is a stroke
+  }
+
+  // We're starting a new stroke!!!
+  this.send("xc", false); // clear waypoints
+  for (const [x, y] of this.stroke_being_drawn) {
+    this.send("xn" + x + "," + y + "," + 0.0);
+  }
+  return true;
 }
 
 Cdpr.prototype.pause = function () {
