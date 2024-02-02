@@ -331,12 +331,14 @@ Cdpr.prototype.ipadStateUpdate = function () {
 }
 
 // Returns true if sent a new stroke, false otherwise (no strokes in queue)
-Cdpr.prototype.send_new_stroke = function () {
-  if (this.stroke_queue.length > 0) {
-    this.stroke_being_drawn = this.stroke_queue.shift();
-  } else {
-    this.stroke_being_drawn = [];
-    return false; // ??? wait until there is a stroke
+Cdpr.prototype.send_new_stroke = function (pop = true) {
+  if (pop) {
+    if (this.stroke_queue.length > 0) {
+      this.stroke_being_drawn = this.stroke_queue.shift();
+    } else {
+      this.stroke_being_drawn = [];
+      return false; // ??? wait until there is a stroke
+    }
   }
 
   // We're starting a new stroke!!!
