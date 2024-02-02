@@ -74,7 +74,6 @@ function draw_gamepad() {
       const speed = SPEED;
       cdpr.setControls(speed / Math.sqrt(2) * gamepad.joyleft.x, speed / Math.sqrt(2) * gamepad.joyleft.y);
     }
-    console.log(cdpr.vx, cdpr.vy);
     drawing.update(cdpr.x, cdpr.y, gamepad.LT || gamepad.RT);
     gamepad_drawing.update(gamepad);
   } else {

@@ -221,12 +221,12 @@ Cdpr.prototype.update = function (dt) {
     }
   } else if (this.control_mode == ControlMode.POSITION) {
     // TODO: this!
-    console.log(
-      "WE ARE IN POSITION MODE",
-      this.status,
-      this.setpointStatus.state,
-      this.stroke_queue.length
-    );
+    // console.log(
+    //   "WE ARE IN POSITION MODE",
+    //   this.status,
+    //   this.setpointStatus.state,
+    //   this.stroke_queue.length
+    // );
 
     this.ipadStateUpdate();
 
