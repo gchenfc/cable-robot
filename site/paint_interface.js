@@ -52,14 +52,18 @@ function Painter() {
   } else if (PAINT_MODE == "arm") {
     // Although these functions are named blocking, they are all async!!!
     this.prep_for_start_painting = Arm.do_prep_paint_blocking.bind(Arm);
-    this.start_painting = Arm.do_start_paint_blocking.bind(Arm);
+    this.start_painting = async () => {
+      await Arm.do_start_paint_blocking();
+      await new Promise(r => setTimeout(r, 1000));
+    };
 
-    this.distance_between_refills = () => 1.0;
+    this.distance_between_refills = () => 0.5;
     this.refill = async () => {
       if (await Arm.check_overheat()) {
-        await Arm.do_prep_paint();
+        await Arm.do_prep_paint_blocking();
       }
       await Arm.do_dip_blocking();
+      await new Promise(r => setTimeout(r, 1000));
     };
 
     this.time_to_finish_painting = () => 0;
