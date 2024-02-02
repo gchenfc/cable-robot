@@ -51,6 +51,15 @@
               document.getElementById('joint_angles').value = await Arm.joint_angles_string_blocking();
             };
           </script>
+          <div style="background: lightgray;">
+            <button id="get_joint_temperatures_button">Get Temps</button>
+            <input type="text" id="joint_temperatures" size="21" readonly style="width: max-content; font-family: monospace;"></input>
+          </div>
+          <script>
+            document.getElementById("get_joint_temperatures_button").onclick = async function () {
+              document.getElementById('joint_temperatures').value = await Arm.read_temperatures_blocking();
+            };
+          </script>
         </div>
         <!-- Spray Control -->
         <div class="spray" id="spray_controls">
