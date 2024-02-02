@@ -133,6 +133,7 @@ const createArm = function () {
     const SOFT_LIMIT = 65;
     const DEADBAND = 5;  // re-enables when SOFT_LIMIT - DEADBAND
     var temps = await read_temperatures_blocking();
+    temps[temps.length - 1] += 7;  // Make this motor stop earlier
     // Hard limit is 70C, so we set a soft limit at 65C.
     if (temps.some((t) => t > SOFT_LIMIT)) {
       do_move_storage_blocking();
@@ -148,6 +149,7 @@ const createArm = function () {
       return false;
     }
     temps = await read_temperatures_blocking();
+    temps[temps.length - 1] += 7;  // Make this motor stop earlier
     while (temps.some((t) => t > (SOFT_LIMIT - DEADBAND))) {
       document.getElementById("arm_error").textContent =
       `Close to overheating.  Pausing.  ` +
@@ -155,6 +157,7 @@ const createArm = function () {
       `Motor Temps: (${temps}) > ${SOFT_LIMIT} (restart @ ${SOFT_LIMIT - DEADBAND}, hard @ 70)`;
       await new Promise((r) => setTimeout(r, 10000));
       temps = await read_temperatures_blocking();
+      temps[temps.length - 1] += 7;  // Make this motor stop earlier
     }
     document.getElementById("arm_error_div").style.display = "none";
     return true;
