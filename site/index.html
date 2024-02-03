@@ -1,14 +1,21 @@
 <html>
 <link rel="stylesheet" href="style.css" />
 <script src="gamepad.js"></script>
-<!-- <script src="ipad.js"></script> -->
+<script src="ipad.js"></script>
+<script src="arm.js"></script>
+<!-- <script src="spray.js"></script> -->
 <script src="cdpr.js"></script>
 <script src="drawing.js"></script>
-<!-- <script defer src="serial.js"></script> -->
-<script defer src="serial_over_ws.js"></script>
+<script defer src="paint_interface.js"></script>
+<script defer src="serial.js"></script>
+<!-- <script defer src="serial_over_ws.js"></script> -->
 <script defer src="logfile.js"></script>
 <script defer src="output.js"></script>
 <script defer src="main.js"></script>
+<script>
+  // PAINT_MODE = "spray";
+  PAINT_MODE = "arm";
+</script>
 
 <head>
   <title>Cable Robot Control Panel</title>
@@ -17,10 +24,59 @@
 <body onload="init();">
   <div style="width:100%">
     <div style="width:calc(100% - 400px - 30px); float: left;">
-      <!-- <canvas class="cdpr" id="cdpr_canvas" width="300" height="230" style="aspect-ratio: 4/3;"></canvas> -->
+      <!-- Klaus -->
+      <!-- <canvas class="cdpr" id="cdpr_canvas" width="3000" height="2300" style="aspect-ratio: 4/3;"></canvas> -->
+      <!-- RAW-AIR -->
+      <!-- <canvas class="cdpr" id="cdpr_canvas" width="5833" height="5237" style="aspect-ratio: 58/52;"></canvas> -->
+      <canvas class="cdpr" id="cdpr_canvas" width="1944" height="1746" style="aspect-ratio: 58/52;"></canvas>
+      <!-- Unknown -->
+      <!-- <canvas class="cdpr" id="cdpr_canvas" width="400" height="300" style="aspect-ratio: 4/3;"></canvas> -->
       <!-- <canvas class="cdpr" id="cdpr_canvas" width="617" height="264" style="aspect-ratio: 4/3;"></canvas> -->
-      <canvas class="cdpr" id="cdpr_canvas" width="617" height="264" style="aspect-ratio: 7/3;"></canvas>
-      <canvas class="gamepad" id="gamepad_canvas" width="300" height="260" style="aspect-ratio: 300/260;"></canvas>
+      <!-- <canvas class="cdpr" id="cdpr_canvas" width="617" height="264" style="aspect-ratio: 7/3;"></canvas> -->
+      <div class="centercol">
+        <!-- Gamepad -->
+        <canvas class="gamepad" id="gamepad_canvas" width="300" height="160" style="aspect-ratio: 300/160;"></canvas>
+        <!-- Arm -->
+        <div class="arm" id="arm_controls">
+          <h2>Arm Control</h2>
+          <button onclick="Arm.do_move_home_blocking();">Go Home</button>
+          <button onclick="Arm.do_move_storage_blocking();">Go Storage</button>
+          <button onclick="Arm.enable_all_blocking();">Enable</button>
+          <button onclick="Arm.disable_all_blocking();">Disable</button>
+          <div style="background: lightgray;">
+            <button id="get_joint_angles_button">Get Angles</button>
+            <input type="text" id="joint_angles" size="21" readonly style="width: max-content; font-family: monospace;"></input>
+          </div>
+          <script>
+            document.getElementById("get_joint_angles_button").onclick = async function () {
+              document.getElementById('joint_angles').value = await Arm.joint_angles_string_blocking();
+            };
+          </script>
+          <div style="background: lightgray;">
+            <button id="get_joint_temperatures_button">Get Temps</button>
+            <input type="text" id="joint_temperatures" size="21" readonly style="width: max-content; font-family: monospace;"></input>
+          </div>
+          <script>
+            document.getElementById("get_joint_temperatures_button").onclick = async function () {
+              document.getElementById('joint_temperatures').value = await Arm.read_temperatures_blocking();
+            };
+          </script>
+        </div>
+        <!-- Spray Control -->
+        <div class="spray" id="spray_controls">
+          <h2>Spray Control</h2>
+          <button onmousedown="Spray.sprayOn();" onmouseup="Spray.sprayOff();">Momentary Spray</button>
+          <button class="toggleButton" id="sprayToggle" onclick="Spray.toggleSpray();">Spray Off</button>
+          <div class="slider-container">
+            <label for="startPos">Servo Start Position: <span id="startPosLabel">0</span></label>
+            <input type="range" id="startPos" min="0" max="180" value="0">
+          </div>
+          <div class="slider-container">
+            <label for="endPos">Servo End Position: <span id="endPosLabel">180</span></label>
+            <input type="range" id="endPos" min="0" max="180" value="180">
+          </div>
+        </div>
+      </div>
     </div>
     <div style="width: 400px; float: right;">
       <h2>Debug Output</h2>
@@ -30,10 +86,42 @@
         <option value="1">1</option>
         <option value="2">2</option>
       </select>
-      <p class="serialoutput" id="output" style="height:calc((100vw - 400px - 30px) * 0.55 * 3 / 4 - 70px - 150px-35px);"></p>
+      <!-- <p class="serialoutput" id="output" style="height:calc((100vw - 400px - 30px) * 0.55 * 3 / 4 - 70px - 150px-35px);"></p> -->
+      <p class="serialoutput" id="output" style="height:calc(150px - 20px);"></p>
       <p class="serialoutput" id="setpointOut" style="height:calc(75px - 20px);"></p>
       <p class="serialoutput" id="trackerOut" style="height:calc(75px - 20px);"></p>
-      <p class="serialoutput" id="waypointOut" style="height:calc(35px - 20px);"></p>
+      <p class="serialoutput" id="waypointOut" style="height:calc(75px - 20px);"></p>
+      <div style="width: 100%">
+        <div class="status" id="setpoint_status_div" style="float:left;">
+          <label for="setpoint_status">Setpoint Status</label>
+          <input type="text" id="setpoint_status" size="8" readonly></input>
+        </div>
+        <div class="status" id="tracker_status_div" style="float:left;">
+          <label for="tracker_status">Tracker Status</label>
+          <input type="text" id="tracker_status" size="8" readonly></input>
+        </div>
+        <div class="status" id="brush_status_div" style="float:left;">
+          <label for="brush_status">Brush Status</label>
+          <input type="text" id="brush_status" size="8" readonly></input>
+        </div>
+        <div class="status" id="painting_status_div" style="float:left;">
+          <label for="painting_status">Painting Status</label>
+          <input type="text" id="painting_status" size="8" readonly></input>
+        </div>
+        <div class="status" id="pause_div" style="float:left;">
+          <label>Play/Pause Painting</label>
+          <button id="pauseButton" onclick="cdpr.pause();">Pause</button>
+          <button id="resumeButton" onclick="cdpr.resume();" disabled=true>Resume</button>
+        </div>
+        <div class="status" id="eta_div" style="float:left;">
+          <label>ETA: </label>
+          <label id="eta"></label>
+        </div>
+        <div class="status" id="arm_error_div" style="float:left; background-color: red; display: none;">
+          <label>ARM ERROR:</label>
+          <label id="arm_error">Close to overheating.  Last checked at </label>
+        </div>
+      </div>
     </div>
   </div>
   <div style="clear: both;"></div>
@@ -62,7 +150,7 @@
     <br>
 
     <input type="checkbox" id="addLine" onclick="localStorage.addLine = this.checked;" checked>
-    <label for="addLine">send with /r/n</label>
+    <label for="addLine">send with /n</label>
 
     <input type="checkbox" id="echoOn" onclick="localStorage.echoOn = this.checked;" checked>
     <label for="echoOn">echo</label>
@@ -71,6 +159,11 @@
       checked>
     <label for="autoConnect">Auto-connect</label>
 
+    <select id="autoConnectIndex" onchange="updateAutoConnectIndex(this.value)">
+      <option value="0">0</option>
+      <option value="1">1</option>
+      <option value="2">2</option>
+    </select>
 
     <br>
     <!-- <div id="serialResults">

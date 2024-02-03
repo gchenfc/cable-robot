@@ -37,7 +37,9 @@ class TrackerInterface {
   virtual void update() {
     if (!update_timer_.check()) return;
     if (state_ == POSITION_CONTROL) {
-      if (setpoint_->getStatus() != SetpointInterface::Status::NOMINAL) {
+      const auto setpoint_status = setpoint_->getStatus();
+      if ((setpoint_status != SetpointInterface::Status::NOMINAL) &&
+          (setpoint_status != SetpointInterface::Status::TRACKING_SOFT_ERROR)) {
         setState(GRAVITY_COMP);  // kill the controller
       }
     }
@@ -113,7 +115,9 @@ bool TrackerInterface::setState(const State& state) {
       break;
     case GRAVITY_COMP:
       if (state_ == POSITION_CONTROL) {
-        if (!setpoint_->pause()) return false;
+        // if (!setpoint_->pause()) return false;
+        // Always allow switching from position control to gravity comp
+        setpoint_->pause();
       }
       break;
     case POSITION_CONTROL:
@@ -124,7 +128,7 @@ bool TrackerInterface::setState(const State& state) {
   }
 
   // Now set the initial motor torques
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 4; i++) {
     switch (state) {
       case IDLE:
         odrive.send(i, MSG_SET_INPUT_TORQUE, 0.0f);
@@ -152,10 +156,12 @@ bool TrackerInterface::encoderMsgCallback(Odrive* odrive, uint8_t winchnum) {
       // return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, 0.0f);
       return odrive->send(winchnum, MSG_CO_HEARTBEAT_CMD & 0b11111);
     case State::GRAVITY_COMP:
+      robot_.winches.at(winchnum).setTorque(hold_torque_Nm_);  // save for logging
       return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, hold_torque_Nm_);
     case State::POSITION_CONTROL: {
       float tension_N = calcTension_N(winchnum);
       float torque_Nm = robot_.winches.at(winchnum).torque_Nm(tension_N);
+      robot_.winches.at(winchnum).setTorque(torque_Nm);  // save for logging
       return odrive->send(winchnum, MSG_SET_INPUT_TORQUE, torque_Nm);
     }
   }

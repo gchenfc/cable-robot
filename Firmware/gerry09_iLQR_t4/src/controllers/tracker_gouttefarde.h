@@ -8,15 +8,21 @@
 /******** DEFAULT GAINS AND PARAMETERS **********/
 #if defined(KLAUS) || defined(DFL)
 static constexpr float kKp = 15000, kKi = 15, kKd = 30,  // gains
-    kTMin_N = 8, kTMid_N = 54, kTMax_N = 100;            // tensions
+    kIntegratorLimit = 10,                               // integrator limit
+    kTMin_N = 8, kTMid_N = 54, kTMax_N = 100,            // tensions
+    kEeMass_kg = 3;                                      // end effector mass
 #endif
 #ifdef AIR
-static constexpr float kKp = 10000, kKi = 10, kKd = 100,  // gains
-    kTMin_N = 8, kTMid_N = 54, kTMax_N = 100;             // tensions
+static constexpr float kKp = 10000, kKi = 0, kKd = 500,  // gains
+    kIntegratorLimit = 0,                                // integrator limit
+    kTMin_N = 16, kTMid_N = 150, kTMax_N = 300,          // tensions
+    kEeMass_kg = 3;                                      // end effector mass
 #endif
 #ifdef HYDROPONICS
 static constexpr float kKp = 30000, kKi = 50, kKd = 50,  // gains
-    kTMin_N = 5, kTMid_N = 50, kTMax_N = 140;            // tensions
+    kIntegratorLimit = 10,                               // integrator limit
+    kTMin_N = 5, kTMid_N = 50, kTMax_N = 140,            // tensions
+    kEeMass_kg = 3;                                      // end effector mass
 #endif
 /******** END DEFAULT GAINS AND PARAMETERS **********/
 
@@ -41,14 +47,18 @@ class TrackerGouttefarde : public TrackerSafe {
  protected:
   Kinematics kinematics_;
   float fs_ = 0., fv_ = 0., mu_ = 0.;
-  float kp_ = kKp, ki_ = kKi, kd_ = kKd;
+  float kp_ = kKp, ki_ = kKi, kd_ = kKd, integratorLimit_ = kIntegratorLimit;
   float minTension_ = kTMin_N, midTension_ = kTMid_N, maxTension_ = kTMax_N;
-  Pid pid_[4]{Pid(kp_, ki_, kd_), Pid(kp_, ki_, kd_), Pid(kp_, ki_, kd_),
-              Pid(kp_, ki_, kd_)};
+  float eeMass_kg_ = kEeMass_kg;
+  Pid pid_[4]{Pid(kp_, ki_, kd_, integratorLimit_),
+              Pid(kp_, ki_, kd_, integratorLimit_),
+              Pid(kp_, ki_, kd_, integratorLimit_),
+              Pid(kp_, ki_, kd_, integratorLimit_)};
 
   void setKp(float kp);
   void setKi(float ki);
   void setKd(float kd);
+  void setIntegratorLimit(float integratorLimit);
 };
 
 bool TrackerGouttefarde::readSerial(AsciiParser parser, Stream& serial_out) {
@@ -70,6 +80,9 @@ bool TrackerGouttefarde::readSerial(AsciiParser parser, Stream& serial_out) {
       case 'd':
         setKd(a);
         return true;
+      case 'w':  // prevent integrator windup
+        setIntegratorLimit(a);
+        return true;
       case 's':
         fs_ = a;
         return true;
@@ -87,6 +100,9 @@ bool TrackerGouttefarde::readSerial(AsciiParser parser, Stream& serial_out) {
         return true;
       case 'L':
         minTension_ = a;
+        return true;
+      case 'g':
+        eeMass_kg_ = a;
         return true;
     }
   }
@@ -109,6 +125,12 @@ void TrackerGouttefarde::setKd(float kd) {
   kd_ = kd;
   for (Pid& pid : pid_) {
     pid.setKd(kd);
+  }
+}
+void TrackerGouttefarde::setIntegratorLimit(float integratorLimit) {
+  integratorLimit_ = integratorLimit;
+  for (Pid& pid : pid_) {
+    pid.setIntegratorLimit(integratorLimit);
   }
 }
 
@@ -138,34 +160,15 @@ float TrackerGouttefarde::calcTension_N(uint8_t winchnum) {
   //                ldes[0], ldes[1], ldes[2], ldes[3], lff[0], lff[1], lff[2],
   //                lff[3]);
 
-  // PID resetting is now handled by initialize
-  // // PID
-  // bool* tmp = &need_to_reset_pid_;
-  // if (t < 0.01) {
-  //   if (need_to_reset_pid_) {
-  //     for (int i = 0; i < 4; ++i) {
-  //       pid_[i].reset();
-  //     }
-  //     *tmp = false;
-  //   }
-  // } else {
-  //   *tmp = true;
-  // }
-
   // float feedback_torque_Nm[4];
   float feedback_tension_N[4];
   for (int i = 0; i < 4; ++i) {
     float lerr = ldes[i] - robot_.len(i);
     feedback_tension_N[i] = pid_[i].update(lerr);
   }
-
   // save_pid_output(feedback_tension_N);
 
-  // WR^-1
-  // float feedback_tension_N[4];
-  // for (int i = 0; i < 4; ++i) {
-  //   feedback_tension_N = feedback_torque_Nm / kR;
-  // }
+  // Convert feedback tension to task-space force
   float W[2][4];
   kinematics_.wrenchMatrix(W);
   float feedback_force_N[2];
@@ -179,7 +182,8 @@ float TrackerGouttefarde::calcTension_N(uint8_t winchnum) {
   // const float(&vdes_prev)[3] = LQG_GAINS[k == 0 ? k : k - 1].vff;
   // static constexpr float kMass = 1.0;
   ff_force_N[0] = 0;  //(vdes[0] - vdes_prev[0]) / dt * kMass;
-  ff_force_N[1] = 0;  //(vdes[1] - vdes_prev[1]) / dt * kMass;
+  // ff_force_N[1] = 0;  //(vdes[1] - vdes_prev[1]) / dt * kMass;
+  ff_force_N[1] = eeMass_kg_ * 9.8;  //(vdes[1] - vdes_prev[1]) / dt * kMass;
   // TODO: use setpointAcc()
   float fc_N[2];
   matadd(feedback_force_N, ff_force_N, fc_N);
@@ -187,30 +191,32 @@ float TrackerGouttefarde::calcTension_N(uint8_t winchnum) {
 
   // Tension distribution
   // TODO(gerry): use better tension distribution algorithm
-  float tensionTD_Nm[4];
-  kinematics_.forceSolverPott(fc_N[0], fc_N[1], W, tensionTD_Nm, midTension_);
+  float tensionPid_N[4];
+  kinematics_.forceSolverPott(fc_N[0], fc_N[1], W, tensionPid_N, midTension_);
   // SerialD.printf("Tension Distribution: %.3f %.3f %.3f %.3f\n",
-  //                tensionTD_Nm[0],
-  //                tensionTD_Nm[1], tensionTD_Nm[2],
-  //                tensionTD_Nm[3]);
+  //                tensionPid_N[0],
+  //                tensionPid_N[1], tensionPid_N[2],
+  //                tensionPid_N[3]);
 
-  // feedforward torques
+  // Feedforward tensions
+  // The feedforward tensions are assumed to be primarily a function of the
+  // motor, not the winch/drum, so the feedforward tensions are computed without
+  // cableLengthCorrectionParams
   float ldotdes[4];
   float J[4][2];
   kinematics_.jacobian(J);
   matmul(J, vdes, ldotdes);
-  float taum_Nm[4];
+  float tensionFf_N[4], tension_N[4];
   for (int i = 0; i < 4; ++i) {
-    // TODO: fix the feedforward calculation for correct torque/radius
-    taum_Nm[i] =
-        (tensionTD_Nm[i] - ldotdes[i] * fv_ - tanh(mu_ * ldotdes[i]) * fs_) *
-        kR;
+    // TODO: add rotor inertia (need lddot)
+    auto tauFf_Nm = (-ldotdes[i] * fv_ - tanh(mu_ * ldotdes[i]) * fs_) * kR;
+    tensionFf_N[i] = robot_.winches.at(i).tension_N(tauFf_Nm);
   }
-  // save_torque(taum_Nm);
+  matadd(tensionPid_N, tensionFf_N, tension_N);
+  // save_torque(tensionFf_N);
 
   // Safety & return
-  float torque = taum_Nm[winchnum];
-  float tension = robot_.winches.at(winchnum).tension_N(torque);
+  float tension = tension_N[winchnum];
   clamp(&tension, minTension_, maxTension_);
   return tension;
 }

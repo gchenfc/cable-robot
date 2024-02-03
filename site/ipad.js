@@ -13,6 +13,13 @@ COLORS = {
   '#800080': 5  // purple
 }
 
+
+// CANVAS_BOUNDS = { w: [1.0, 1.8], h: [0.65, 1.0] };
+CANVAS_BOUNDS = { w: [0.9, 3.25], h: [0.63, 2.7] };
+// CANVAS_BOUNDS = { w: [0.72, 3.49], h: [0.63, 2.7] };
+
+
+
 let connected = false;
 function try_connect() {
   if (!connected) {
@@ -29,7 +36,8 @@ function try_connect() {
       console.log(event);
       connected = true;
       // cdpr.control_mode = ControlMode.POSITION;
-      cdpr.setSwitchableControllerMode(SwitchableControllerMode.SPLINE);
+      cdpr.setSwitchableControllerMode(SwitchableControllerMode.WAYPOINTS);
+      // cdpr.setSwitchableControllerMode(SwitchableControllerMode.SPLINE);
       websocket.send('F' + [cdpr.frame.w - cdpr.ee.w, cdpr.frame.h - cdpr.ee.h]);
     }
     
@@ -49,8 +57,24 @@ function try_connect() {
       txy = event.data.slice(1).split(',')
       t = parseFloat(txy[0]);
       let [w1, h1] = [cdpr.frame.w - cdpr.ee.w, cdpr.frame.h - cdpr.ee.h];
-      x = parseFloat(txy[1]) * w1
-      y = ((h1 / w1) - parseFloat(txy[2])) * w1
+      // x = parseFloat(txy[1]) * w1
+      // y = ((h1 / w1) - parseFloat(txy[2])) * w1
+
+      // scales x, y to CANVAS_BOUNDS
+      console.log('this is txy', txy[2], h1 / w1)
+      if (false) { // iPad
+        x = parseFloat(txy[1]) * (CANVAS_BOUNDS.w[1] - CANVAS_BOUNDS.w[0]) + CANVAS_BOUNDS.w[0];
+        // y = parseFloat(txy[2]) * (CANVAS_BOUNDS.h[1] - CANVAS_BOUNDS.h[0]) + CANVAS_BOUNDS.h[0]; // this will squish aspect ratio
+        // console.log('txy is :', txy[2], h1 / w1);
+        // y = ((h1 / w1) - parseFloat(txy[2])) * (CANVAS_BOUNDS.w[1] - CANVAS_BOUNDS.w[0]) + CANVAS_BOUNDS.h[0]; // this will squish aspect ratio
+        // y = ((0.67) - parseFloat(txy[2])) * (CANVAS_BOUNDS.w[1] - CANVAS_BOUNDS.w[0]) + CANVAS_BOUNDS.h[0]; // this will squish aspect ratio
+        y = ((0.60) - parseFloat(txy[2])) * (CANVAS_BOUNDS.w[1] - CANVAS_BOUNDS.w[0]) + CANVAS_BOUNDS.h[0]; // this will squish aspect ratio
+        // 0.60 currently needs to be tuned to the ipad's aspect ratio, but we should send this over socket.
+      } else { // gcode
+        x = txy[1];
+        y = txy[2];
+      }
+
       console.log(command, x, y)
 
       // cdpr.set_x = x;

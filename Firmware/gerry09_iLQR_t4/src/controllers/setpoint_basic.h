@@ -60,10 +60,11 @@ class SetpointBasic : public SetpointInterface {
   virtual V setpointVel() override;
   virtual A setpointAcc() override;
   /**************************** Implement these!!! ****************************/
-  virtual X desPos(float t) = 0;
-  virtual V desVel(float t) = 0;
-  virtual A desAcc(float t) = 0;
-  virtual bool isDone(float t) = 0;
+  virtual X desPos(float t) const = 0;
+  virtual V desVel(float t) const = 0;
+  virtual A desAcc(float t) const = 0;
+  virtual bool isDone(float t) const = 0;
+  virtual float timeTotal_s() const { return 0; }
 
   /*************************** Protected Variables ***************************/
  protected:
@@ -82,6 +83,7 @@ class SetpointBasic : public SetpointInterface {
 
   // Tunable parameters
   float switch_to_run_threshold_ = 0.1;
+  float max_distance_to_setpoint_ = 0.2;
   float travel_speed_ = 0.1, travel_accel_ = 1.0;
   X limits_min_ = {{mountPoints[3][0] + kDefaultPaddingWidth,
                     mountPoints[3][1] + kDefaultPaddingHeight, 0.}};
@@ -93,7 +95,14 @@ class SetpointBasic : public SetpointInterface {
   // Convenience functions
   virtual X estimatedCurPos() const;
   virtual bool setState(State state);  // prep for next state
-  X desPosSafe(float t) { return clamp(desPos(t), limits_min_, limits_max_); }
+  X desPosSafe(float t) const {
+    return clamp(desPos(t), limits_min_, limits_max_);
+  }
+  X setpointPosConst() const;
+  float distToSetpoint() const {
+    return norm(estimatedCurPos() - setpointPosConst());
+  }
+  bool clearTrackingSoftError();
   static TravelSpline calcTravelSpline(const X& start, const X& end,
                                        float max_speed = 0.1,
                                        float max_accel = 1.0,
@@ -106,6 +115,7 @@ class SetpointBasic : public SetpointInterface {
   // necessary updates to make desPos(0) = end
   bool updateSetpoint(const X& end);
   static Vector<3> appendZeroTheta(const Vector<2>& x);
+  virtual X defaultPos() const { return (limits_min_ + limits_max_) / 2; }
 };
 
 bool SetpointBasic::readSerial(AsciiParser parser, Stream& serialOut) {
@@ -146,9 +156,13 @@ bool SetpointBasic::readSerial(AsciiParser parser, Stream& serialOut) {
       advanceTo(t);
       return true;
     }
+    case SetpointCommands::CLEAR_TRACKING_SOFT_ERROR:
+      serialOut.println("setpoint: CLEAR TRACKING SOFT ERROR");
+      clearTrackingSoftError();
+      return true;
     case SetpointCommands::POLL_STATUS:
-      serialOut.printf("setpoint: STATUS: %.3f %d %d %d\n", time_s(), state_,
-                       status_, isDone(time_s()));
+      serialOut.printf("setpoint: STATUS: %.3f %d %d %d %.3f\n", time_s(),
+                       state_, status_, isDone(time_s()), timeTotal_s());
       return true;
     case SetpointCommands::DEBUG_COMPUTE_AND_PRINT_TRAVEL_SPLINE_SAMPLED: {
       travel_spline_ = calcTravelSpline(desPosSafe(time_s(t_paused_us_)));
@@ -165,6 +179,11 @@ bool SetpointBasic::readSerial(AsciiParser parser, Stream& serialOut) {
     case SetpointCommands::SET_SWITCH_TO_RUN_THRESHOLD: {
       UNWRAP_PARSE_CHECK(float threshold, parser.parseFloat('\n', &threshold));
       switch_to_run_threshold_ = threshold;
+      return true;
+    }
+    case SetpointCommands::SET_MAX_DISTANCE_TO_SETPOINT: {
+      UNWRAP_PARSE_CHECK(float dist, parser.parseFloat('\n', &dist));
+      max_distance_to_setpoint_ = dist;
       return true;
     }
     case SetpointCommands::SET_TRAVEL_SPEED: {
@@ -236,7 +255,13 @@ bool SetpointBasic::readSerial(AsciiParser parser, Stream& serialOut) {
 
 void SetpointBasic::update() {
   if (!update_timer_.check()) return;
+  if (status_ == Status::TRACKING_SOFT_ERROR) return;  // start() will reset
   if (status_ == Status::NOMINAL) {
+    if (distToSetpoint() > max_distance_to_setpoint_) {
+      pause();
+      status_ = Status::TRACKING_SOFT_ERROR;
+      return;
+    }
     switch (state_) {
       case State::HOLD:
         break;
@@ -342,6 +367,12 @@ bool SetpointBasic::setState(State state) {
   return true;
 }
 
+bool SetpointBasic::clearTrackingSoftError() {
+  if (status_ != Status::TRACKING_SOFT_ERROR) return false;
+  status_ = Status::NOMINAL;
+  return true;
+}
+
 bool SetpointBasic::updateSetpoint(const SetpointBasic::X& end) {
   // This is basically just grabbing the relevant lines from setState above.
   // If you modify setState, you should probably also update this function.
@@ -436,10 +467,11 @@ SetpointBasic::TravelSpline SetpointBasic::calcTravelSpline(const X& start,
     float d_decel = 0.5 * max_accel * t_decel * t_decel;
     float t_mid = (d - d_accel - d_decel) / max_speed;
     float t1 = t_accel, t2 = t_accel + t_mid, t3 = t_accel + t_mid + t_decel;
-    add_segment(0, 0, 0, 0);             // Dummy segment
+    add_segment(0, 0, 0, 0);                         // Dummy segment
     add_segment(t1, 0.5 * max_accel, cur_speed, 0);  // First accelerate
-    add_segment(t2, 0, max_speed, d_accel);  // Then constant velocity
-    add_segment(t3, -0.5 * max_accel, max_speed, d - d_decel);  // Then decelerate
+    add_segment(t2, 0, max_speed, d_accel);          // Then constant velocity
+    add_segment(t3, -0.5 * max_accel, max_speed,
+                d - d_decel);  // Then decelerate
     return spline;
   }
 #else
@@ -454,6 +486,10 @@ Vector<3> SetpointBasic::estimatedCurPos() const {
 
 SetpointInterface::X SetpointBasic::setpointPos() {
   initialize();
+  return setpointPosConst();
+}
+
+SetpointInterface::X SetpointBasic::setpointPosConst() const {
   switch (state_) {
     case State::HOLD:
       return hold_pos_;
@@ -462,7 +498,7 @@ SetpointInterface::X SetpointBasic::setpointPos() {
     case State::INTERMEDIATE_TRAVEL:
       return appendZeroTheta(travel_spline_.eval(time_s()));
   }
-  return kDefaultPos<3>();
+  return defaultPos();
 }
 
 SetpointInterface::V SetpointBasic::setpointVel() {

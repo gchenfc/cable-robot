@@ -4,13 +4,20 @@
 var port, textEncoder, writableStreamClosed, writer, historyIndex = -1, reader;
 const lineHistory = [];
 var readStreamDisplay, readStreamLogfile;
+let AUTOCONNECT_INDEX = localStorage.autoConnectIndex || 0;
 
 async function attemptAutoconnect() {
   if (!document.getElementById("autoConnect").checked) return;
+  let i = 0;
   return await navigator.serial.getPorts().then((ports) => {
     for (const port_ of ports) {
       info = port_.getInfo();
-      if (info.usbProductId === 1163 && info.usbVendorId === 5824) {
+      console.log(info);
+      if ((info.usbProductId === 1163 || info.usbProductId === 1164) && info.usbVendorId === 5824) {
+        if (i < AUTOCONNECT_INDEX) {
+          i += 1;
+          continue;
+        }
         port = port_;
         connectSerialPort();
         return true;
@@ -18,6 +25,17 @@ async function attemptAutoconnect() {
     }
   });
 }
+
+// Somehow, the order that Teensy serial ports are reported by Chrome gets randomized each time
+// the Teensy is plugged in, so use AUTOCONNECT_INDEX to set which one you want.
+function updateAutoConnectIndex(number) {
+  AUTOCONNECT_INDEX = parseInt(number, 10);
+  localStorage.autoConnectIndex = AUTOCONNECT_INDEX;
+  if (localStorage.autoConnect) {
+    attemptAutoconnect();
+  }
+}
+document.getElementById("autoConnectIndex").value = AUTOCONNECT_INDEX;
 
 async function connectSerial() {
   // Prompt user to select any serial port.
@@ -60,7 +78,7 @@ async function sendSerialLine() {
   dataToSend = document.getElementById("lineToSend").value;
   lineHistory.unshift(dataToSend);
   historyIndex = -1; // No history entry selected
-  if (document.getElementById("addLine").checked == true) dataToSend = dataToSend + "\r\n";
+  if (document.getElementById("addLine").checked == true) dataToSend = dataToSend + "\n";
   if (document.getElementById("echoOn").checked == true) appendToTerminal("> " + dataToSend);
   await writer.write(dataToSend);
   document.getElementById("lineToSend").value = "";

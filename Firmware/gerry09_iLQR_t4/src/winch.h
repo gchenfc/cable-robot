@@ -35,6 +35,7 @@ class Winch {
         mountPoint_(mountPoints[winchi]),
         theta_(0),
         thetaDot_(0),
+        commandedTorque_(0),
         error_(0),
         state_(0) {}
 
@@ -61,6 +62,7 @@ class Winch {
   // Units of revolutions and rev/s!!!
   float theta() const { return theta_; }
   float thetaDot() const { return thetaDot_; }
+  float torque() const { return commandedTorque_; }
   uint32_t error() const { return error_; }
   uint32_t state() const { return state_; }
 
@@ -90,6 +92,7 @@ class Winch {
   //   ldot / thetadot = tau / tension
   //   dl / dtheta = tau / tension
   //   tau = tension * (dl / dtheta)
+  float tension() const { return tension_N(torque()); }
   float torque_Nm(float tension_N) const {
     float lraw_H_theta = radius_;
     float l_H_lraw = lenDotCorrection(lenRaw(), 1, lenCorrectionParams_);
@@ -116,6 +119,7 @@ class Winch {
   // State updates from ODrive
   void setTheta(float theta) { theta_ = theta; }
   void setThetaDot(float thetaDot) { thetaDot_ = thetaDot; }
+  void setTorque(float torque) { commandedTorque_ = torque; }
   void setError(float error) { error_ = error; }
   void setState(float state) { state_ = state; }
 
@@ -150,8 +154,8 @@ class Winch {
  protected:
   // Private variables
   float zero_, radius_;
-  float (&lenCorrectionParams_)[3], (&mountPoint_)[2]; // these are references!
-  Timestamped<float> theta_, thetaDot_;
+  float (&lenCorrectionParams_)[3], (&mountPoint_)[2];  // these are references!
+  Timestamped<float> theta_, thetaDot_, commandedTorque_;
   Timestamped<uint32_t> error_, state_;
 
  public:

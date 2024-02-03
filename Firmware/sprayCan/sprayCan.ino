@@ -2,10 +2,15 @@
 #include <Servo.h>
 
 #define LED 13
+#define REVERSE true
 
-SoftwareSerial BT(10, 11); // RX, TX
+SoftwareSerial BT(10, 11);  // RX, TX
 uint64_t lastMsg;
 Servo myServo;
+
+void writeServo(uint8_t angle) {
+  myServo.write(REVERSE ? (180 - angle) : angle);
+}
 
 void setup() {
   Serial.begin(9600);
@@ -19,17 +24,26 @@ void setup() {
 
 void loop() {
   if (BT.available()) {
-    char c = BT.read();
-    switch(c) {
+    uint8_t c = BT.read();
+    switch (c) {
       case '0':
-        myServo.write(0);
+        writeServo(0);
         digitalWrite(LED, LOW);
         break;
       case '1':
-        myServo.write(180);
+        writeServo(180);
         digitalWrite(LED, HIGH);
         lastMsg = millis();
         break;
+      default: {
+        if ((c >= 65) && (c <= (65 + 180))) {
+          writeServo(c - 65);
+          digitalWrite(LED, HIGH);
+          lastMsg = millis();
+        }
+        Serial.print(c, DEC);
+        return;
+      }
     }
     Serial.write(c);
   }
@@ -39,7 +53,7 @@ void loop() {
 
   // timeout
   if (millis() - lastMsg > 3000) {
-    myServo.write(0);
+    writeServo(0);
     digitalWrite(LED, LOW);
   }
 }

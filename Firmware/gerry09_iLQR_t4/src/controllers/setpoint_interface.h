@@ -23,6 +23,7 @@ class SetpointInterface {
     UNINITIALIZED,
     INITIALIZING,
     NOMINAL,
+    TRACKING_SOFT_ERROR,  // When the tracking error is too large, hold in place
   };
 
   enum State {

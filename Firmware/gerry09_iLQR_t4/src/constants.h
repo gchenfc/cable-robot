@@ -1,10 +1,12 @@
 #pragma once
 
-#define ESTOP 11
+#define ESTOP 26
 #define ESTOP_HIGHx
 #define SerialD Serial
 #define SerialComputer SerialUSB1
+#define SerialComputerArm SerialUSB2
 #define btSerial Serial5
+#define ArmSerial Serial3
 
 // Select which robot:
 #define KLAUS
@@ -44,7 +46,7 @@ static constexpr float kCarriageWidth = 0.187, kCarriageHeight = 0.122;
 #endif
 #ifdef AIR
 static constexpr float kFrameWidth = 6.17, kFrameHeight = 2.64;
-static constexpr float kCarriageWidth = 0.228, kCarriageHeight = 0.228;
+static constexpr float kCarriageWidth = 0.5334, kCarriageHeight = 0.381;
 #endif
 #ifdef HYDROPONICS
 static constexpr float kFrameWidth = 2.20, kFrameHeight = 2.00;

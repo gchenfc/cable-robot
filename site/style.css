@@ -5,16 +5,47 @@ canvas {
   padding: 0;
   width: 50%;
   aspect-ratio: 2/1;
+  max-height: 500px;
 }
 
 canvas.cdpr {
-  width: 55%;
+  width: 65%;
 }
 canvas.gamepad {
+  display: block;
   background-color: #fff;
   border: 1px solid #eee;
-  margin-left: 30px;
-  width: calc(45% - 30px - 10px);
+  margin: 0 auto 20px auto;
+  width: 90%;
+}
+div.centercol {
+  float: right;
+  width: 34%;
+  margin: 0 auto;
+  max-height: 500px;
+}
+div.arm {
+  border: 1px solid #888;
+  padding: 10px;
+}
+div.arm button {
+  margin: 2px 1px;
+}
+div.spray {
+  border: 1px solid #888;
+  padding: 10px;
+}
+
+div.status {
+  background-color: #ccc;
+  padding: 3px;
+  margin: 5px;
+}
+div.status > label, div.status > input {
+  display: block;
+  width: 100%;
+  border: none;
+  color: white;
 }
 
 .serialoutput {
@@ -36,6 +67,27 @@ h2 {
   margin: 0;
 }
 
+.toggleButton {
+    cursor: pointer;
+    padding: 5px;
+    background-color: rgba(255, 0, 0, 0.2);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+}
+.toggleButton.active {
+    background-color: #0f0;
+}
+.slider-container {
+  margin: 20px;
+}
+.slider-container label {
+  display: block;
+  margin-bottom: 10px;
+}
+.slider-container [type=range] {
+  width: 100%;
+}
 
 /* Begin plagiarism from https://github.com/mmiscool/serialTerminal.com */
 .serialterminalbackground {

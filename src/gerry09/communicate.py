@@ -183,6 +183,7 @@ class CableRobot:
     def parse_buf(self):
         lines = self.ser_buf.split('\n')
         for line in lines[:-1]:
+            timestamp = time.time()
             if line.startswith('Spline '):
                 print(line) # TODO(gerry): save this somehow
             cdata, mdata, _, controller_state, motor_states = parse_line(line, self.SERIAL_FMT)
@@ -191,6 +192,7 @@ class CableRobot:
             self.cur_xy = np.array([cdata['cur_x'], cdata['cur_y']])
             self.log_data['controller'] = controller_state
             self.log_data['motors'] = motor_states
+            self.log_data['timestamp'] = timestamp
             self.all_data.append(copy.deepcopy(self.log_data))
 
             # self.setpoint_xy = np.array([cdata['set_x'], cdata['set_y']])

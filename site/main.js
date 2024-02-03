@@ -5,9 +5,15 @@ const gamepad_canvas = document.getElementById("gamepad_canvas");
 const gamepad_ctx = gamepad_canvas.getContext("2d");
 
 var gamepad_idx = null;
+
 // const cdpr = new Cdpr(new Dims(2.9, 2.3), new Dims(0.184, 0.122));
 // const cdpr = new Cdpr(new Dims(3.05, 2.34), new Dims(0.1778, 0.14));
-const cdpr = new Cdpr(new Dims(6.17, 2.64), new Dims(0.184, 0.122));
+// const cdpr = new Cdpr(new Dims(4.685, 3.62), new Dims(0.827, 0.63));
+const cdpr = new Cdpr(new Dims(5.833, 5.237), new Dims(0.546, 0.387));  // RAW-AIR
+// const cdpr = new Cdpr(new Dims(2.9464, 2.26), new Dims(0.1, 0.1));  // Klaus
+const painter = new Painter();
+
+// const cdpr = new Cdpr(new Dims(6.17, 2.64), new Dims(0.184, 0.122));
 const drawing = new Drawing();
 const gamepad = new MyGamepad();
 const gamepad_drawing = new GamepadDrawing();
@@ -22,13 +28,10 @@ function init() {
   gamepad.onpress["B"] = function () { cdpr.resetTraj(); };
   gamepad.onpress["DPAD_LEFT"] = function (state) { cdpr.control_mode = ControlMode.VELOCITY; };
   gamepad.onpress["DPAD_RIGHT"] = function (state) { cdpr.control_mode = ControlMode.POSITION; };
-  gamepad.onpress["DPAD_UP"] = function (state) { cdpr.setSwitchableControllerMode(SwitchableControllerMode.SPLINE); };
+  gamepad.onpress["DPAD_UP"] = function (state) { cdpr.setSwitchableControllerMode(SwitchableControllerMode.WAYPOINTS); };
   gamepad.onpress["DPAD_DOWN"] = function (state) { cdpr.setSwitchableControllerMode(SwitchableControllerMode.TRACKING); };
-  gamepad.onchange["RT"] = function (state) { cdpr.spray(state); };
-  gamepad.onchange["LT"] = function (state) { cdpr.spray(state); };
   gamepad.onpress["RSTICK"] = function (state) { cdpr.estop(); };
-  gamepad.onpress["RB"] = function (state) { cdpr.next_color(); };
-  gamepad.onpress["LB"] = function (state) { cdpr.prev_color(); };
+  painter.setGamepadCallbacks(gamepad); // Uses RT, RB, LT, LB
   // start updates
   cdpr_interval = setInterval(function () { cdpr.update(1 / 30); }, 1000 / 30);
   // cdpr_interval = setInterval(function () { cdpr.update(1 / 50); }, 1000 / 50);
@@ -46,15 +49,17 @@ function draw() {
   draw_gamepad();
 }
 function draw_drawing() {
+  const SCALE = cdpr_canvas.width / cdpr.frame.w;
   cdpr_ctx.clearRect(0, 0, cdpr_canvas.width, cdpr_canvas.height);
   cdpr_ctx.save();
-  cdpr_ctx.drawAtLoc(0, cdpr_canvas.height, 100, drawing, -100);
+  cdpr_ctx.drawAtLoc(0, cdpr_canvas.height, SCALE, drawing, -SCALE);
   cdpr_ctx.restore();
 }
 function draw_cdpr() {
+  const SCALE = cdpr_canvas.width / cdpr.frame.w;
   // cdpr_ctx.clearRect(0, 0, cdpr_canvas.width, cdpr_canvas.height);
   cdpr_ctx.save();
-  cdpr_ctx.drawAtLoc(0, cdpr_canvas.height, 100, cdpr, -100);
+  cdpr_ctx.drawAtLoc(0, cdpr_canvas.height, SCALE, cdpr, -SCALE);
   cdpr_ctx.restore();
 }
 function draw_gamepad() {
@@ -62,7 +67,13 @@ function draw_gamepad() {
   gamepad_ctx.save();
   if (gamepad_idx !== null) {
     gamepad.update(navigator.getGamepads()[gamepad_idx]);
-    cdpr.setControls(SPEED / Math.sqrt(2) * gamepad.joyleft.x, SPEED / Math.sqrt(2) * gamepad.joyleft.y);
+    if (gamepad.LSTICK) {
+      const speed = 0.05
+      cdpr.setControls(speed / Math.sqrt(2) * gamepad.joyright.x, speed / Math.sqrt(2) * gamepad.joyright.y);
+    } else {
+      const speed = SPEED;
+      cdpr.setControls(speed / Math.sqrt(2) * gamepad.joyleft.x, speed / Math.sqrt(2) * gamepad.joyleft.y);
+    }
     drawing.update(cdpr.x, cdpr.y, gamepad.LT || gamepad.RT);
     gamepad_drawing.update(gamepad);
   } else {
@@ -74,7 +85,7 @@ function draw_gamepad() {
     gamepad_ctx.fillStyle = '#0004'
     gamepad_ctx.fillRect(0, 0, 300, 260);
   }
-  gamepad_ctx.drawAtLoc(0, 0, 300, gamepad_drawing);
+  gamepad_ctx.drawAtLoc(0, 0, 300, gamepad_drawing, 200);
   gamepad_ctx.restore();
 }
 

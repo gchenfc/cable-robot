@@ -1,3 +1,29 @@
+"""
+read_tags.py
+
+Python class reads AprilTag iOS UDP messages and parses them into a list of detections.
+Computes rotation & translation matrices as well using cv2 solvePnP.
+
+See also: https://github.com/gchenfc/apriltags-ios in which I make some modifications to:
+    * Manually adjust exposure, ISO, etc.
+    * Send the timestamp of image acquisition over UDP (in addition to timestamp after detections,
+        to subtract the offset between computer & phone time syncing)
+
+Usage:
+    python read_tags.py
+
+or:
+    with Detector(PARAMS) as detector:
+        (t_capture, t_send), detections = detector.detect()
+
+    PARAMS is an optional dictionary of camera parameters:
+        DEFAULT_CAMERA_PARAMS = {
+            'tag_size': 0.1905,  # meters (7.5 inches)
+            'f': 3072 // 2 // 2,  # focal length in pixels, hand-measured so probably not precise
+            'cx': 4032 // 2 // 2,  # camera center in pixels
+            'cy': 3024 // 2 // 2,  # camera center in pixels
+        }  # second divide by 2 is because iOS app downsamples by 2
+"""
 import socket
 import struct
 import itertools
@@ -7,7 +33,21 @@ import cv2
 import time
 import pickle
 
-UDP_IP = socket.gethostbyname(socket.gethostname())
+
+def get_local_ip():
+    try:
+        # This creates a new socket and connects to an external server (in this case, Google's public DNS server).
+        # We don't actually send any data, we just use this to determine the most appropriate local IP address.
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        return local_ip
+    except Exception:
+        return None
+
+
+UDP_IP = get_local_ip()
 UDP_PORT = 7709
 
 
@@ -37,10 +77,11 @@ class Detection:
     r"\* Translation of the pose estimate - cPo is the trans from object frame to camera frame"
     pose_err = None
     r"\* Object-space error of the estimation."
-    
+
     @property
     def R(self):
         return self.pose_R
+
     @property
     def t(self):
         return self.pose_t
@@ -100,10 +141,14 @@ def process_packet(packet):
     assert MAGIC2 == 0x4c544147
 
     version = ins.read_int()
-    assert version == 0x00010002, f"version mismatch: {version:x}"
+    assert (version == 0x00010002) or (version == 0x00010102), f"version mismatch: {version:x}"
 
     ndets = ins.read_int()
     utime = ((ins.read_int()) << 32) + ins.read_int()
+    if (version == 0x00010102):
+        utime_cap = ((ins.read_int()) << 32) + ins.read_int()
+    else:
+        utime_cap = 0
 
     detections = []
     for i in range(ndets):
@@ -131,23 +176,26 @@ def process_packet(packet):
                       corners=p,
                       homography=H))
     assert next(ins.packet, None) is None, 'packet not fully consumed'
-    return utime / 1e6, detections
+    return (utime_cap / 1e6, utime / 1e6), detections
 
 
 DEFAULT_CAMERA_PARAMS = {
-        'tag_size': 0.1905,  # meters (7.5 inches)
-        'f': 3072 // 2 // 2,  # focal length in pixels, hand-measured so probably not precise
-        'cx': 4032 // 2 // 2,  # camera center in pixels
-        'cy': 3024 // 2 // 2,  # camera center in pixels
-    } # second divide by 2 is because iOS app downsamples by 2
+    'tag_size': 0.1905,  # meters (7.5 inches)
+    'f': 3072 // 2 // 2,  # focal length in pixels, hand-measured so probably not precise
+    'cx': 4032 // 2 // 2,  # camera center in pixels
+    'cy': 3024 // 2 // 2,  # camera center in pixels
+}  # second divide by 2 is because iOS app downsamples by 2
+
 
 class Detector(socket.socket):
-    def __init__(self, camera_params=DEFAULT_CAMERA_PARAMS):
+
+    def __init__(self, camera_params=DEFAULT_CAMERA_PARAMS, timeout=1.0):
         self.camera_params = camera_params
         super().__init__(socket.AF_INET, socket.SOCK_DGRAM)
+        self.settimeout(timeout)
         self.bind((UDP_IP, UDP_PORT))
         print('In the Apriltag iOS app, set UDP transmict Addr to:', UDP_IP)
-    
+
     def detect(self):
         t, detections = process_packet(self.recv(4096))
         for detection in detections:
@@ -172,8 +220,11 @@ def main():
     # Run as a loop
     with Detector() as detector:
         while True:
-            t, detections = detector.detect()
-            print(f'{t:.3f}: {len(detections)} tags')
+            (t_cap, t), detections = detector.detect()
+            t_now = time.time()
+            print(
+                f'{t_cap:.3f} (sync: {t_now - t:.3f}s, process_time: {t - t_cap:.3f}s): {len(detections)} tags'
+            )
             for detect in detections:
                 print(detect)
                 print('    R = ' + np.array2string(detect.R, prefix=' ' * 8))

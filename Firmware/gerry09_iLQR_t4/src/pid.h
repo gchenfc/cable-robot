@@ -4,8 +4,9 @@
 
 class Pid {
  public:
-  Pid(float Kp, float Ki, float Kd, float value = 0)
-      : Kp_(Kp), Ki_(Ki), Kd_(Kd) {
+  Pid(float Kp, float Ki, float Kd, float integrator_limit = 100,
+      float value = 0)
+      : Kp_(Kp), Ki_(Ki), Kd_(Kd), integrator_limit_(integrator_limit) {
     reset(value);
   }
 
@@ -21,6 +22,7 @@ class Pid {
     float dt = static_cast<float>(dt_us) / 1e6;
 
     integrator += Ki_ * value * dt;
+    clamp(&integrator, -integrator_limit_, integrator_limit_);
     float ret = Kp_ * value + integrator + Kd_ * (value - prev_value) / dt;
 
     prev_value = value;
@@ -41,9 +43,12 @@ class Pid {
     Kd_ = kd;
     if (to_reset) reset(prev_value);
   }
+  void setIntegratorLimit(float integrator_limit) {
+    integrator_limit_ = integrator_limit;
+  }
 
  private:
-  float Kp_, Ki_, Kd_;
+  float Kp_, Ki_, Kd_, integrator_limit_;
 
   float integrator = 0;
   float prev_value = 0;

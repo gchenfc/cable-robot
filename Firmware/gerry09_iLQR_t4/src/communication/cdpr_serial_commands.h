@@ -32,20 +32,24 @@ enum : char {
   POLL_SPLINE_STATUS = '!',
   DEBUG_COMPUTE_AND_PRINT_TRAVEL_SPLINE_SAMPLED = '%',
   SPLINE_DEBUG_PRINT_NUM_SEGMENTS = '#',
-  SPLINE_DEBUG_SAMPLE_1S = '*',  // Print spline from 0s to 1s, every 0.1s
-  SPLINE_QUERY_AT_TIME = '>',    // `x>0.5` would print x, xdot at time 0.5
-  SPLINE_QUERY_COEFFS = '<',     // `x<3` would print coeffs for segment 3
+  SPLINE_DEBUG_PRINT_DURATION = 'T',  // Print spline duration, not implemented
+  SPLINE_DEBUG_SAMPLE_1S = '*',       // Print spline from 0s to 1s, every 0.1s
+  SPLINE_QUERY_AT_TIME = '>',         // `x>0.5` would print x, xdot at time 0.5
+  SPLINE_QUERY_COEFFS = '<',          // `x<3` would print coeffs for segment 3
   WAYPOINTS_PRINT_NUM_WAYPOINTS = '@',
   WAYPOINTS_PRINT_WAYPOINT = '$',
+  // WAYPOINTS_DEBUG_SAMPLE_1S // TODO!!!
 
   // Set parameters
   SET_SWITCH_TO_RUN_THRESHOLD =
       't',  // If we are not within this threshold to the first setpoint, don't
             // switch to "RUN" mode
+  SET_MAX_DISTANCE_TO_SETPOINT = 'd',
+  CLEAR_TRACKING_SOFT_ERROR = 'D',
   SET_TRAVEL_SPEED = 's',          // e.g. `xs0.5` sets travel speed to 0.5 m/s
   SET_TRAVEL_ACCEL = 'a',          // e.g. `xa1.5` sets travel accel to 1.5 m/s
-  SET_WORKSPACE_LIMITS_REL = 'l',  // e.g. xLu0.5 sets upper lim to height-0.5
-  SET_WORKSPACE_LIMITS_ABS = 'L',  // e.g. xlu0.5 sets upper lim to 0.5 (udlrcw)
+  SET_WORKSPACE_LIMITS_REL = 'l',  // e.g. xlu0.5 sets upper lim to height-0.5
+  SET_WORKSPACE_LIMITS_ABS = 'L',  // e.g. xLu0.5 sets upper lim to 0.5 (udlrcw)
   SET_WAYPOINT_SPEED = 'S',
   SET_WAYPOINT_ACCEL = 'A',
 
