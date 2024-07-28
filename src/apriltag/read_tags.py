@@ -89,9 +89,16 @@ class Detection:
     def CameraMatrix(fx, fy, cx, cy):
         return np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]], dtype=float)
 
-    CORNERS = np.array([[1, 1, 0], [1, 0, 0], [0, 0, 0], [0, 1, 0]], dtype=float)
+    CORNERS = np.array([[1, 1, 0], [1, 0, 0], [0, 0, 0], [0, 1, 0]],
+                       dtype=float)
 
-    def Rt(self, camera_matrix=None, tag_size=1, f=None, cx=None, cy=None):
+    def Rt(self,
+           camera_matrix=None,
+           tag_size=1,
+           f=None,
+           cx=None,
+           cy=None,
+           dist_coeffs=None):
         """
         iPhone coordinate frame:
             charging port is +x
@@ -101,10 +108,12 @@ class Detection:
         if self.pose_R is None or self.pose_t is None:
             if camera_matrix is None:
                 if f is None or cx is None or cy is None:
-                    raise Exception('camera_matrix or f, cx, cy must be provided')
+                    raise Exception(
+                        'camera_matrix or f, cx, cy must be provided')
                 camera_matrix = Detection.CameraMatrix(f, f, cx, cy)
-            ok, r, self.pose_t = cv2.solvePnP(Detection.CORNERS * tag_size, self.corners,
-                                              camera_matrix, None)
+            ok, r, self.pose_t = cv2.solvePnP(Detection.CORNERS * tag_size,
+                                              self.corners, camera_matrix,
+                                              dist_coeffs)
             self.pose_R, _ = cv2.Rodrigues(r)
         return self.pose_R, self.pose_t
 
@@ -117,20 +126,23 @@ class Detection:
             f'family={self.tag_family:2d} at ({c[0]:8.2f}, {c[1]:8.2f})',
             f'    corners: ' + np.array2string(p, prefix=' ' * 13),
             f'    H: ' +
-            np.array2string(H, formatter={'float_kind': lambda x: "%7.2f" % x}, prefix=' ' * 7),
+            np.array2string(H,
+                            formatter={'float_kind': lambda x: "%7.2f" % x},
+                            prefix=' ' * 7),
         ])
 
 
 class DataInputStream:
-
     def __init__(self, packet):
         self.packet = iter(packet)
 
     def read_int(self):
-        return int.from_bytes(bytes([next(self.packet) for i in range(4)]), byteorder='big')
+        return int.from_bytes(bytes([next(self.packet) for i in range(4)]),
+                              byteorder='big')
 
     def read_float(self):
-        return struct.unpack('>f', bytearray(itertools.islice(self.packet, 4)))[0]
+        return struct.unpack('>f', bytearray(itertools.islice(self.packet,
+                                                              4)))[0]
 
 
 def process_packet(packet):
@@ -141,7 +153,9 @@ def process_packet(packet):
     assert MAGIC2 == 0x4c544147
 
     version = ins.read_int()
-    assert (version == 0x00010002) or (version == 0x00010102), f"version mismatch: {version:x}"
+    assert (version
+            == 0x00010002) or (version
+                               == 0x00010102), f"version mismatch: {version:x}"
 
     ndets = ins.read_int()
     utime = ((ins.read_int()) << 32) + ins.read_int()
@@ -181,14 +195,14 @@ def process_packet(packet):
 
 DEFAULT_CAMERA_PARAMS = {
     'tag_size': 0.1905,  # meters (7.5 inches)
-    'f': 3072 // 2 // 2,  # focal length in pixels, hand-measured so probably not precise
+    'f': 3072 // 2 //
+    2,  # focal length in pixels, hand-measured so probably not precise
     'cx': 4032 // 2 // 2,  # camera center in pixels
     'cy': 3024 // 2 // 2,  # camera center in pixels
 }  # second divide by 2 is because iOS app downsamples by 2
 
 
 class Detector(socket.socket):
-
     def __init__(self, camera_params=DEFAULT_CAMERA_PARAMS, timeout=1.0):
         self.camera_params = camera_params
         super().__init__(socket.AF_INET, socket.SOCK_DGRAM)
