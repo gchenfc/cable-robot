@@ -2,7 +2,13 @@
 const PAINT_DELAY_S = 0;
 // const HOST = '192.168.0.15'
 // const HOST = '128.61.74.232'
-const HOST = 'localhost'
+// const HOST = 'localhost'
+// const WS_ADDR = 'ws://' + HOST + ':5906'
+const WS_ADDR = {
+  iPad: "wss://paint.gerry-chen.com/whiteboard_passthrough/ws",
+  diffusion: "wss://paint.gerry-chen.com/diffusion_output/ws"
+};
+let ws_select = 'iPad';
 
 COLORS = {
   '#000000': 0, // black
@@ -18,23 +24,33 @@ COLORS = {
 CANVAS_BOUNDS = { w: [0.9, 3.25], h: [0.63, 2.7] };
 // CANVAS_BOUNDS = { w: [0.72, 3.49], h: [0.63, 2.7] };
 
+function retargeting_toggle() {
+  const elem = document.getElementById("retargetingToggle");
+  if (ws_select == 'iPad') {
+    ws_select = "diffusion";
+    elem.classList.add("active");
+    elem.textContent = "Retargeting ON";
+  } else {
+    ws_select = "iPad";
+    elem.classList.remove("active");
+    elem.textContent = "Retargeting Off";
+  }
+}
 
-
-let connected = false;
-function try_connect() {
-  if (!connected) {
-    var websocket = new WebSocket('ws://' + HOST + ':5906');
-    // var websocket = new WebSocket('ws://' + HOST + ':5904');
+let connected = Object.fromEntries(Object.keys(WS_ADDR).map(key => [key, false]));
+function try_connect(key) {
+  if (!connected[key]) {
+    var websocket = new WebSocket(WS_ADDR[key]);
 
     websocket.onerror = function (event) {
-      console.log('WebSocket error: ', event);
-      connected = false;
+      console.log(`WebSocket error for ${key}: `, event);
+      connected[key] = false;
     };
 
     websocket.onopen = function (event) {
-      console.log("Connected to ipad!!!");
+      console.log(`Connected to ${key}!!!`);
       console.log(event);
-      connected = true;
+      connected[key] = true;
       // cdpr.control_mode = ControlMode.POSITION;
       cdpr.setSwitchableControllerMode(SwitchableControllerMode.WAYPOINTS);
       // cdpr.setSwitchableControllerMode(SwitchableControllerMode.SPLINE);
@@ -43,15 +59,16 @@ function try_connect() {
     
     websocket.onclose = function (event) {
       if (connected) {
-        console.log("Disconnected from ipad!!!");
+        console.log(`Disconnected from ${key}!!!`);
         console.log(event);
-        connected = false;
+        connected[key] = false;
         // cdpr.control_mode = ControlMode.VELOCITY;
         cdpr.setSwitchableControllerMode(SwitchableControllerMode.TRACKING);
       }
     }
 
     websocket.onmessage = function (event) {
+      if (ws_select != key) return;
       // console.log(event.data);
       let command = event.data[0];
       txy = event.data.slice(1).split(',')
@@ -110,4 +127,8 @@ function try_connect() {
     }
   }
 }
-setInterval(try_connect, 500);
+function try_connect_both() {
+  try_connect("iPad");
+  try_connect("diffusion");
+}
+setInterval(try_connect_both, 500);
